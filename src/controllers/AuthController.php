@@ -1,61 +1,52 @@
 <?php
-require_once __DIR__ . '/../classes/User.php';
+require_once 'src/core/Controller.php';
+require_once 'src/models/User.php';
 
-class AuthController {
-    private $user;
-
+class AuthController extends Controller {
+    private $userModel;
+    
     public function __construct() {
-        $this->user = new User();
+        $this->userModel = new User();
     }
+    
+    public function login() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $username = $_POST['username'] ?? '';
+            $password = $_POST['password'] ?? '';
 
-    public function login($username, $password) {
-        if (empty($username) || empty($password)) {
-            return [
-                'success' => false,
-                'message' => 'Username and password are required'
-            ];
+            if (empty($username) || empty($password)) {
+                $error = "Please enter both username and password.";
+            } else {
+                $user = $this->userModel->authenticate($username, $password);
+                
+                if ($user) {
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['user_type'] = $user['user_type'];
+                    
+                    // Redirect based on user type
+                    if ($user['user_type'] === 'admin') {
+                        header("Location: " . BASE_PATH . "/admin");
+                    } else {
+                        header("Location: " . BASE_PATH . "/user/dashboard");
+                    }
+                    exit;
+                } else {
+                    $error = "Invalid username or password.";
+                }
+            }
         }
 
-        if ($this->user->login($username, $password)) {
-            return [
-                'success' => true,
-                'message' => 'Login successful',
-                'redirect' => 'tables.php'
-            ];
-        }
-
-        return [
-            'success' => false,
-            'message' => 'Invalid username or password'
-        ];
+        // Show login form
+        ob_start();
+        include_once "src/views/auth/login.php";
+        $content = ob_get_clean();
+        include_once "src/views/layouts/home.php";
     }
-
+    
     public function logout() {
-        if ($this->user->logout()) {
-            return [
-                'success' => true,
-                'message' => 'Logged out successfully',
-                'redirect' => 'index.php'
-            ];
-        }
-
-        return [
-            'success' => false,
-            'message' => 'Logout failed'
-        ];
-    }
-
-    public function checkAuth() {
-        if (!$this->user->isLoggedIn()) {
-            header('Location: index.php');
-            exit;
-        }
-    }
-
-    public function requirePermission($permission) {
-        if (!$this->user->hasPermission($permission)) {
-            header('Location: error.php?code=403');
-            exit;
-        }
+        session_destroy();
+        header("Location: " . BASE_PATH . "/login");
+        exit;
     }
 } 

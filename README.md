@@ -49,12 +49,31 @@ define('APP_URL', 'http://your-domain.com/A2Z-DBMS');
 
 ```
 A2Z-DBMS/
-├── /config/          # Configuration files
-├── /includes/        # Common includes
-├── /public/          # Public-facing files
-├── /src/             # Application source code
-├── /views/           # View templates
-└── /logs/            # Log files
+├── index.php              # Main entry point with routing
+├── database/
+│   └── setup.sql         # Database structure
+├── src/
+│   ├── core/            # Core framework classes
+│   │   ├── Model.php    # Base Model class
+│   │   └── Controller.php # Base Controller class
+│   ├── models/          # Database models
+│   │   └── User.php     # User model
+│   ├── controllers/     # Controllers
+│   │   ├── AuthController.php # Authentication controller
+│   │   ├── AdminController.php # Admin controller
+│   │   └── HomeController.php # Home controller
+│   ├── views/          # View templates
+│   │   ├── layouts/    # Layout templates
+│   │   │   ├── main.php
+│   │   │   └── home.php
+│   │   ├── auth/       # Authentication views
+│   │   │   └── login.php
+│   │   ├── admin/      # Admin views
+│   │   │   └── dashboard.php
+│   │   └── home/       # Home views
+│   │       └── index.php
+│   └── config/         # Configuration files
+│       └── database.php # Database connection
 ```
 
 ## Security Features
