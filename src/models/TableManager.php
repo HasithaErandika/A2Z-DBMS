@@ -69,6 +69,7 @@ class TableManager extends Model {
         $stmt = $this->db->query("SHOW COLUMNS FROM " . $table);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
+
     public function getTotalEmployees() {
         $stmt = $this->db->query("SELECT COUNT(*) FROM employees");
         return $stmt->fetchColumn();
@@ -115,19 +116,6 @@ class TableManager extends Model {
         return $stmt->fetchColumn();
     }
 
-    public function getRecords($table, $page = 1, $perPage = 10) {
-        if (!in_array($table, $this->allowedTables)) {
-            throw new Exception("Invalid table: $table");
-        }
-        $allColumns = $this->getColumns($table);
-        $offset = ($page - 1) * $perPage;
-        $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table` LIMIT :offset, :perPage";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
 
     public function create($table, $data) {
         $config = $this->getConfig($table);
@@ -193,7 +181,7 @@ class TableManager extends Model {
         $stmt->execute([$jobId]);
         return $stmt->fetchColumn() > 0;
     }
-
+    
     public function calculateTotalJobCapacity() {
         $totalCapacity = 0.0;
         $stmt = $this->db->query("SELECT job_capacity FROM jobs");
@@ -208,6 +196,63 @@ class TableManager extends Model {
             }
         }
         return $totalCapacity;
+    }
+    public function getRecords($table, $page = 1, $perPage = 10) {
+        if (!in_array($table, $this->allowedTables)) {
+            throw new Exception("Invalid table: $table");
+        }
+        $allColumns = $this->getColumns($table);
+        $offset = ($page - 1) * $perPage;
+        $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table` LIMIT :offset, :perPage";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function searchRecords($table, $searchTerm) {
+        if (!in_array($table, $this->allowedTables)) {
+            throw new Exception("Invalid table: $table");
+        }
+        $allColumns = $this->getColumns($table);
+        $searchTerm = "%$searchTerm%";
+        $conditions = array_map(fn($col) => "`$col` LIKE ?", $allColumns);
+        $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table` WHERE " . implode(' OR ', $conditions);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(array_fill(0, count($allColumns), $searchTerm));
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function exportRecordsToCSV($table, $startDate, $endDate) {
+        if (!in_array($table, $this->allowedTables)) {
+            throw new Exception("Invalid table: $table");
+        }
+        $config = $this->getConfig($table);
+        $dateField = $config['dateField'] ?? null;
+        $allColumns = $this->getColumns($table);
+
+        $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
+        if ($dateField && $startDate && $endDate) {
+            $sql .= " WHERE `$dateField` BETWEEN ? AND ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$startDate, $endDate]);
+        } else {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+        }
+        $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Generate CSV
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment;filename="' . $table . '_records_' . date('Ymd') . '.csv"');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, $allColumns); // Headers
+        foreach ($records as $record) {
+            fputcsv($output, array_map('strval', array_values($record))); // Ensure all values are strings
+        }
+        fclose($output);
+        exit;
     }
 
     private function validate($table, $data, $rules) {

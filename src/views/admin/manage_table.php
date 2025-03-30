@@ -5,204 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage <?php echo htmlspecialchars($data['table']); ?> - A2Z Engineering</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #005f99;
-            --secondary: #e6ecf0;
-            --accent: #007acc;
-            --background: #f7f9fc;
-            --card-bg: #ffffff;
-            --text-dark: #2d3748;
-            --text-muted: #718096;
+            --primary: #1E40AF;
+            --secondary: #6B7280;
+            --background: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text-dark: #111827;
+            --text-muted: #9CA3AF;
+            --border: #E5E7EB;
             --shadow: rgba(0, 0, 0, 0.05);
-            --success: #38a169;
-            --danger: #e53e3e;
-            --warning: #f6ad55;
-            --border-radius: 8px;
-            --transition: all 0.3s ease;
+            --shadow-hover: rgba(0, 0, 0, 0.1);
+            --success: #10B981;
+            --danger: #EF4444;
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--background);
             color: var(--text-dark);
-            margin: 0;
-            padding: 0;
+            line-height: 1.5;
             overflow-x: hidden;
         }
 
         .container {
-            max-width: 1400px;
-            margin: 20px auto;
-            padding: 0 20px;
+            width: 100%;
+            margin: 0;
+            padding: 16px;
         }
 
         .header {
-            background: var(--primary);
-            color: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 10px var(--shadow);
+            background: var(--card-bg);
+            color: var(--text-dark);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 2px 8px var(--shadow);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .header h1 {
-            font-size: 1.6rem;
+            font-size: 1.3rem;
+            font-weight: 600;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .header-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .btn {
-            padding: 10px 20px;
-            border: none;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
             transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--card-bg);
+            color: var(--text-dark);
         }
 
         .btn-primary {
-            background: var(--accent);
-            color: white;
+            background: var(--primary);
+            color: var(--card-bg);
+            border-color: var(--primary);
         }
 
         .btn-primary:hover {
-            background: #006bb3;
-            transform: translateY(-2px);
+            background: #1E3A8A;
+            border-color: #1E3A8A;
+            box-shadow: 0 2px 6px var(--shadow-hover);
         }
 
         .btn-danger {
             background: var(--danger);
-            color: white;
+            color: var(--card-bg);
+            border-color: var(--danger);
         }
 
         .btn-danger:hover {
-            background: #c53030;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: var(--text-dark);
+            background: #DC2626;
+            border-color: #DC2626;
+            box-shadow: 0 2px 6px var(--shadow-hover);
         }
 
         .btn-secondary:hover {
-            background: #d1dbe3;
+            background: var(--border);
         }
 
         .filters {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            gap: 20px;
+            margin-bottom: 12px;
+            padding: 0 20px;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .search-bar {
-            padding: 10px 15px;
-            border: 1px solid var(--secondary);
+            padding: 8px 12px;
+            border: 1px solid var(--border);
             border-radius: 6px;
-            width: 300px;
-            font-size: 0.9rem;
-            transition: width 0.3s ease, border-color 0.2s;
+            width: 240px;
+            font-size: 0.85rem;
+            transition: var(--transition);
         }
 
         .search-bar:focus {
-            width: 350px;
-            border-color: var(--accent);
+            width: 280px;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.2);
             outline: none;
         }
 
         .stats {
-            font-size: 0.9rem;
+            display: flex;
+            gap: 8px;
+            font-size: 0.8rem;
             color: var(--text-muted);
+        }
+
+        .stats-box {
+            background: var(--card-bg);
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .export-form {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .export-form input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
         }
 
         .table-container {
             background: var(--card-bg);
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 10px var(--shadow);
-            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px var(--shadow);
+            padding: 0;
             overflow-x: auto;
+            width: 100%;
         }
 
         table {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 0.9rem;
+            border-collapse: collapse;
+            font-size: 0.85rem;
         }
 
         th, td {
-            padding: 14px 20px;
+            padding: 10px 16px;
             text-align: left;
-            border-bottom: 1px solid var(--secondary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
 
         th {
-            background: var(--secondary);
-            font-weight: 500;
+            background: var(--background);
+            color: var(--text-dark);
+            font-weight: 600;
             position: sticky;
             top: 0;
             z-index: 1;
             cursor: pointer;
             user-select: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         th:hover {
-            background: #d1dbe3;
+            background: #F3F4F6;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
         }
 
         tr {
-            transition: background 0.2s;
+            transition: var(--transition);
         }
 
         tr:hover {
-            background: #f1f5f8;
+            background: #F9FAFB;
         }
 
         .actions {
             display: flex;
-            gap: 10px;
+            gap: 6px;
         }
 
         .pagination {
-            margin-top: 20px;
-            text-align: center;
+            margin: 12px 20px 0;
             display: flex;
-            justify-content: center;
-            gap: 10px;
+            justify-content: flex-end;
+            gap: 6px;
         }
 
         .pagination a {
-            padding: 8px 14px;
+            padding: 6px 10px;
             text-decoration: none;
-            color: var(--accent);
-            border: 1px solid var(--secondary);
-            border-radius: 6px;
+            color: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
             transition: var(--transition);
+            font-size: 0.8rem;
         }
 
         .pagination a:hover {
-            background: var(--secondary);
+            background: var(--border);
+            border-color: var(--primary);
         }
 
         .pagination a.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
+            background: var(--primary);
+            color: var(--card-bg);
+            border-color: var(--primary);
+            font-weight: 600;
         }
 
         .modal {
@@ -212,7 +257,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.5);
             justify-content: center;
             align-items: center;
             z-index: 1000;
@@ -220,57 +265,56 @@
 
         .modal-content {
             background: var(--card-bg);
-            padding: 25px;
-            border-radius: var(--border-radius);
-            width: 500px;
+            padding: 16px;
+            border-radius: 6px;
+            width: 400px;
             max-width: 90%;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 16px var(--shadow-hover);
+            animation: fadeIn 0.2s ease;
+            border: 1px solid var(--border);
         }
 
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .modal-content h2 {
-            margin: 0 0 20px;
-            font-size: 1.4rem;
+            margin: 0 0 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
             color: var(--text-dark);
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
             font-weight: 500;
+            color: var(--text-dark);
         }
 
         .form-group input, .form-group select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid var(--secondary);
-            border-radius: 6px;
-            font-size: 0.9rem;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.85rem;
             transition: border-color 0.2s;
+            background: var(--card-bg);
         }
 
         .form-group input:focus, .form-group select:focus {
-            border-color: var(--accent);
+            border-color: var(--primary);
             outline: none;
         }
 
         .green { color: var(--success); }
         .red { color: var(--danger); }
-        .stats-box {
-            background: var(--secondary);
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
     </style>
 </head>
 <body>
@@ -278,19 +322,25 @@
         <div class="header">
             <h1><i class="fas fa-table"></i> Manage <?php echo htmlspecialchars($data['table']); ?></h1>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openModal('create')"><i class="fas fa-plus"></i> Add New</button>
+                <button class="btn btn-primary" onclick="openModal('create')"><i class="fas fa-plus"></i> Add</button>
                 <button class="btn btn-secondary" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin'"><i class="fas fa-arrow-left"></i> Back</button>
             </div>
         </div>
 
         <div class="filters">
-            <input type="text" class="search-bar" id="search-bar" placeholder="Search <?php echo htmlspecialchars($data['table']); ?>..." onkeyup="filterTable()">
+            <input type="text" class="search-bar" id="search-bar" placeholder="Search <?php echo htmlspecialchars($data['table']); ?>..." onkeyup="searchTable()">
             <div class="stats">
                 <?php if ($data['table'] === 'jobs' && $data['totalCapacity'] !== null): ?>
-                    <span class="stats-box">Total Job Capacity: <?php echo number_format($data['totalCapacity'], 2); ?></span>
+                    <span class="stats-box">Total Capacity: <?php echo number_format($data['totalCapacity'], 2); ?></span>
                 <?php endif; ?>
-                <span class="stats-box">Showing <?php echo count($data['records']); ?> of many records</span>
+                <span class="stats-box" id="record-count"><?php echo count($data['records']); ?> Records</span>
             </div>
+            <form class="export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
+                <input type="hidden" name="action" value="export_csv">
+                <input type="date" name="start_date" required>
+                <input type="date" name="end_date" required>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</button>
+            </form>
         </div>
 
         <div class="table-container">
@@ -301,12 +351,12 @@
                             <th onclick="sortTable('<?php echo $column; ?>')"><?php echo htmlspecialchars($column); ?> <i class="fas fa-sort"></i></th>
                         <?php endforeach; ?>
                         <?php if ($data['table'] === 'jobs'): ?>
-                            <th>Invoice Exists</th>
+                            <th>Invoice</th>
                         <?php endif; ?>
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="table-body">
                     <?php 
                     $tableManager = new TableManager();
                     foreach ($data['records'] as $record): ?>
@@ -369,7 +419,7 @@
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-                <div class="form-group">
+                <div class="form-group" style="display: flex; gap: 6px;">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Cancel</button>
                 </div>
@@ -386,12 +436,12 @@
             const idInput = document.getElementById('form-id');
 
             if (action === 'create') {
-                title.textContent = 'Add New <?php echo htmlspecialchars($data['table']); ?> Record';
+                title.textContent = 'Add New <?php echo htmlspecialchars($data['table']); ?>';
                 actionInput.value = 'create';
                 idInput.value = '';
                 form.reset();
             } else if (action === 'edit' && record) {
-                title.textContent = 'Edit <?php echo htmlspecialchars($data['table']); ?> Record';
+                title.textContent = 'Edit <?php echo htmlspecialchars($data['table']); ?>';
                 actionInput.value = 'update';
                 const data = JSON.parse(record);
                 idInput.value = data['<?php echo $data['columns'][0]; ?>'] || '';
@@ -420,18 +470,52 @@
             }
         }
 
-        function filterTable() {
-            const search = document.getElementById('search-bar').value.toLowerCase();
-            const rows = document.querySelectorAll('#data-table tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
-            });
+        function searchTable() {
+            const searchTerm = document.getElementById('search-bar').value;
+            fetch('<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=search&search_term=${encodeURIComponent(searchTerm)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+                data.forEach(record => {
+                    const row = document.createElement('tr');
+                    <?php foreach ($data['columns'] as $column): ?>
+                        const <?php echo $column; ?>Cell = document.createElement('td');
+                        <?php if (isset($data['config']['customDisplay'][$column])): ?>
+                            <?php echo $column; ?>Cell.innerHTML = record['<?php echo $column; ?>'] || '';
+                        <?php elseif (isset($data['config']['formatters'][$column])): ?>
+                            <?php echo $column; ?>Cell.innerHTML = record['<?php echo $column; ?>'] || '';
+                        <?php else: ?>
+                            <?php echo $column; ?>Cell.textContent = record['<?php echo $column; ?>'] || '';
+                        <?php endif; ?>
+                        row.appendChild(<?php echo $column; ?>Cell);
+                    <?php endforeach; ?>
+                    <?php if ($data['table'] === 'jobs'): ?>
+                        const invoiceCell = document.createElement('td');
+                        invoiceCell.innerHTML = record['invoice_exists'] ? '<i class="fas fa-check green"></i>' : '<i class="fas fa-times red"></i>';
+                        row.appendChild(invoiceCell);
+                    <?php endif; ?>
+                    const actionsCell = document.createElement('td');
+                    actionsCell.className = 'actions';
+                    actionsCell.innerHTML = `
+                        <button class="btn btn-primary" onclick="openModal('edit', '${JSON.stringify(record).replace(/'/g, "\\'")}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger" onclick="deleteRecord('${record['<?php echo $data['columns'][0]; ?>']}')"><i class="fas fa-trash"></i></button>
+                    `;
+                    row.appendChild(actionsCell);
+                    tbody.appendChild(row);
+                });
+                document.getElementById('record-count').textContent = `${data.length} Records`;
+            })
+            .catch(error => console.error('Error:', error));
         }
 
         let sortDirection = {};
         function sortTable(column) {
-            const tbody = document.querySelector('#data-table tbody');
+            const tbody = document.getElementById('table-body');
             const rows = Array.from(tbody.querySelectorAll('tr'));
             const index = Array.from(document.querySelectorAll('th')).findIndex(th => th.textContent.includes(column));
             sortDirection[column] = !sortDirection[column];
