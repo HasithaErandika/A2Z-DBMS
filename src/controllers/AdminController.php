@@ -17,32 +17,45 @@ class AdminController extends Controller {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
-
+    
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
+            'summary' => [
+                'total_employees' => $this->tableManager->getTotalEmployees(),
+                'active_jobs' => $this->tableManager->getActiveJobs(),
+                'total_projects' => $this->tableManager->getTotalProjects(),
+                'total_expenses' => $this->tableManager->getTotalExpenses(),
+                'total_payments' => $this->tableManager->getTotalPayments(),
+                'todays_jobs' => $this->tableManager->getTodaysJobs(),
+                'todays_expenses' => $this->tableManager->getTodaysExpenses(),
+            ],
+            'system_info' => [
+                'php_version' => phpversion(),
+                'mysql_version' => $this->tableManager->getMySQLVersion(),
+                'server_software' => $_SERVER['SERVER_SOFTWARE'],
+                'db_name' => 'operational_db',
+            ],
             'operationalCards' => [
-                ['link' => '/admin/manageTable/Attendance', 'icon' => 'fa-calendar-check', 'title' => 'Attendance', 'desc' => 'Track employee attendance'],
-                ['link' => '/admin/manageTable/Employee', 'icon' => 'fa-user-tie', 'title' => 'Employee', 'desc' => 'Manage employee records'],
-                ['link' => '/admin/manageTable/Employee_Bank_Details', 'icon' => 'fa-university', 'title' => 'Employee Bank Details', 'desc' => 'Banking information'],
-                ['link' => '/admin/manageTable/Projects', 'icon' => 'fa-project-diagram', 'title' => 'Projects', 'desc' => 'Project management'],
-                ['link' => '/admin/manageTable/Jobs', 'icon' => 'fa-briefcase', 'title' => 'Jobs', 'desc' => 'Job assignments'],
-                ['link' => '/admin/manageTable/Operational_Expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
-                ['link' => '/admin/manageTable/Invoice_Data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
-                ['link' => '/admin/manageTable/Employee_Payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
-                ['link' => '/admin/manageTable/Salary_Increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
-                ['link' => '/admin/manageTable/Material', 'icon' => 'fa-list', 'title' => 'Material List', 'desc' => 'Material inventory'],
-                ['link' => '/admin/manageTable/Material_List_Per_Site', 'icon' => 'fa-list', 'title' => 'Material List Per Site', 'desc' => 'Site-specific materials'],
+                ['link' => '/admin/manageTable/attendance', 'icon' => 'fa-calendar-check', 'title' => 'Attendance', 'desc' => 'Track employee attendance'],
+                ['link' => '/admin/manageTable/employees', 'icon' => 'fa-user-tie', 'title' => 'Employees', 'desc' => 'Manage employee records'],
+                ['link' => '/admin/manageTable/employee_bank_details', 'icon' => 'fa-university', 'title' => 'Employee Bank Details', 'desc' => 'Banking information'],
+                ['link' => '/admin/manageTable/projects', 'icon' => 'fa-project-diagram', 'title' => 'Projects', 'desc' => 'Project management'],
+                ['link' => '/admin/manageTable/jobs', 'icon' => 'fa-briefcase', 'title' => 'Jobs', 'desc' => 'Job assignments'],
+                ['link' => '/admin/manageTable/operational_expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
+                ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
+                ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
+                ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
             ],
             'reportCards' => [
                 ['link' => '/admin/wagesReport', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
                 ['link' => '/admin/expensesReport', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
-                ['link' => '/admin/costCalculation/Jobs', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
+                ['link' => '/admin/costCalculation/jobs', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
                 ['link' => '/admin/materialFind', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
                 ['link' => '/admin/a2zEngineeringJobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
         ];
-
+    
         $this->render('admin/dashboard', $data);
     }
 
@@ -57,11 +70,13 @@ class AdminController extends Controller {
             exit;
         }
 
+        $page = $_GET['page'] ?? 1;
+        $perPage = 10;
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? '';
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $columns[0];
-
             if ($action === 'create') {
                 $data = [];
                 foreach ($columns as $column) {
@@ -81,16 +96,20 @@ class AdminController extends Controller {
                 $id = $_POST['id'] ?? '';
                 $this->tableManager->delete($table, $idColumn, $id);
             }
-            header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table));
+            header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table) . "?page=$page");
             exit;
         }
 
         $data = [
             'table' => $table,
             'columns' => $this->tableManager->getColumns($table),
-            'records' => $this->tableManager->getRecords($table),
+            'records' => $this->tableManager->getRecords($table, $page, $perPage),
+            'config' => $this->tableManager->getConfig($table),
             'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db'
+            'dbname' => 'operational_db',
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalCapacity' => $table === 'jobs' ? $this->tableManager->calculateTotalJobCapacity() : null
         ];
 
         $this->render('admin/manage_table', $data);
@@ -102,6 +121,4 @@ class AdminController extends Controller {
     public function costCalculation($table) { echo "Site Cost Calculation for $table"; }
     public function materialFind() { echo "Material Cost Calculation"; }
     public function a2zEngineeringJobs() { echo "A2Z Engineering Jobs"; }
-    public function users() { echo "Users page"; }
-    public function sql() { echo "SQL page"; }
 }

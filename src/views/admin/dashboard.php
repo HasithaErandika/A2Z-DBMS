@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-Значение charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A2Z Engineering - DBMS Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -16,10 +16,8 @@
             --text-dark: #2d3748;
             --text-muted: #718096;
             --shadow: rgba(0, 0, 0, 0.05);
-            --dark-bg: #1a202c;
-            --dark-card: #2d3748;
-            --dark-text: #e2e8f0;
             --success: #38a169;
+            --danger: #e53e3e;
         }
 
         * {
@@ -36,9 +34,13 @@
             overflow-x: hidden;
         }
 
-        body.dark-mode {
-            background: var(--dark-bg);
-            color: var(--dark-text);
+        .datetime-header {
+            background: var(--secondary);
+            padding: 10px;
+            text-align: center;
+            font-size: 1rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--shadow);
         }
 
         .sidebar {
@@ -59,7 +61,8 @@
         }
 
         .sidebar.collapsed .sidebar-text,
-        .sidebar.collapsed .sidebar-header h3 {
+        .sidebar.collapsed .sidebar-header h3,
+        .sidebar.collapsed .dropdown-content {
             display: none;
         }
 
@@ -84,7 +87,7 @@
             font-size: 1.2rem;
         }
 
-        .sidebar-menu a {
+        .sidebar-menu a, .sidebar-menu .dropdown-btn {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -93,12 +96,32 @@
             text-decoration: none;
             border-radius: 6px;
             transition: background 0.2s ease;
+            cursor: pointer;
         }
 
         .sidebar-menu a:hover,
-        .sidebar-menu a.active {
+        .sidebar-menu a.active,
+        .sidebar-menu .dropdown-btn:hover {
             background: var(--accent);
             color: white;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            padding-left: 20px;
+        }
+
+        .dropdown-content a {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+
+        .dropdown.active .dropdown-content {
+            display: block;
         }
 
         .container {
@@ -193,6 +216,55 @@
             outline: none;
         }
 
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: var(--secondary);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .summary-card p {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .system-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .system-info-card {
+            background: var(--secondary);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .system-info-card h3 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .system-info-card p {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
         .card-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -241,23 +313,14 @@
             text-align: center;
         }
 
-        .status-dot {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-        }
-
         @media (max-width: 1024px) {
             .sidebar {
                 width: 70px;
                 padding: 10px;
             }
             .sidebar .sidebar-text,
-            .sidebar .sidebar-header h3 {
+            .sidebar .sidebar-header h3,
+            .sidebar .dropdown-content {
                 display: none;
             }
             .container {
@@ -266,7 +329,7 @@
         }
 
         @media (max-width: 768px) {
-            .card-grid {
+            .summary-grid, .system-info-grid, .card-grid {
                 grid-template-columns: 1fr;
             }
             .search-bar {
@@ -284,6 +347,10 @@
     </style>
 </head>
 <body>
+    <div class="datetime-header" id="datetime">
+        <span><?php echo date('l, F j, Y - H:i:s'); ?></span>
+    </div>
+
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">A2Z</div>
@@ -291,9 +358,22 @@
         </div>
         <ul class="sidebar-menu">
             <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/manageTable/Employee"><i class="fas fa-users"></i> <span class="sidebar-text">Employees</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/manageTable/Projects"><i class="fas fa-solar-panel"></i> <span class="sidebar-text">Projects</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/wagesReport"><i class="fas fa-money-bill"></i> <span class="sidebar-text">Wages Report</span></a></li>
+            <li class="dropdown">
+                <div class="dropdown-btn" onclick="toggleDropdown(this)"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></div>
+                <div class="dropdown-content">
+                    <?php foreach ($data['operationalCards'] as $card): ?>
+                        <a href="<?php echo BASE_PATH . $card['link']; ?>"><i class="fas <?php echo $card['icon']; ?>"></i> <span class="sidebar-text"><?php echo $card['title']; ?></span></a>
+                    <?php endforeach; ?>
+                </div>
+            </li>
+            <li class="dropdown">
+                <div class="dropdown-btn" onclick="toggleDropdown(this)"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></div>
+                <div class="dropdown-content">
+                    <?php foreach ($data['reportCards'] as $card): ?>
+                        <a href="<?php echo BASE_PATH . $card['link']; ?>"><i class="fas <?php echo $card['icon']; ?>"></i> <span class="sidebar-text"><?php echo $card['title']; ?></span></a>
+                    <?php endforeach; ?>
+                </div>
+            </li>
             <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -306,13 +386,68 @@
                 </button>
                 A2Z Engineering DBMS Dashboard
             </div>
-            <div class="header-controls">
-                <button class="toggle-btn" onclick="toggleDarkMode()">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <div class="user-info">
-                    <i class="fas fa-user-circle"></i>
-                    <span><?php echo htmlspecialchars($data['username']); ?> | DB: <?php echo htmlspecialchars($data['dbname']); ?></span>
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span><?php echo htmlspecialchars($data['username']); ?> | DB: <?php echo htmlspecialchars($data['dbname']); ?></span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section-header">
+                <h2>Summary Overview</h2>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Total Employees</h3>
+                    <p><?php echo htmlspecialchars($data['summary']['total_employees']); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Active Jobs</h3>
+                    <p><?php echo htmlspecialchars($data['summary']['active_jobs']); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Projects</h3>
+                    <p><?php echo htmlspecialchars($data['summary']['total_projects']); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Expenses</h3>
+                    <p><?php echo number_format($data['summary']['total_expenses'], 2); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Payments</h3>
+                    <p><?php echo number_format($data['summary']['total_payments'], 2); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Today's Jobs</h3>
+                    <p><?php echo htmlspecialchars($data['summary']['todays_jobs']); ?></p>
+                </div>
+                <div class="summary-card">
+                    <h3>Today's Expenses</h3>
+                    <p><?php echo number_format($data['summary']['todays_expenses'], 2); ?></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section-header">
+                <h2>Database Management System</h2>
+            </div>
+            <div class="system-info-grid">
+                <div class="system-info-card">
+                    <h3>PHP Version</h3>
+                    <p><?php echo htmlspecialchars($data['system_info']['php_version']); ?></p>
+                </div>
+                <div class="system-info-card">
+                    <h3>MySQL Version</h3>
+                    <p><?php echo htmlspecialchars($data['system_info']['mysql_version']); ?></p>
+                </div>
+                <div class="system-info-card">
+                    <h3>Server Software</h3>
+                    <p><?php echo htmlspecialchars($data['system_info']['server_software']); ?></p>
+                </div>
+                <div class="system-info-card">
+                    <h3>Database Name</h3>
+                    <p><?php echo htmlspecialchars($data['system_info']['db_name']); ?></p>
                 </div>
             </div>
         </div>
@@ -329,7 +464,6 @@
                             <i class="fas <?php echo $card['icon']; ?>"></i>
                             <div class="card-title"><?php echo $card['title']; ?></div>
                             <div class="card-desc"><?php echo $card['desc']; ?></div>
-                            <div class="status-dot"></div>
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -348,7 +482,6 @@
                             <i class="fas <?php echo $card['icon']; ?>"></i>
                             <div class="card-title"><?php echo $card['title']; ?></div>
                             <div class="card-desc"><?php echo $card['desc']; ?></div>
-                            <div class="status-dot"></div>
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -364,18 +497,9 @@
             container.classList.toggle('full-width');
         }
 
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-            updateTheme();
-        }
-
-        function updateTheme() {
-            const isDark = document.body.classList.contains('dark-mode');
-            document.querySelectorAll('.card, .sidebar, .main-content')
-                .forEach(el => el.style.background = isDark ? 'var(--dark-card)' : 'var(--card-bg)');
-            document.querySelectorAll('.card a').forEach(el => el.style.color = isDark ? 'var(--dark-text)' : 'var(--text-dark)');
-            document.querySelector('.dashboard-header').style.background = isDark ? 'var(--dark-card)' : 'var(--primary)');
+        function toggleDropdown(element) {
+            const dropdown = element.parentElement;
+            dropdown.classList.toggle('active');
         }
 
         function filterCards(input, gridId) {
@@ -389,12 +513,17 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('darkMode') === 'true') {
-                document.body.classList.add('dark-mode');
-                updateTheme();
-            }
-        });
+        function updateDateTime() {
+            const datetime = document.getElementById('datetime');
+            const now = new Date();
+            datetime.textContent = now.toLocaleString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
     </script>
 </body>
 </html>
