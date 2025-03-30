@@ -2,66 +2,137 @@
 CREATE DATABASE IF NOT EXISTS `operational_db`;
 USE `operational_db`;
 
--- Create Employee table
-CREATE TABLE `Employee` (
-    `Emp_ID` INT AUTO_INCREMENT PRIMARY KEY,
-    `Emp_Name` VARCHAR(100) NOT NULL,
-    `Emp_NIC` VARCHAR(20) UNIQUE,
-    `Date_of_Birth` DATE,
-    `Address` TEXT,
-    `Date_of_Joined` DATE,
-    `Date_of_resigned` DATE,
-    `Designation` VARCHAR(50),
-    `ETF_No` VARCHAR(20),
-    `Daily_Wage` DECIMAL(10, 2),
-    `Basic_Salary` DECIMAL(10, 2),
-    `NIC_Photo` VARCHAR(255)
+-- Creating employee table
+CREATE TABLE operational_db.employees (
+    emp_id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_name VARCHAR(100) NOT NULL,
+    emp_nic VARCHAR(20) UNIQUE,
+    date_of_birth DATE,
+    address TEXT,
+    date_of_joined DATE,
+    date_of_resigned DATE,
+    designation VARCHAR(50),
+    etf_number VARCHAR(20),
+    daily_wage DECIMAL(10,2),
+    basic_salary DECIMAL(10,2),
+    nic_photo VARCHAR(255)
 );
 
--- Create Jobs table
-CREATE TABLE `Jobs` (
-    `Job_ID` INT AUTO_INCREMENT PRIMARY KEY,
-    `Service_Category` VARCHAR(50),
-    `Date_started` DATE,
-    `Date_completed` DATE,
-    `Customer_ref` VARCHAR(50),
-    `Client_ref` VARCHAR(50),
-    `Engineer` VARCHAR(100),
-    `Location` TEXT,
-    `Job_capacity` VARCHAR(50),
-    `Remarks` TEXT
+-- Creating jobs table with company_reference column and relationship to projects
+CREATE TABLE operational_db.jobs (
+    job_id INT AUTO_INCREMENT PRIMARY KEY,
+    service_category VARCHAR(50),
+    date_started DATE,
+    date_completed DATE,
+    company_reference VARCHAR(50),  -- Renamed from client_reference to company_reference
+    engineer VARCHAR(100),
+    location TEXT,
+    job_capacity VARCHAR(50),
+    remarks TEXT,
+    project_id INT,  -- Adding relationship to the projects table
+    FOREIGN KEY (project_id) REFERENCES operational_db.projects(project_id) ON DELETE SET NULL
 );
 
--- Create Attendance table
-CREATE TABLE `Attendance` (
-    `Atd_ID` INT AUTO_INCREMENT PRIMARY KEY,
-    `Emp_ID` INT,
-    `Job_ID` INT,
-    `Atd_Date` DATE,
-    `Presence` ENUM('Present', 'Absent') DEFAULT 'Present',
-    `Start_Time` TIME,
-    `End_Time` TIME,
-    `Remarks_Atd` TEXT,
-    FOREIGN KEY (`Emp_ID`) REFERENCES `Employee`(`Emp_ID`) ON DELETE SET NULL,
-    FOREIGN KEY (`Job_ID`) REFERENCES `Jobs`(`Job_ID`) ON DELETE SET NULL
+-- Creating attendance table
+CREATE TABLE operational_db.attendance (
+    attendance_id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_id INT,
+    job_id INT,
+    attendance_date DATE,
+    presence ENUM('Present', 'Absent') DEFAULT 'Present',
+    start_time TIME,
+    end_time TIME,
+    remarks TEXT,
+    FOREIGN KEY (emp_id) REFERENCES operational_db.employees(emp_id) ON DELETE SET NULL,
+    FOREIGN KEY (job_id) REFERENCES operational_db.jobs(job_id) ON DELETE SET NULL
 );
 
--- Create Expense table
-CREATE TABLE `Expense` (
-    `ID_Exp` INT AUTO_INCREMENT PRIMARY KEY,
-    `Job_ID` INT,
-    `Emp_ID` INT,
-    `Expensed_Date` DATE,
-    `Expenses_Category` VARCHAR(50),
-    `Description` TEXT,
-    `Exp_amount` DECIMAL(10, 2),
-    `Paid` ENUM('Yes', 'No') DEFAULT 'No',
-    `Remarks` TEXT,
-    `Voucher_No` VARCHAR(50),
-    `Bill` VARCHAR(255),
-    FOREIGN KEY (`Job_ID`) REFERENCES `Jobs`(`Job_ID`) ON DELETE SET NULL,
-    FOREIGN KEY (`Emp_ID`) REFERENCES `Employee`(`Emp_ID`) ON DELETE SET NULL
+-- Creating expenses table
+CREATE TABLE operational_db.expenses (
+    expense_id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT,
+    emp_id INT,
+    expensed_date DATE,
+    expenses_category VARCHAR(50),
+    description TEXT,
+    expense_amount DECIMAL(10,2),
+    paid ENUM('Yes', 'No') DEFAULT 'No',
+    remarks TEXT,
+    voucher_number VARCHAR(50),
+    bill VARCHAR(255),
+    FOREIGN KEY (job_id) REFERENCES operational_db.jobs(job_id) ON DELETE SET NULL,
+    FOREIGN KEY (emp_id) REFERENCES operational_db.employees(emp_id) ON DELETE SET NULL
 );
+
+-- Creating employee bank details table
+CREATE TABLE operational_db.employee_bank_details (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_id INT NOT NULL,
+    emp_name VARCHAR(255) NOT NULL,
+    acc_no VARCHAR(50) NOT NULL,
+    bank VARCHAR(100) NOT NULL,
+    branch VARCHAR(100) NOT NULL
+);
+
+-- Creating employee payments table
+CREATE TABLE operational_db.employee_payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    payment_date DATE NOT NULL,
+    emp_id INT NOT NULL,
+    payment_type VARCHAR(50) NOT NULL,
+    paid_amount DECIMAL(10,2) NOT NULL,
+    remarks TEXT
+);
+
+-- Creating invoice data table
+CREATE TABLE operational_db.invoice_data (
+    invoice_id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    invoice_no VARCHAR(50) NOT NULL,
+    invoice_date DATE NOT NULL,
+    invoice_value DECIMAL(10,2) NOT NULL,
+    invoice TEXT,
+    receiving_payment DECIMAL(10,2),
+    received_amount DECIMAL(10,2),
+    payment_received_date DATE,
+    remarks TEXT
+);
+
+-- Creating projects table with company_reference column
+CREATE TABLE operational_db.projects (
+    project_id INT AUTO_INCREMENT PRIMARY KEY,
+    project_description TEXT NOT NULL,
+    company_reference VARCHAR(255) NOT NULL,  -- Renamed from customer_reference to company_reference
+    remarks TEXT
+);
+
+-- Creating operational expenses table
+CREATE TABLE operational_db.operational_expenses (
+    expense_id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    emp_id INT NOT NULL,
+    expensed_date DATE NOT NULL,
+    expenses_category VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    expense_amount DECIMAL(10,2) NOT NULL,
+    paid BOOLEAN NOT NULL,
+    remarks TEXT,
+    voucher_number VARCHAR(50),
+    bill TEXT
+);
+
+-- Creating salary increments table
+CREATE TABLE operational_db.salary_increments (
+    increment_id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_id INT NOT NULL,
+    increment_type VARCHAR(50) NOT NULL,
+    increment_date DATE NOT NULL,
+    increment_amount DECIMAL(10,2) NOT NULL,
+    new_salary DECIMAL(10,2) NOT NULL,
+    reason TEXT,
+    FOREIGN KEY (emp_id) REFERENCES operational_db.employees(emp_id) ON DELETE CASCADE
+);
+
 
 -- Create Users table for authentication
 CREATE TABLE IF NOT EXISTS users (
@@ -80,20 +151,3 @@ INSERT INTO users (username, password, user_type) VALUES
 -- Insert default user (password: user123)
 INSERT INTO users (username, password, user_type) VALUES 
 ('user', 'user123', 'user');
-
--- Insert sample data for testing
-INSERT INTO `Employee` (`Emp_Name`, `Emp_NIC`, `Date_of_Birth`, `Address`, `Date_of_Joined`, `Designation`, `Daily_Wage`, `Basic_Salary`) VALUES
-('John Doe', '123456789V', '1990-01-01', '123 Main St, Colombo', '2023-01-01', 'Engineer', 2000.00, 50000.00),
-('Jane Smith', '987654321V', '1992-05-15', '456 High St, Kandy', '2023-02-01', 'Technician', 1500.00, 35000.00);
-
-INSERT INTO `Jobs` (`Service_Category`, `Date_started`, `Customer_ref`, `Engineer`, `Location`, `Job_capacity`) VALUES
-('Electrical', '2024-01-01', 'CUST001', 'John Doe', 'Colombo', 'High'),
-('AC Maintenance', '2024-01-15', 'CUST002', 'Jane Smith', 'Kandy', 'Medium');
-
-INSERT INTO `Attendance` (`Emp_ID`, `Job_ID`, `Atd_Date`, `Start_Time`, `End_Time`) VALUES
-(1, 1, '2024-01-01', '08:00:00', '17:00:00'),
-(2, 2, '2024-01-15', '09:00:00', '16:00:00');
-
-INSERT INTO `Expense` (`Job_ID`, `Emp_ID`, `Expensed_Date`, `Expenses_Category`, `Description`, `Exp_amount`, `Paid`) VALUES
-(1, 1, '2024-01-01', 'Transport', 'Fuel for site visit', 5000.00, 'Yes'),
-(2, 2, '2024-01-15', 'Materials', 'AC parts replacement', 15000.00, 'No'); 
