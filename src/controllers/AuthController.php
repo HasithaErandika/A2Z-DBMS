@@ -11,37 +11,45 @@ class AuthController extends Controller {
     
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? '';
+            if (isset($_POST['username']) && isset($_POST['password'])) {
+                $username = trim($_POST['username'] ?? '');
+                $password = trim($_POST['password'] ?? '');
+                $user_type = trim($_POST['user_type'] ?? '');
 
-            if (empty($username) || empty($password)) {
-                $error = "Please enter both username and password.";
-            } else {
-                $user = $this->userModel->authenticate($username, $password);
-                
-                if ($user) {
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['user_type'] = $user['user_type'];
-                    
-                    // Redirect based on user type
-                    if ($user['user_type'] === 'admin') {
-                        header("Location: " . BASE_PATH . "/admin");
-                    } else {
-                        header("Location: " . BASE_PATH . "/user/dashboard");
-                    }
-                    exit;
+                error_log("Login attempt - Username: $username, Password: $password, User Type: $user_type");
+
+                if (empty($username) || empty($password)) {
+                    $error = "Please enter both username and password.";
                 } else {
-                    $error = "Invalid username or password.";
+                    $user = $this->userModel->authenticate($username, $password);
+                    error_log("Authenticate result: " . print_r($user, true));
+                    
+                    if ($user && isset($user['user_type'])) {
+                        if ($user['user_type'] === $user_type) {
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['username'] = $user['username'];
+                            $_SESSION['user_type'] = $user['user_type'];
+                            error_log("Login successful - Session set: " . print_r($_SESSION, true));
+                            
+                            if ($user['user_type'] === 'admin') {
+                                header("Location: " . BASE_PATH . "/admin");
+                            } else {
+                                header("Location: " . BASE_PATH . "/user/dashboard");
+                            }
+                            exit;
+                        } else {
+                            $error = "Invalid user type for these credentials.";
+                            error_log("User type mismatch - DB: {$user['user_type']}, Form: $user_type");
+                        }
+                    } else {
+                        $error = "Invalid username or password.";
+                        error_log("Authentication failed - No user found or missing user_type");
+                    }
                 }
             }
         }
 
-        // Show login form
-        ob_start();
         include_once "src/views/auth/login.php";
-        $content = ob_get_clean();
-        include_once "src/views/layouts/home.php";
     }
     
     public function logout() {
@@ -49,4 +57,4 @@ class AuthController extends Controller {
         header("Location: " . BASE_PATH . "/login");
         exit;
     }
-} 
+}

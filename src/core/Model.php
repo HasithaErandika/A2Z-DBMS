@@ -18,4 +18,4 @@ class Model {
             return false;
         }
     }
-} 
+}

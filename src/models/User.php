@@ -5,10 +5,21 @@ class User extends Model {
     public function authenticate($username, $password) {
         $sql = "SELECT * FROM users WHERE username = ? AND password = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$username, $password]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$stmt) {
+            error_log("SQL prepare failed: " . $this->db->errorInfo()[2]);
+            return false;
+        }
+        $success = $stmt->execute([$username, $password]);
+        if (!$success) {
+            error_log("SQL execute failed: " . $stmt->errorInfo()[2]);
+            return false;
+        }
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        error_log("Fetched user: " . print_r($user, true));
+        return $user ?: false; // Return user array or false
     }
 
+    // Other methods...
     public function create($username, $password, $userType) {
         $sql = "INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)";
         $stmt = $this->db->prepare($sql);
@@ -63,4 +74,4 @@ class User extends Model {
             ':userId' => $userId
         ]);
     }
-} 
+}
