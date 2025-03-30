@@ -1,26 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+Значение charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A2Z Engineering - Admin Dashboard</title>
+    <title>A2Z Engineering - DBMS Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #ff6b00;
-            --secondary: #00c4b4;
-            --accent: #1e90ff;
-            --background: #f5f6fa;
+            --primary: #005f99;
+            --secondary: #e6ecf0;
+            --accent: #007acc;
+            --background: #f7f9fc;
             --card-bg: #ffffff;
-            --text-dark: #1a2540;
-            --text-muted: #6b7280;
-            --shadow: rgba(17, 24, 39, 0.1);
-            --dark-bg: #1a2540;
-            --dark-card: #2d3b55;
-            --dark-text: #e5e7eb;
-            --success: #10b981;
-            --warning: #f59e0b;
+            --text-dark: #2d3748;
+            --text-muted: #718096;
+            --shadow: rgba(0, 0, 0, 0.05);
+            --dark-bg: #1a202c;
+            --dark-card: #2d3748;
+            --dark-text: #e2e8f0;
+            --success: #38a169;
         }
 
         * {
@@ -30,10 +29,10 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background: var(--background);
             color: var(--text-dark);
-            line-height: 1.6;
+            line-height: 1.5;
             overflow-x: hidden;
         }
 
@@ -46,18 +45,17 @@
             position: fixed;
             left: 0;
             top: 0;
-            width: 260px;
+            width: 240px;
             height: 100vh;
             background: var(--card-bg);
-            box-shadow: 4px 0 20px var(--shadow);
-            padding: 25px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-y: auto;
+            box-shadow: 2px 0 10px var(--shadow);
+            padding: 20px;
+            transition: width 0.3s ease;
         }
 
         .sidebar.collapsed {
-            width: 80px;
-            padding: 15px;
+            width: 70px;
+            padding: 10px;
         }
 
         .sidebar.collapsed .sidebar-text,
@@ -68,243 +66,151 @@
         .sidebar-header {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding-bottom: 25px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid rgba(107, 114, 128, 0.1);
-            transition: all 0.3s;
+            gap: 10px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--secondary);
         }
 
         .sidebar-logo {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 700;
-            font-size: 1.3rem;
-            transition: all 0.3s;
-        }
-
-        .sidebar.collapsed .sidebar-logo {
-            width: 40px;
-            height: 40px;
+            font-size: 1.2rem;
         }
 
         .sidebar-menu a {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding: 12px 15px;
+            gap: 12px;
+            padding: 10px 15px;
             color: var(--text-dark);
             text-decoration: none;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            border-radius: 6px;
+            transition: background 0.2s ease;
         }
 
-        .sidebar-menu a:hover {
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
             background: var(--accent);
             color: white;
-            transform: translateX(5px);
-        }
-
-        .sidebar-menu a::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent);
-            transform: scaleY(0);
-            transform-origin: bottom;
-            transition: transform 0.3s ease;
-        }
-
-        .sidebar-menu a.active::after,
-        .sidebar-menu a:hover::after {
-            transform: scaleY(1);
         }
 
         .container {
-            margin-left: 260px;
-            padding: 30px;
-            transition: all 0.3s ease;
+            margin-left: 240px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
             min-height: 100vh;
         }
 
         .container.full-width {
-            margin-left: 80px;
-        }
-
-        .container.no-sidebar {
-            margin-left: 0;
+            margin-left: 70px;
         }
 
         .dashboard-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-            padding: 25px 35px;
-            border-radius: 16px;
-            box-shadow: 0 6px 25px rgba(30, 144, 255, 0.2);
+            background: var(--primary);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow);
             display: flex;
             align-items: center;
             justify-content: space-between;
             color: white;
-            margin-bottom: 35px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="20" d="M50,150 Q100,50 150,150"/></svg>') no-repeat center;
-            opacity: 0.1;
-            pointer-events: none;
+            margin-bottom: 20px;
         }
 
         .header-title {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .toggle-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
             font-size: 1.4rem;
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .toggle-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
-        }
-
-        .user-info {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.95rem;
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 10px;
-            backdrop-filter: blur(5px);
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+            transition: opacity 0.2s;
+        }
+
+        .toggle-btn:hover {
+            opacity: 0.8;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .main-content {
             background: var(--card-bg);
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 4px 15px var(--shadow);
-            margin-bottom: 35px;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px var(--shadow);
+            margin-bottom: 20px;
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(107, 114, 128, 0.1);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--secondary);
         }
 
         .section-header h2 {
-            font-size: 1.6rem;
-            font-weight: 600;
-            position: relative;
-        }
-
-        .section-header h2::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background: var(--accent);
-            border-radius: 2px;
+            font-size: 1.4rem;
+            font-weight: 500;
         }
 
         .search-bar {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 25px;
-            width: 300px;
-            font-size: 0.95rem;
-            background: rgba(107, 114, 128, 0.1);
-            box-shadow: inset 0 2px 4px var(--shadow);
-            transition: all 0.3s ease;
+            padding: 10px 15px;
+            border: 1px solid var(--secondary);
+            border-radius: 6px;
+            width: 250px;
+            font-size: 0.9rem;
+            transition: width 0.3s ease, border-color 0.2s;
         }
 
         .search-bar:focus {
-            width: 350px;
-            background: white;
-            box-shadow: 0 4px 15px var(--shadow);
+            width: 300px;
+            border-color: var(--accent);
+            outline: none;
         }
 
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            padding: 10px 0;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 15px var(--shadow);
-            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                45deg,
-                rgba(30, 144, 255, 0) 0%,
-                rgba(30, 144, 255, 0.1) 50%,
-                rgba(30, 144, 255, 0) 100%
-            );
-            transition: all 0.5s ease;
-            pointer-events: none;
         }
 
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 25px var(--shadow);
-        }
-
-        .card:hover::before {
-            transform: translate(25%, 25%) rotate(20deg);
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
         .card a {
@@ -313,73 +219,55 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            position: relative;
-            z-index: 1;
+            gap: 10px;
         }
 
         .card i {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             color: var(--accent);
-            padding: 15px;
-            background: rgba(30, 144, 255, 0.1);
+            padding: 10px;
+            background: var(--secondary);
             border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover i {
-            transform: scale(1.15);
-            background: rgba(30, 144, 255, 0.2);
         }
 
         .card-title {
-            font-weight: 600;
-            font-size: 1.15rem;
-            margin: 5px 0;
+            font-weight: 500;
+            font-size: 1.1rem;
         }
 
         .card-desc {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
-            opacity: 0.9;
             text-align: center;
         }
 
         .status-dot {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 10px;
-            height: 10px;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--success);
-            box-shadow: 0 0 8px var(--success);
         }
 
         @media (max-width: 1024px) {
             .sidebar {
-                width: 80px;
-                padding: 15px;
+                width: 70px;
+                padding: 10px;
             }
             .sidebar .sidebar-text,
             .sidebar .sidebar-header h3 {
                 display: none;
             }
             .container {
-                margin-left: 80px;
-            }
-            .sidebar.active {
-                width: 260px;
-            }
-            .sidebar.active .sidebar-text,
-            .sidebar.active .sidebar-header h3 {
-                display: block;
+                margin-left: 70px;
             }
         }
 
         @media (max-width: 768px) {
             .card-grid {
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                grid-template-columns: 1fr;
             }
             .search-bar {
                 width: 100%;
@@ -388,25 +276,9 @@
                 width: 100%;
             }
             .dashboard-header {
-                padding: 20px;
                 flex-direction: column;
-                gap: 20px;
+                gap: 15px;
                 text-align: center;
-            }
-            .header-title {
-                font-size: 1.3rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-            .main-content {
-                padding: 20px;
-            }
-            .card {
-                padding: 20px;
             }
         }
     </style>
@@ -418,10 +290,10 @@
             <h3>A2Z Engineering</h3>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="<?php echo BASE_PATH; ?>/admin" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/manage_table.php?table=Employee"><i class="fas fa-users"></i> <span class="sidebar-text">Employees</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/manage_table.php?table=Projects"><i class="fas fa-solar-panel"></i> <span class="sidebar-text">Projects</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/wages_report.php"><i class="fas fa-money-bill"></i> <span class="sidebar-text">Wages Report</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/manageTable/Employee"><i class="fas fa-users"></i> <span class="sidebar-text">Employees</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/manageTable/Projects"><i class="fas fa-solar-panel"></i> <span class="sidebar-text">Projects</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/wagesReport"><i class="fas fa-money-bill"></i> <span class="sidebar-text">Wages Report</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -432,7 +304,7 @@
                 <button class="toggle-btn" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                A2Z Engineering Dashboard
+                A2Z Engineering DBMS Dashboard
             </div>
             <div class="header-controls">
                 <button class="toggle-btn" onclick="toggleDarkMode()">
@@ -490,7 +362,6 @@
             const container = document.getElementById('container');
             sidebar.classList.toggle('collapsed');
             container.classList.toggle('full-width');
-            container.classList.toggle('no-sidebar', !sidebar.classList.contains('collapsed') && window.innerWidth <= 1024);
         }
 
         function toggleDarkMode() {
@@ -501,9 +372,10 @@
 
         function updateTheme() {
             const isDark = document.body.classList.contains('dark-mode');
-            document.querySelectorAll('.card, .sidebar, .main-content, .dashboard-header')
+            document.querySelectorAll('.card, .sidebar, .main-content')
                 .forEach(el => el.style.background = isDark ? 'var(--dark-card)' : 'var(--card-bg)');
             document.querySelectorAll('.card a').forEach(el => el.style.color = isDark ? 'var(--dark-text)' : 'var(--text-dark)');
+            document.querySelector('.dashboard-header').style.background = isDark ? 'var(--dark-card)' : 'var(--primary)');
         }
 
         function filterCards(input, gridId) {
@@ -513,11 +385,7 @@
             Array.from(cards).forEach(card => {
                 const title = card.querySelector('.card-title').textContent.toLowerCase();
                 const desc = card.querySelector('.card-desc').textContent.toLowerCase();
-                const shouldShow = title.includes(searchTerm) || desc.includes(searchTerm);
-                card.style.opacity = shouldShow ? '1' : '0';
-                card.style.transform = shouldShow ? 'scale(1)' : 'scale(0.95)';
-                card.style.transition = 'all 0.3s ease';
-                card.style.pointerEvents = shouldShow ? 'auto' : 'none';
+                card.style.display = (title.includes(searchTerm) || desc.includes(searchTerm)) ? 'block' : 'none';
             });
         }
 
@@ -526,24 +394,6 @@
                 document.body.classList.add('dark-mode');
                 updateTheme();
             }
-
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.addEventListener('click', () => {
-                    card.style.transform = 'scale(0.98)';
-                    setTimeout(() => card.style.transform = 'scale(1)', 150);
-                });
-            });
-
-            window.addEventListener('resize', () => {
-                const sidebar = document.getElementById('sidebar');
-                const container = document.getElementById('container');
-                if (window.innerWidth <= 1024 && !sidebar.classList.contains('collapsed')) {
-                    container.classList.add('no-sidebar');
-                } else {
-                    container.classList.remove('no-sidebar');
-                }
-            });
         });
     </script>
 </body>

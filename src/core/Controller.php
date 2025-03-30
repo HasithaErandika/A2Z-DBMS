@@ -43,4 +43,14 @@ class Controller {
         }
         return $_GET[$key] ?? null;
     }
+
+    protected function render($view, $data = []) {
+        extract($data);
+        $viewPath = "src/views/$view.php";
+        if (file_exists($viewPath)) {
+            include_once $viewPath;
+        } else {
+            die("View '$view' not found at $viewPath");
+        }
+    }
 } 

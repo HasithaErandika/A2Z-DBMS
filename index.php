@@ -20,7 +20,7 @@ $routes = [
     '/admin/attendance' => ['AdminController', 'attendance'],
     '/admin/expenses' => ['AdminController', 'expenses'],
     '/admin/users' => ['AdminController', 'users'],
-    '/admin/sql' => ['AdminController', 'sql']
+    '/admin/sql' => ['AdminController', 'sql'],
 ];
 
 if (isset($routes[$request])) {
@@ -33,6 +33,22 @@ if (isset($routes[$request])) {
             $controllerInstance = new $controllerName();
             $controllerInstance->$methodName();
             exit;
+        }
+    }
+} else {
+    $parts = explode('/', $request);
+    if (count($parts) >= 3 && $parts[1] === 'admin' && $parts[2] === 'manageTable' && !empty($parts[3])) {
+        $controllerName = 'AdminController';
+        $methodName = 'manageTable';
+        $table = $parts[3];
+        $controllerFile = "src/controllers/{$controllerName}.php";
+        if (file_exists($controllerFile)) {
+            require_once $controllerFile;
+            if (class_exists($controllerName) && method_exists($controllerName, $methodName)) {
+                $controllerInstance = new $controllerName();
+                $controllerInstance->$methodName($table);
+                exit;
+            }
         }
     }
 }

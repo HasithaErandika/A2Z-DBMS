@@ -56,16 +56,17 @@ A2Z-DBMS/
 │   ├── core/            # Core framework classes
 │   │   ├── Model.php    # Base Model class
 │   │   └── Controller.php # Base Controller class
+│   │   └── Database.php # Database class
 │   ├── models/          # Database models
 │   │   └── User.php     # User model
 │   ├── controllers/     # Controllers
 │   │   ├── AuthController.php # Authentication controller
 │   │   ├── AdminController.php # Admin controller
 │   │   └── HomeController.php # Home controller
+│   │   └── ErrorController.php # Error Controller 
 │   ├── views/          # View templates
-│   │   ├── layouts/    # Layout templates
-│   │   │   ├── main.php
-│   │   │   └── home.php
+│   │   ├── errors/    # error page
+│   │   │   ├── error.php
 │   │   ├── auth/       # Authentication views
 │   │   │   └── login.php
 │   │   ├── admin/      # Admin views
