@@ -17,7 +17,7 @@ class AdminController extends Controller {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
-    
+
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
@@ -35,7 +35,21 @@ class AdminController extends Controller {
                 'mysql_version' => $this->tableManager->getMySQLVersion(),
                 'server_software' => $_SERVER['SERVER_SOFTWARE'],
                 'db_name' => 'operational_db',
-            ],
+            ]
+        ];
+
+        $this->render('admin/dashboard', $data);
+    }
+
+    public function tables() {
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
+            header("Location: " . BASE_PATH . "/login");
+            exit;
+        }
+
+        $data = [
+            'username' => $_SESSION['username'] ?? 'Admin',
+            'dbname' => 'operational_db',
             'operationalCards' => [
                 ['link' => '/admin/manageTable/attendance', 'icon' => 'fa-calendar-check', 'title' => 'Attendance', 'desc' => 'Track employee attendance'],
                 ['link' => '/admin/manageTable/employees', 'icon' => 'fa-user-tie', 'title' => 'Employees', 'desc' => 'Manage employee records'],
@@ -46,7 +60,21 @@ class AdminController extends Controller {
                 ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
                 ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
                 ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
-            ],
+            ]
+        ];
+
+        $this->render('admin/tables', $data);
+    }
+
+    public function records() {
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
+            header("Location: " . BASE_PATH . "/login");
+            exit;
+        }
+
+        $data = [
+            'username' => $_SESSION['username'] ?? 'Admin',
+            'dbname' => 'operational_db',
             'reportCards' => [
                 ['link' => '/admin/wagesReport', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
                 ['link' => '/admin/expensesReport', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
@@ -55,11 +83,12 @@ class AdminController extends Controller {
                 ['link' => '/admin/a2zEngineeringJobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
         ];
-    
-        $this->render('admin/dashboard', $data);
+
+        $this->render('admin/records', $data);
     }
 
     public function manageTable($table) {
+        // Existing manageTable method remains unchanged
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;

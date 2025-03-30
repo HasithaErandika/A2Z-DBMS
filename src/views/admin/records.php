@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A2Z Engineering - DBMS Admin Dashboard</title>
+    <title>A2Z Engineering - Records</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -180,53 +180,67 @@
             font-weight: 500;
         }
 
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .summary-card {
-            background: var(--secondary);
-            padding: 15px;
+        .search-bar {
+            padding: 10px 15px;
+            border: 1px solid var(--secondary);
             border-radius: 6px;
-            text-align: center;
+            width: 250px;
+            font-size: 0.9rem;
+            transition: width 0.3s ease, border-color 0.2s;
         }
 
-        .summary-card h3 {
-            font-size: 1.1rem;
-            margin-bottom: 5px;
+        .search-bar:focus {
+            width: 300px;
+            border-color: var(--accent);
+            outline: none;
         }
 
-        .summary-card p {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .system-info-grid {
+        .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
 
-        .system-info-card {
-            background: var(--secondary);
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
         }
 
-        .system-info-card h3 {
-            font-size: 1rem;
-            margin-bottom: 5px;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
-        .system-info-card p {
-            font-size: 1.2rem;
-            font-weight: 500;
+        .card a {
+            text-decoration: none;
             color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card i {
+            font-size: 1.8rem;
+            color: var(--accent);
+            padding: 10px;
+            background: var(--secondary);
+            border-radius: 50%;
+        }
+
+        .card-title {
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
         }
 
         @media (max-width: 1024px) {
@@ -244,8 +258,14 @@
         }
 
         @media (max-width: 768px) {
-            .summary-grid, .system-info-grid {
+            .card-grid {
                 grid-template-columns: 1fr;
+            }
+            .search-bar {
+                width: 100%;
+            }
+            .search-bar:focus {
+                width: 100%;
             }
             .dashboard-header {
                 flex-direction: column;
@@ -266,9 +286,9 @@
             <h3>A2Z Engineering</h3>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/admin/tables"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/records"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/records" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -279,7 +299,7 @@
                 <button class="toggle-btn" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                A2Z Engineering DBMS Dashboard
+                Report Records
             </div>
             <div class="user-info">
                 <i class="fas fa-user-circle"></i>
@@ -289,61 +309,19 @@
 
         <div class="main-content">
             <div class="section-header">
-                <h2>Summary Overview</h2>
+                <h2>Reports</h2>
+                <input type="text" class="search-bar" placeholder="Search reports..." onkeyup="filterCards(this, 'reports')">
             </div>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <h3>Total Employees</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['total_employees']); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Active Jobs</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['active_jobs']); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Total Projects</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['total_projects']); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Total Expenses</h3>
-                    <p><?php echo number_format($data['summary']['total_expenses'], 2); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Total Payments</h3>
-                    <p><?php echo number_format($data['summary']['total_payments'], 2); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Today's Jobs</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['todays_jobs']); ?></p>
-                </div>
-                <div class="summary-card">
-                    <h3>Today's Expenses</h3>
-                    <p><?php echo number_format($data['summary']['todays_expenses'], 2); ?></p>
-                </div>
-            </div>
-        </div>
-
-        <div class="main-content">
-            <div class="section-header">
-                <h2>Database Management System</h2>
-            </div>
-            <div class="system-info-grid">
-                <div class="system-info-card">
-                    <h3>PHP Version</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['php_version']); ?></p>
-                </div>
-                <div class="system-info-card">
-                    <h3>MySQL Version</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['mysql_version']); ?></p>
-                </div>
-                <div class="system-info-card">
-                    <h3>Server Software</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['server_software']); ?></p>
-                </div>
-                <div class="system-info-card">
-                    <h3>Database Name</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['db_name']); ?></p>
-                </div>
+            <div class="card-grid" id="reports-grid">
+                <?php foreach ($data['reportCards'] as $card): ?>
+                    <div class="card">
+                        <a href="<?php echo BASE_PATH . $card['link']; ?>">
+                            <i class="fas <?php echo $card['icon']; ?>"></i>
+                            <div class="card-title"><?php echo $card['title']; ?></div>
+                            <div class="card-desc"><?php echo $card['desc']; ?></div>
+                        </a>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
@@ -354,6 +332,17 @@
             const container = document.getElementById('container');
             sidebar.classList.toggle('collapsed');
             container.classList.toggle('full-width');
+        }
+
+        function filterCards(input, gridId) {
+            const searchTerm = input.value.toLowerCase();
+            const grid = document.getElementById(`${gridId}-grid`);
+            const cards = grid.getElementsByClassName('card');
+            Array.from(cards).forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const desc = card.querySelector('.card-desc').textContent.toLowerCase();
+                card.style.display = (title.includes(searchTerm) || desc.includes(searchTerm)) ? 'block' : 'none';
+            });
         }
 
         function updateDateTime() {
