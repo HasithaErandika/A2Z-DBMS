@@ -520,17 +520,29 @@
     </script>
     <style>
         @keyframes particleMove {
-            0% { transform: translate(0, 0); opacity: 1; }
-            100% { transform: translate(${Math.random() * 100 - 50}px, ${Math.random() * 100 - 50}px); opacity: 0; }
-        }
+    0% { transform: translate(0, 0); opacity: 1; }
+    100% { transform: translate(50px, -50px); opacity: 0; } /* Replace JS with fixed values */
+}
 
-        .animate__animated {
-            animation-duration: 1s;
-        }
+.animate__animated {
+    animation-duration: 1s;
+}
 
-        .animate__fadeInUp {
-            animation-name: fadeInUp;
-        }
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate__fadeInUp {
+    animation-name: fadeInUp;
+}
+
     </style>
 </body>
 </html>
