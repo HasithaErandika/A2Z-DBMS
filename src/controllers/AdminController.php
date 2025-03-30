@@ -88,7 +88,6 @@ class AdminController extends Controller {
     }
 
     public function manageTable($table) {
-        // Existing manageTable method remains unchanged
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;
@@ -106,7 +105,26 @@ class AdminController extends Controller {
             $action = $_POST['action'] ?? '';
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $columns[0];
-            if ($action === 'create') {
+
+            if ($action === 'get_records') {
+                // Handle DataTables AJAX request
+                $page = isset($_POST['start']) ? ($_POST['start'] / $_POST['length']) + 1 : 1;
+                $perPage = $_POST['length'] ?? 10;
+                $searchTerm = $_POST['searchTerm'] ?? '';
+                $sortColumn = $_POST['sortColumn'] ?? '';
+                $sortOrder = $_POST['sortOrder'] ?? 'ASC';
+
+                $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage, $searchTerm, $sortColumn, $sortOrder);
+
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'draw' => (int)$_POST['draw'],
+                    'recordsTotal' => $result['totalRecords'],
+                    'recordsFiltered' => $result['totalRecords'], // Adjust if implementing advanced filtering
+                    'data' => $result['records']
+                ]);
+                exit;
+            } elseif ($action === 'create') {
                 $data = [];
                 foreach ($columns as $column) {
                     if ($column !== $idColumn || !empty($_POST[$column])) {
@@ -124,22 +142,33 @@ class AdminController extends Controller {
             } elseif ($action === 'delete') {
                 $id = $_POST['id'] ?? '';
                 $this->tableManager->delete($table, $idColumn, $id);
+            } elseif ($action === 'export_csv') {
+                $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
+                exit;
             }
             header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table) . "?page=$page");
             exit;
         }
 
+        // Initial page load (GET request)
+        $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage);
+
         $data = [
             'table' => $table,
             'columns' => $this->tableManager->getColumns($table),
-            'records' => $this->tableManager->getRecords($table, $page, $perPage),
+            'records' => $result['records'],
+            'totalRecords' => $result['totalRecords'],
+            'totalPages' => $result['totalPages'],
             'config' => $this->tableManager->getConfig($table),
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
             'page' => $page,
-            'perPage' => $perPage,
-            'totalCapacity' => $table === 'jobs' ? $this->tableManager->calculateTotalJobCapacity() : null
+            'perPage' => $perPage
         ];
+
+        if ($table === 'jobs') {
+            $data['totalCapacity'] = $this->tableManager->calculateTotalJobCapacity();
+        }
 
         $this->render('admin/manage_table', $data);
     }

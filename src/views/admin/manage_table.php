@@ -6,6 +6,7 @@
     <title>Manage <?php echo htmlspecialchars($data['table']); ?> - A2Z Engineering</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
     <style>
         :root {
             --primary: #1E40AF;
@@ -13,241 +14,239 @@
             --background: #F9FAFB;
             --card-bg: #FFFFFF;
             --text-dark: #111827;
-            --text-muted: #9CA3AF;
+            --text-muted: #6B7280;
             --border: #E5E7EB;
-            --shadow: rgba(0, 0, 0, 0.05);
-            --shadow-hover: rgba(0, 0, 0, 0.1);
+            --shadow: rgba(0, 0, 0, 0.1);
             --success: #10B981;
             --danger: #EF4444;
-            --transition: all 0.2s ease;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --warning: #F59E0B;
+            --gradient: linear-gradient(135deg, #1E40AF, #3B82F6);
+            --transition: all 0.3s ease;
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background: var(--background);
             color: var(--text-dark);
-            line-height: 1.5;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
             overflow-x: hidden;
         }
 
         .container {
-            width: 100%;
-            margin: 0;
-            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
         .header {
             background: var(--card-bg);
-            color: var(--text-dark);
-            padding: 12px 20px;
-            border-bottom: 1px solid var(--border);
-            box-shadow: 0 2px 8px var(--shadow);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .header h1 {
-            font-size: 1.3rem;
-            font-weight: 600;
+            font-size: 1.75rem;
+            font-weight: 700;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 8px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 8px;
+            gap: 12px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            color: transparent;
         }
 
         .btn {
-            padding: 6px 14px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.95rem;
+            font-weight: 600;
             transition: var(--transition);
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 4px;
-            background: var(--card-bg);
-            color: var(--text-dark);
+            gap: 8px;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn:hover::after {
+            width: 200%;
+            height: 200%;
         }
 
         .btn-primary {
-            background: var(--primary);
-            color: var(--card-bg);
-            border-color: var(--primary);
+            background: var(--gradient);
+            color: #fff;
         }
 
         .btn-primary:hover {
-            background: #1E3A8A;
-            border-color: #1E3A8A;
-            box-shadow: 0 2px 6px var(--shadow-hover);
+            box-shadow: 0 6px 16px rgba(30, 64, 175, 0.3);
+            transform: translateY(-2px);
         }
 
         .btn-danger {
             background: var(--danger);
-            color: var(--card-bg);
-            border-color: var(--danger);
+            color: #fff;
         }
 
         .btn-danger:hover {
             background: #DC2626;
-            border-color: #DC2626;
-            box-shadow: 0 2px 6px var(--shadow-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: #fff;
         }
 
         .btn-secondary:hover {
-            background: var(--border);
+            background: #4B5563;
+            transform: translateY(-2px);
         }
 
         .filters {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 1fr auto;
             align-items: center;
-            margin-bottom: 12px;
-            padding: 0 20px;
-            gap: 12px;
-            flex-wrap: wrap;
+            margin-bottom: 30px;
+            gap: 20px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
-        .search-bar {
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            width: 240px;
-            font-size: 0.85rem;
-            transition: var(--transition);
-        }
-
-        .search-bar:focus {
-            width: 280px;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.2);
-            outline: none;
-        }
-
-        .stats {
-            display: flex;
-            gap: 8px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
+        @media (max-width: 768px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stats-box {
-            background: var(--card-bg);
-            padding: 4px 10px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
+            background: #F3F4F6;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .export-form {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .export-form input[type="date"] {
-            padding: 6px 10px;
+            padding: 10px;
             border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.85rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .export-form input[type="date"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2);
+            outline: none;
         }
 
         .table-container {
             background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-shadow: 0 2px 8px var(--shadow);
-            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+            padding: 20px;
             overflow-x: auto;
-            width: 100%;
+            animation: fadeIn 0.5s ease;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        th, td {
-            padding: 10px 16px;
+        #data-table {
+            width: 100% !important;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            min-width: max-content; /* Ensures all columns stay visible */
+        }
+
+        #data-table th, #data-table td {
+            padding: 14px 20px;
             text-align: left;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
+            font-size: 0.95rem;
+            white-space: nowrap; /* Prevents text wrapping */
         }
 
-        th {
-            background: var(--background);
-            color: var(--text-dark);
+        #data-table th {
+            background: var(--gradient);
+            color: #fff;
             font-weight: 600;
             position: sticky;
             top: 0;
-            z-index: 1;
-            cursor: pointer;
-            user-select: none;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            z-index: 5;
         }
 
-        th:hover {
-            background: #F3F4F6;
+        #data-table td {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s ease;
         }
 
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr {
-            transition: var(--transition);
-        }
-
-        tr:hover {
+        #data-table tr:hover td {
             background: #F9FAFB;
         }
 
-        .actions {
-            display: flex;
-            gap: 6px;
-        }
-
-        .pagination {
-            margin: 12px 20px 0;
-            display: flex;
-            justify-content: flex-end;
-            gap: 6px;
-        }
-
-        .pagination a {
-            padding: 6px 10px;
-            text-decoration: none;
-            color: var(--primary);
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 10px;
             border: 1px solid var(--border);
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 0.9rem;
             transition: var(--transition);
-            font-size: 0.8rem;
         }
 
-        .pagination a:hover {
-            background: var(--border);
+        .dataTables_wrapper .dataTables_filter input:focus {
             border-color: var(--primary);
-        }
-
-        .pagination a.active {
-            background: var(--primary);
-            color: var(--card-bg);
-            border-color: var(--primary);
-            font-weight: 600;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2);
+            outline: none;
         }
 
         .modal {
@@ -257,64 +256,129 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.7);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            animation: fadeIn 0.3s ease;
         }
 
         .modal-content {
             background: var(--card-bg);
-            padding: 16px;
-            border-radius: 6px;
-            width: 400px;
+            padding: 30px;
+            border-radius: 12px;
+            width: 700px;
             max-width: 90%;
-            box-shadow: 0 4px 16px var(--shadow-hover);
-            animation: fadeIn 0.2s ease;
-            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px var(--shadow);
+            max-height: 85vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        .modal.active .modal-content {
+            transform: scale(1);
         }
 
         .modal-content h2 {
-            margin: 0 0 12px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-dark);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            color: transparent;
         }
 
         .form-group {
-            margin-bottom: 10px;
+            margin-bottom: 25px;
         }
 
         .form-group label {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 0.85rem;
             font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
             color: var(--text-dark);
         }
 
         .form-group input, .form-group select {
             width: 100%;
-            padding: 8px 12px;
+            padding: 12px 15px;
             border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.85rem;
-            transition: border-color 0.2s;
-            background: var(--card-bg);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: var(--transition);
         }
 
         .form-group input:focus, .form-group select:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.2);
             outline: none;
+        }
+
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner i {
+            font-size: 2rem;
+            color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
         }
 
         .green { color: var(--success); }
         .red { color: var(--danger); }
+        .yellow { color: var(--warning); }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111827;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+            }
+
+            .btn {
+                padding: 10px 18px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -322,85 +386,47 @@
         <div class="header">
             <h1><i class="fas fa-table"></i> Manage <?php echo htmlspecialchars($data['table']); ?></h1>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openModal('create')"><i class="fas fa-plus"></i> Add</button>
-                <button class="btn btn-secondary" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin'"><i class="fas fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary tooltip" onclick="openModal('create')" data-tooltip="Add a new record"><i class="fas fa-plus"></i> Add Record</button>
+                <button class="btn btn-secondary tooltip" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin'" data-tooltip="Return to dashboard"><i class="fas fa-arrow-left"></i> Back to Dashboard</button>
             </div>
         </div>
 
         <div class="filters">
-            <input type="text" class="search-bar" id="search-bar" placeholder="Search <?php echo htmlspecialchars($data['table']); ?>..." onkeyup="searchTable()">
             <div class="stats">
-                <?php if ($data['table'] === 'jobs' && $data['totalCapacity'] !== null): ?>
-                    <span class="stats-box">Total Capacity: <?php echo number_format($data['totalCapacity'], 2); ?></span>
+                <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
+                    <span class="stats-box tooltip" data-tooltip="Total capacity across all jobs"><i class="fas fa-weight-hanging"></i> Total Capacity: <?php echo number_format($data['totalCapacity'], 2); ?></span>
                 <?php endif; ?>
-                <span class="stats-box" id="record-count"><?php echo count($data['records']); ?> Records</span>
+                <span class="stats-box tooltip" id="record-count" data-tooltip="Total records in the table"><i class="fas fa-database"></i> <?php echo $data['totalRecords']; ?> Records</span>
             </div>
             <form class="export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                 <input type="hidden" name="action" value="export_csv">
-                <input type="date" name="start_date" required>
-                <input type="date" name="end_date" required>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Export CSV</button>
+                <input type="date" name="start_date" required aria-label="Start Date">
+                <input type="date" name="end_date" required aria-label="End Date">
+                <button type="submit" class="btn btn-primary tooltip" data-tooltip="Export data as CSV"><i class="fas fa-download"></i> Export CSV</button>
             </form>
         </div>
 
         <div class="table-container">
-            <table id="data-table">
-                <thead>
-                    <tr>
-                        <?php foreach ($data['columns'] as $column): ?>
-                            <th onclick="sortTable('<?php echo $column; ?>')"><?php echo htmlspecialchars($column); ?> <i class="fas fa-sort"></i></th>
-                        <?php endforeach; ?>
-                        <?php if ($data['table'] === 'jobs'): ?>
-                            <th>Invoice</th>
-                        <?php endif; ?>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <?php 
-                    $tableManager = new TableManager();
-                    foreach ($data['records'] as $record): ?>
-                        <tr>
-                            <?php 
-                            $customDisplay = $data['config']['customDisplay'] ?? [];
-                            $formatters = $data['config']['formatters'] ?? [];
-                            foreach ($data['columns'] as $column): 
-                                $value = $record[$column] ?? '';
-                                if (isset($customDisplay[$column])) {
-                                    $value = $tableManager->{$customDisplay[$column]}($record[$data['columns'][0]]);
-                                } elseif (isset($formatters[$column])) {
-                                    $value = $tableManager->{$formatters[$column]}($value);
-                                } else {
-                                    $value = htmlspecialchars($value);
-                                }
-                            ?>
-                                <td><?php echo $value; ?></td>
-                            <?php endforeach; ?>
-                            <?php if ($data['table'] === 'jobs'): ?>
-                                <td><?php echo $tableManager->checkInvoiceExists($record['job_id']) ? '<i class="fas fa-check green"></i>' : '<i class="fas fa-times red"></i>'; ?></td>
-                            <?php endif; ?>
-                            <td class="actions">
-                                <button class="btn btn-primary" onclick="openModal('edit', '<?php echo htmlspecialchars(json_encode($record)); ?>')"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-danger" onclick="deleteRecord('<?php echo $record[$data['columns'][0]]; ?>')"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
+        <table id="data-table" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <?php foreach ($data['columns'] as $column): ?>
+                        <th><?php echo htmlspecialchars($column); ?></th>
                     <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="pagination">
-            <?php 
-            $totalPages = 5; // Replace with dynamic calculation later
-            for ($i = 1; $i <= $totalPages; $i++): ?>
-                <a href="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo urlencode($data['table']); ?>?page=<?php echo $i; ?>" class="<?php echo $i == $data['page'] ? 'active' : ''; ?>"><?php echo $i; ?></a>
-            <?php endfor; ?>
-        </div>
+                    <?php if ($data['table'] === 'jobs'): ?>
+                        <th>Invoice</th>
+                    <?php endif; ?>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+        </table>
+        <div class="spinner" id="loading-spinner"><i class="fas fa-spinner"></i></div>
+    </div>
     </div>
 
     <div class="modal" id="crud-modal">
         <div class="modal-content">
-            <h2 id="modal-title"></h2>
+            <h2 id="modal-title" aria-live="polite"></h2>
             <form id="crud-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                 <input type="hidden" name="action" id="form-action">
                 <input type="hidden" name="id" id="form-id">
@@ -409,25 +435,119 @@
                 foreach ($editableFields as $column): ?>
                     <div class="form-group">
                         <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
-                        <?php if (in_array($column, ['presence', 'paid'])): ?>
-                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>">
-                                <option value="Present">Present</option>
-                                <option value="Absent">Absent</option>
+                        <?php if ($column === 'presence'): ?>
+                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Presence Status">
+                                <option value="1.0">Full Day</option>
+                                <option value="0.5">Half Day</option>
+                                <option value="0.0">Not Attended</option>
+                            </select>
+                        <?php elseif ($column === 'paid'): ?>
+                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Payment Status">
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
                             </select>
                         <?php else: ?>
-                            <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?>>
+                            <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-                <div class="form-group" style="display: flex; gap: 6px;">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()"><i class="fas fa-times"></i> Cancel</button>
+                <div class="form-group" style="display: flex; justify-content: flex-end; gap: 15px;">
+                    <button type="button" class="btn btn-secondary tooltip" onclick="closeModal()" data-tooltip="Cancel changes"><i class="fas fa-times"></i> Cancel</button>
+                    <button type="submit" class="btn btn-primary tooltip" data-tooltip="Save changes"><i class="fas fa-save"></i> Save</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
+        $(document).ready(function() {
+            const table = $('#data-table').DataTable({
+                processing: true,
+                serverSide: true,
+                scrollX: true, // Enables horizontal scrolling
+                autoWidth: false, // Prevents automatic column width adjustment
+                ajax: {
+                    url: '<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>',
+                    type: 'POST',
+                    data: function(d) {
+                        d.action = 'get_records';
+                        d.searchTerm = d.search.value;
+                        d.sortColumn = d.columns[d.order[0].column].data;
+                        d.sortOrder = d.order[0].dir;
+                    },
+                    beforeSend: function() {
+                        $('#loading-spinner').show();
+                    },
+                    complete: function() {
+                        $('#loading-spinner').hide();
+                    }
+                },
+                columns: [
+                    <?php foreach ($data['columns'] as $column): ?>
+                        {
+                            data: '<?php echo $column; ?>',
+                            render: function(data, type, row) {
+                                <?php if ($data['table'] === 'jobs' && $column === 'job_id'): ?>
+                                    return data; // engineer from getJobDetails
+                                <?php elseif ($data['table'] === 'jobs' && $column === 'project_id'): ?>
+                                    return data; // company_reference - project_description from getProjectDetailsForJobs
+                                <?php elseif ($data['table'] !== 'jobs' && $column === 'job_id'): ?>
+                                    return data; // customer_reference from getCustomerReferenceForJobId
+                                <?php elseif ($data['table'] === 'attendance' && $column === 'presence'): ?>
+                                    return data; // Handled by getPresenceDisplay in backend
+                                <?php else: ?>
+                                    return data ? data : '-';
+                                <?php endif; ?>
+                            }
+                        },
+                    <?php endforeach; ?>
+                    <?php if ($data['table'] === 'jobs'): ?>
+                        { 
+                            data: 'invoice_exists',
+                            render: function(data) {
+                                return data ? '<i class="fas fa-check green tooltip" data-tooltip="Invoice exists"></i>' : '<i class="fas fa-times red tooltip" data-tooltip="No invoice"></i>';
+                            },
+                            width: '50px'
+                        },
+                    <?php endif; ?>
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            return `
+                                <div style="display: flex; gap: 10px; justify-content: center;">
+                                    <button class="btn btn-primary tooltip" onclick="openModal('edit', '${JSON.stringify(row).replace(/'/g, "\\'")}')" data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger tooltip" onclick="deleteRecord('${row['<?php echo $data['columns'][0]; ?>']}')" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                        },
+                        orderable: false,
+                        width: '120px',
+                        className: 'actions-column'
+                    }
+                ],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[0, 'desc']],
+                language: {
+                    processing: "Loading data...",
+                    search: "Search records:",
+                    lengthMenu: "Show _MENU_ entries",
+                    emptyTable: "No data available",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                },
+                dom: 'lfrtip'
+            });
+        });
+
         function openModal(action, record = null) {
             const modal = document.getElementById('crud-modal');
             const title = document.getElementById('modal-title');
@@ -436,12 +556,12 @@
             const idInput = document.getElementById('form-id');
 
             if (action === 'create') {
-                title.textContent = 'Add New <?php echo htmlspecialchars($data['table']); ?>';
+                title.textContent = 'Add New <?php echo htmlspecialchars($data['table']); ?> Record';
                 actionInput.value = 'create';
                 idInput.value = '';
                 form.reset();
             } else if (action === 'edit' && record) {
-                title.textContent = 'Edit <?php echo htmlspecialchars($data['table']); ?>';
+                title.textContent = 'Edit <?php echo htmlspecialchars($data['table']); ?> Record';
                 actionInput.value = 'update';
                 const data = JSON.parse(record);
                 idInput.value = data['<?php echo $data['columns'][0]; ?>'] || '';
@@ -450,14 +570,17 @@
                 <?php endforeach; ?>
             }
             modal.style.display = 'flex';
+            modal.classList.add('active');
         }
 
         function closeModal() {
-            document.getElementById('crud-modal').style.display = 'none';
+            const modal = document.getElementById('crud-modal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
         }
 
         function deleteRecord(id) {
-            if (confirm('Are you sure you want to delete this record?')) {
+            if (confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>';
@@ -470,66 +593,10 @@
             }
         }
 
-        function searchTable() {
-            const searchTerm = document.getElementById('search-bar').value;
-            fetch('<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=search&search_term=${encodeURIComponent(searchTerm)}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.getElementById('table-body');
-                tbody.innerHTML = '';
-                data.forEach(record => {
-                    const row = document.createElement('tr');
-                    <?php foreach ($data['columns'] as $column): ?>
-                        const <?php echo $column; ?>Cell = document.createElement('td');
-                        <?php if (isset($data['config']['customDisplay'][$column])): ?>
-                            <?php echo $column; ?>Cell.innerHTML = record['<?php echo $column; ?>'] || '';
-                        <?php elseif (isset($data['config']['formatters'][$column])): ?>
-                            <?php echo $column; ?>Cell.innerHTML = record['<?php echo $column; ?>'] || '';
-                        <?php else: ?>
-                            <?php echo $column; ?>Cell.textContent = record['<?php echo $column; ?>'] || '';
-                        <?php endif; ?>
-                        row.appendChild(<?php echo $column; ?>Cell);
-                    <?php endforeach; ?>
-                    <?php if ($data['table'] === 'jobs'): ?>
-                        const invoiceCell = document.createElement('td');
-                        invoiceCell.innerHTML = record['invoice_exists'] ? '<i class="fas fa-check green"></i>' : '<i class="fas fa-times red"></i>';
-                        row.appendChild(invoiceCell);
-                    <?php endif; ?>
-                    const actionsCell = document.createElement('td');
-                    actionsCell.className = 'actions';
-                    actionsCell.innerHTML = `
-                        <button class="btn btn-primary" onclick="openModal('edit', '${JSON.stringify(record).replace(/'/g, "\\'")}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger" onclick="deleteRecord('${record['<?php echo $data['columns'][0]; ?>']}')"><i class="fas fa-trash"></i></button>
-                    `;
-                    row.appendChild(actionsCell);
-                    tbody.appendChild(row);
-                });
-                document.getElementById('record-count').textContent = `${data.length} Records`;
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        let sortDirection = {};
-        function sortTable(column) {
-            const tbody = document.getElementById('table-body');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const index = Array.from(document.querySelectorAll('th')).findIndex(th => th.textContent.includes(column));
-            sortDirection[column] = !sortDirection[column];
-
-            rows.sort((a, b) => {
-                const aValue = a.cells[index].textContent.trim();
-                const bValue = b.cells[index].textContent.trim();
-                return sortDirection[column] ? 
-                    aValue.localeCompare(bValue, undefined, { numeric: true }) : 
-                    bValue.localeCompare(aValue, undefined, { numeric: true });
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
-        }
+        // Close modal on outside click
+        document.getElementById('crud-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
     </script>
 </body>
 </html>
