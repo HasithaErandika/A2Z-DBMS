@@ -459,14 +459,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
                         <?php if ($column === 'emp_id' && $data['table'] !== 'employees'): ?>
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Employee">
-                                <option value="">Select Employee</option>
-                                <?php
-                                $tableManager = new TableManager();
-                                $employees = $tableManager->getRecords('employees');
-                                foreach ($employees as $employee) {
-                                    echo "<option value='{$employee['emp_id']}'>" . htmlspecialchars($employee['emp_name']) . "</option>";
-                                }
-                                ?>
+                                <?php echo $data['tableManager']->getEmployeeOptions(); ?>
                             </select>
                         <?php elseif ($column === 'presence'): ?>
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Presence Status">
@@ -507,7 +500,282 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             completionIndex: <?php echo json_encode(array_search('completion', $data['columns']) !== false ? array_search('completion', $data['columns']) : -1); ?>
         };
         console.log('App Config:', window.appConfig);
+
+        $(document).ready(function() {
+            console.log('Initializing DataTable for:', window.appConfig.tableName);
+            console.log('Columns:', window.appConfig.columns);
+
+            const table = $('#data-table').DataTable({
+                processing: true,
+                serverSide: true,
+                scrollX: true,
+                autoWidth: false,
+                ajax: {
+                    url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
+                    type: 'POST',
+                    data: function(d) {
+                        d.action = 'get_records';
+                        d.searchTerm = d.search.value || '';
+                        d.sortColumn = window.appConfig.columns[d.order[0]?.column] || '';
+                        d.sortOrder = d.order[0]?.dir || 'desc';
+                        console.log('AJAX Request Data:', d);
+                        return d;
+                    },
+                    dataSrc: function(json) {
+                        console.log('AJAX Response:', json);
+                        if (!json || json.error) {
+                            console.error('Error in response:', json?.error || 'No data returned');
+                            alert('Failed to load table data: ' + (json?.error || 'Unknown error'));
+                            return [];
+                        }
+                        if (!Array.isArray(json.data)) {
+                            console.error('Invalid data format:', json.data);
+                            return [];
+                        }
+                        return json.data;
+                    },
+                    beforeSend: function() {
+                        $('#loading-spinner').show();
+                        console.log('Fetching data...');
+                    },
+                    complete: function() {
+                        $('#loading-spinner').hide();
+                        console.log('Data fetch complete');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', status, error, xhr.responseText);
+                        alert('Error loading data: ' + (xhr.responseText || error) + '. Check console for details.');
+                        $('#loading-spinner').hide();
+                    }
+                },
+                columns: [
+                    ...window.appConfig.columns.map(column => ({
+                        data: column,
+                        name: column,
+                        render: function(data, type, row) {
+                            if (data === null || data === undefined || data === '') return '-';
+                            return type === 'display' ? String(data) : data; // Ensure string for display
+                        }
+                    })),
+                    ...(window.appConfig.tableName === 'jobs' ? [{
+    data: 'completion',
+    render: function(data, type, row) {
+        if (type !== 'display') return data; // Raw data for sorting/filtering
+        const completion = parseFloat(row.completion) || 0;
+        let statusClass, statusText, disabled = '';
+        switch (completion) {
+            case 0.0:
+                statusClass = 'not-started';
+                statusText = 'Start';
+                break;
+            case 0.2:
+                statusClass = 'started';
+                statusText = 'Mark as Ongoing';
+                break;
+            case 0.5:
+                statusClass = 'ongoing';
+                statusText = 'Complete';
+                break;
+            case 1.0:
+                statusClass = 'completed';
+                statusText = 'Completed';
+                disabled = 'disabled'; // Disable button when completed
+                break;
+            default:
+                statusClass = 'unknown';
+                statusText = 'Unknown Status';
+        }
+        return `<button class="btn status-btn ${statusClass}" data-job-id="${row.job_id}" data-completion="${completion}" ${disabled}>${statusText}</button>`;
+    },
+    orderable: false,
+    searchable: false,
+    width: '150px'
+}] : []),
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            if (type !== 'display') return '';
+                            const rowData = JSON.stringify(row).replace(/"/g, '&quot;'); // Escape quotes
+                            return `
+                                <div class="action-buttons" style="display: flex; gap: 10px;">
+                                    <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.columns[0]]}" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                        },
+                        orderable: false,
+                        searchable: false,
+                        width: '120px'
+                    }
+                ],
+                columnDefs: [
+                    { targets: '_all', defaultContent: '-' }
+                ],
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[0, 'desc']],
+                language: {
+                    processing: 'Loading data...',
+                    search: 'Search:',
+                    lengthMenu: 'Show _MENU_ entries',
+                    info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                    infoEmpty: 'Showing 0 to 0 of 0 entries',
+                    emptyTable: 'No data available in table',
+                    paginate: {
+                        first: 'First',
+                        last: 'Last',
+                        next: 'Next',
+                        previous: 'Previous'
+                    }
+                },
+                dom: 'lfrtip',
+                initComplete: function() {
+                    console.log('DataTable initialized');
+                    // Delegate events for dynamically added buttons
+                    $('#data-table').off('click', '.edit-btn').on('click', '.edit-btn', function() {
+                        const rowData = $(this).data('row');
+                        openModal('edit', rowData);
+                    });
+                    $('#data-table').off('click', '.delete-btn').on('click', '.delete-btn', function() {
+                        deleteRecord($(this).data('id'));
+                    });
+                    $('#data-table').off('click', '.status-btn').on('click', '.status-btn', function() {
+                        const jobId = $(this).data('job-id');
+                        const completion = parseFloat($(this).data('completion'));
+                        updateStatus(jobId, this, completion);
+                    });
+                }
+            });
+
+            // Add custom styles for status buttons
+            // Add custom styles for status buttons
+$('<style>')
+    .text(`
+        .status-btn { padding: 8px 16px; color: #fff; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .not-started { background: #EF4444; } /* Red for Not Started */
+        .started { background: #3B82F6; } /* Blue for Started */
+        .ongoing { background: #F59E0B; } /* Orange for Ongoing */
+        .completed { background: #10B981; } /* Green for Completed */
+        .unknown { background: #6B7280; } /* Gray for Unknown */
+        .status-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+        .status-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    `)
+    .appendTo('head');
+        });
+
+        function openModal(action, record = null) {
+            const modal = $('#crud-modal');
+            const title = $('#modal-title');
+            const form = $('#crud-form');
+            const actionInput = $('#form-action');
+            const idInput = $('#form-id');
+
+            form[0].reset(); // Reset form fields
+            if (action === 'create') {
+                title.text(`Add New ${window.appConfig.tableName} Record`);
+                actionInput.val('create');
+                idInput.val('');
+            } else if (action === 'edit' && record) {
+                title.text(`Edit ${window.appConfig.tableName} Record`);
+                actionInput.val('update');
+                try {
+                    const data = typeof record === 'string' ? JSON.parse(record) : record;
+                    idInput.val(data[window.appConfig.columns[0]] || '');
+                    window.appConfig.editableFields.forEach(column => {
+                        const element = document.getElementById(column);
+                        if (element) {
+                            element.value = data[column] || ''; // Default to empty string if undefined
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error parsing record data:', e);
+                    alert('Failed to load record for editing.');
+                    return;
+                }
+            }
+            modal.css('display', 'flex');
+            setTimeout(() => modal.addClass('active'), 10);
+        }
+
+        function closeModal() {
+            const modal = $('#crud-modal');
+            modal.removeClass('active');
+            setTimeout(() => modal.css('display', 'none'), 300);
+        }
+
+        function deleteRecord(id) {
+            if (!confirm('Are you sure you want to delete this record?')) return;
+            $.ajax({
+                url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                success: function(response) {
+                    console.log('Delete Response:', response);
+                    $('#data-table').DataTable().ajax.reload(null, false); // Refresh table
+                },
+                error: function(xhr, status, error) {
+                    console.error('Delete Error:', status, error, xhr.responseText);
+                    alert('Failed to delete record: ' + (xhr.responseText || error));
+                }
+            });
+        }
+
+        function updateStatus(jobId, button, currentCompletion) {
+    if (currentCompletion === 1.0) return; // Do nothing if already completed
+
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
+        type: 'POST',
+        data: { action: 'update_status', job_id: jobId },
+        dataType: 'json',
+        success: function(response) {
+            console.log('Status Update Response:', response);
+            if (!response.success) {
+                console.error('Status update failed:', response.error);
+                alert('Failed to update status: ' + response.error);
+                return;
+            }
+            const completion = parseFloat(response.completion);
+            let statusClass, statusText;
+            switch (completion) {
+                case 0.0:
+                    statusClass = 'not-started';
+                    statusText = 'Start';
+                    break;
+                case 0.2:
+                    statusClass = 'started';
+                    statusText = 'Mark as Ongoing';
+                    break;
+                case 0.5:
+                    statusClass = 'ongoing';
+                    statusText = 'Complete';
+                    break;
+                case 1.0:
+                    statusClass = 'completed';
+                    statusText = 'Completed';
+                    break;
+                default:
+                    statusClass = 'unknown';
+                    statusText = 'Unknown Status';
+            }
+            $(button).removeClass('not-started started ongoing completed unknown')
+                     .addClass(`status-btn ${statusClass}`)
+                     .text(statusText)
+                     .data('completion', completion);
+            if (completion === 1.0) {
+                $(button).prop('disabled', true); // Disable button when completed
+            }
+            $('#data-table').DataTable().ajax.reload(null, false); // Refresh table
+        },
+        error: function(xhr, status, error) {
+            console.error('Status Update Error:', status, error, xhr.responseText);
+            alert('Failed to update status: ' + (xhr.responseText || error));
+        }
+    });
+}
+        $('#crud-modal').on('click', function(e) {
+            if (e.target === this) closeModal();
+        });
     </script>
-    <script src="<?php echo BASE_PATH; ?>/public/js/manage_table.js"></script>
 </body>
 </html>

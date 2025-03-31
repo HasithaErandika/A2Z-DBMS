@@ -208,6 +208,23 @@ class TableManager extends Model {
         }
     }
 
+    public function getEmployeeOptions() {
+        try {
+            $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees ORDER BY emp_name ASC");
+            $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $options = ['<option value="">Select Employee</option>'];
+            foreach ($employees as $employee) {
+                $empId = htmlspecialchars($employee['emp_id']);
+                $empName = htmlspecialchars($employee['emp_name']);
+                $options[] = "<option value='$empId'>$empName</option>";
+            }
+            return implode('', $options);
+        } catch (PDOException $e) {
+            error_log("Error in getEmployeeOptions: " . $e->getMessage());
+            return '<option value="">Error loading employees</option>';
+        }
+    }
+
     public function getPaginatedRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC') {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -288,17 +305,30 @@ class TableManager extends Model {
             $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
             $stmt->execute([$jobId]);
             $currentCompletion = (float)$stmt->fetchColumn();
-
-            $newCompletion = $currentCompletion == 0.00 ? 50.00 : ($currentCompletion == 50.00 ? 100.00 : 0.00);
-
+    
+            if ($currentCompletion == 1.0) {
+                return ['success' => true, 'completion' => 1.0]; // No change if completed
+            }
+    
+            // Progress: 0.0 -> 0.2 -> 0.5 -> 1.0
+            if ($currentCompletion == 0.0) {
+                $newCompletion = 0.2;
+            } elseif ($currentCompletion == 0.2) {
+                $newCompletion = 0.5;
+            } elseif ($currentCompletion == 0.5) {
+                $newCompletion = 1.0;
+            } else {
+                $newCompletion = 0.0; // Default to Not Started if unknown
+            }
+    
             $stmt = $this->db->prepare("UPDATE jobs SET completion = ? WHERE job_id = ?");
             $stmt->execute([$newCompletion, $jobId]);
-
-            error_log("Updated job $jobId status to $newCompletion");
-            return $newCompletion;
+    
+            error_log("Updated job $jobId status from $currentCompletion to $newCompletion");
+            return ['success' => true, 'completion' => $newCompletion];
         } catch (PDOException $e) {
             error_log("Error in updateJobStatus for job_id $jobId: " . $e->getMessage());
-            throw new Exception("Failed to update job status");
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
@@ -306,9 +336,9 @@ class TableManager extends Model {
         $value = (float)$value;
         if ($value == 0.00) {
             return '<span style="color: #EF4444;">Not Started</span>';
-        } elseif ($value == 50.00) { // Fixed from 00.50 to 50.00
+        } elseif ($value == 50.00) {
             return '<span style="color: #F59E0B;">Ongoing</span>';
-        } elseif ($value == 100.00) { // Fixed from 1.00 to 100.00
+        } elseif ($value == 100.00) {
             return '<span style="color: #10B981;">Completed</span>';
         }
         return htmlspecialchars($value);

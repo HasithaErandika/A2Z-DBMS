@@ -177,14 +177,15 @@ class AdminController extends Controller {
         $data = [
             'table' => $table,
             'columns' => $this->tableManager->getColumns($table),
-            'records' => $result['data'], // Changed from 'records' to 'data' to match getPaginatedRecords
+            'records' => $result['data'],
             'totalRecords' => $result['recordsTotal'],
-            'totalPages' => ceil($result['recordsTotal'] / $perPage), // Calculate total pages
+            'totalPages' => ceil($result['recordsTotal'] / $perPage),
             'config' => $this->tableManager->getConfig($table),
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
             'page' => $page,
-            'perPage' => $perPage
+            'perPage' => $perPage,
+            'tableManager' => $this->tableManager // Add the TableManager instance
         ];
 
         if ($table === 'jobs') {
