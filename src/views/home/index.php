@@ -1,3 +1,7 @@
+<?php
+    if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
