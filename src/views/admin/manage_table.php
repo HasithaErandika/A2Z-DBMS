@@ -11,6 +11,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="src/assets/css/manage_table.css">
     <style>
         :root {
             --primary: #1E40AF;
@@ -384,6 +385,48 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 padding: 10px 18px;
             }
         }
+
+        .invoice-details {
+    padding: 20px;
+    background: #F9FAFB;
+    border-radius: 8px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.invoice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.invoice-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.invoice-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.invoice-item .label {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 5px;
+}
+
+.invoice-item span:not(.label) {
+    color: var(--text-muted);
+    word-break: break-word;
+}
+
+.btn-info {
+    background: #06B6D4;
+    color: #fff;
+}
+.btn-info:hover {
+    background: #0891B2;
+    transform: translateY(-2px);
+}
     </style>
 </head>
 <body>
@@ -452,35 +495,37 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             <form id="crud-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                 <input type="hidden" name="action" id="form-action">
                 <input type="hidden" name="id" id="form-id">
-                <?php 
-                $editableFields = $data['config']['editableFields'] ?? $data['columns'];
-                foreach ($editableFields as $column): ?>
-                    <div class="form-group">
-                        <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
-                        <?php if ($column === 'emp_id' && $data['table'] !== 'employees'): ?>
-                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Employee">
-                                <?php echo $data['tableManager']->getEmployeeOptions(); ?>
-                            </select>
-                        <?php elseif ($column === 'presence'): ?>
-                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Presence Status">
-                                <option value="1.0">Full Day</option>
-                                <option value="0.5">Half Day</option>
-                                <option value="0.0">Not Attended</option>
-                            </select>
-                        <?php elseif ($column === 'paid'): ?>
-                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Payment Status">
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                            </select>
-                        <?php elseif ($column === 'date_started' || $column === 'date_completed'): ?>
-                            <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
-                        <?php elseif ($column === 'completion'): ?>
-                            <input type="number" step="0.01" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>">
-                        <?php else: ?>
-                            <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
+               <?php 
+$editableFields = $data['config']['editableFields'] ?? $data['columns'];
+foreach ($editableFields as $column): ?>
+    <div class="form-group">
+        <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
+        <?php if ($column === 'emp_id' && $data['table'] !== 'employees'): ?>
+            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Employee">
+                <?php echo $data['tableManager']->getEmployeeOptions(); ?>
+            </select>
+        <?php elseif ($column === 'job_id' && in_array($data['table'], ['operational_expenses', 'invoice_data', 'jobs'])): ?>
+            <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Job ID">
+        <?php elseif ($column === 'presence'): ?>
+            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Presence Status">
+                <option value="1.0">Full Day</option>
+                <option value="0.5">Half Day</option>
+                <option value="0.0">Not Attended</option>
+            </select>
+        <?php elseif ($column === 'paid'): ?>
+            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Payment Status">
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+            </select>
+        <?php elseif ($column === 'date_started' || $column === 'date_completed'): ?>
+            <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
+        <?php elseif ($column === 'completion'): ?>
+            <input type="number" step="0.01" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>">
+        <?php else: ?>
+            <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
+        <?php endif; ?>
+    </div>
+<?php endforeach; ?>
                 <div class="form-group" style="display: flex; justify-content: flex-end; gap: 15px;">
                     <button type="button" class="btn btn-secondary tooltip" onclick="closeModal()" data-tooltip="Cancel changes"><i class="fas fa-times"></i> Cancel</button>
                     <button type="submit" class="btn btn-primary tooltip" data-tooltip="Save changes"><i class="fas fa-save"></i> Save</button>
@@ -488,6 +533,55 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             </form>
         </div>
     </div>
+    <div class="modal" id="invoice-modal">
+    <div class="modal-content">
+        <h2><i class="fas fa-file-invoice"></i> Invoice Details</h2>
+        <div id="invoice-details" class="invoice-details">
+            <div class="invoice-grid">
+                <div class="invoice-item">
+                    <span class="label">Invoice Number:</span>
+                    <span id="invoice-no">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Invoice Date:</span>
+                    <span id="invoice-date">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Invoice Value:</span>
+                    <span id="invoice-value">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Employee:</span>
+                    <span id="invoice-emp">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Job Details:</span>
+                    <span id="invoice-job">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Receiving Payment:</span>
+                    <span id="invoice-receiving">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Received Amount:</span>
+                    <span id="invoice-received">-</span>
+                </div>
+                <div class="invoice-item">
+                    <span class="label">Payment Received Date:</span>
+                    <span id="invoice-payment-date">-</span>
+                </div>
+                <div class="invoice-item full-width">
+                    <span class="label">Remarks:</span>
+                    <span id="invoice-remarks">-</span>
+                </div>
+            </div>
+            <div class="invoice-actions" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 15px;">
+                <button class="btn btn-secondary tooltip" onclick="closeInvoiceModal()" data-tooltip="Close invoice view"><i class="fas fa-times"></i> Close</button>
+            </div>
+        </div>
+        <div class="spinner" id="invoice-spinner"><i class="fas fa-spinner"></i></div>
+    </div>
+</div>
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -549,65 +643,71 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     }
                 },
                 columns: [
-                    ...window.appConfig.columns.map(column => ({
-                        data: column,
-                        name: column,
-                        render: function(data, type, row) {
-                            if (data === null || data === undefined || data === '') return '-';
-                            return type === 'display' ? String(data) : data; // Ensure string for display
-                        }
-                    })),
-                    ...(window.appConfig.tableName === 'jobs' ? [{
-    data: 'completion',
-    render: function(data, type, row) {
-        if (type !== 'display') return data; // Raw data for sorting/filtering
-        const completion = parseFloat(row.completion) || 0;
-        let statusClass, statusText, disabled = '';
-        switch (completion) {
-            case 0.0:
-                statusClass = 'not-started';
-                statusText = 'Start';
-                break;
-            case 0.2:
-                statusClass = 'started';
-                statusText = 'Mark as Ongoing';
-                break;
-            case 0.5:
-                statusClass = 'ongoing';
-                statusText = 'Complete';
-                break;
-            case 1.0:
-                statusClass = 'completed';
-                statusText = 'Completed';
-                disabled = 'disabled'; // Disable button when completed
-                break;
-            default:
-                statusClass = 'unknown';
-                statusText = 'Unknown Status';
+    ...window.appConfig.columns.map(column => ({
+        data: column,
+        name: column,
+        render: function(data, type, row) {
+            if (data === null || data === undefined || data === '') return '-';
+            return type === 'display' ? String(data) : data;
         }
-        return `<button class="btn status-btn ${statusClass}" data-job-id="${row.job_id}" data-completion="${completion}" ${disabled}>${statusText}</button>`;
-    },
-    orderable: false,
-    searchable: false,
-    width: '150px'
-}] : []),
-                    {
-                        data: null,
-                        render: function(data, type, row) {
-                            if (type !== 'display') return '';
-                            const rowData = JSON.stringify(row).replace(/"/g, '&quot;'); // Escape quotes
-                            return `
-                                <div class="action-buttons" style="display: flex; gap: 10px;">
-                                    <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.columns[0]]}" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
-                                </div>
-                            `;
-                        },
-                        orderable: false,
-                        searchable: false,
-                        width: '120px'
-                    }
-                ],
+    })),
+    ...(window.appConfig.tableName === 'jobs' ? [{
+        data: 'completion',
+        render: function(data, type, row) {
+            if (type !== 'display') return data;
+            const completion = parseFloat(row.completion) || 0;
+            let statusClass, statusText, disabled = '';
+            switch (completion) {
+                case 0.0:
+                    statusClass = 'not-started';
+                    statusText = 'Start';
+                    break;
+                case 0.2:
+                    statusClass = 'started';
+                    statusText = 'Mark as Ongoing';
+                    break;
+                case 0.5:
+                    statusClass = 'ongoing';
+                    statusText = 'Complete';
+                    break;
+                case 1.0:
+                    statusClass = 'completed';
+                    statusText = 'Completed';
+                    disabled = 'disabled';
+                    break;
+                default:
+                    statusClass = 'unknown';
+                    statusText = 'Unknown Status';
+            }
+            return `<button class="btn status-btn ${statusClass}" data-job-id="${row.job_id}" data-completion="${completion}" ${disabled}>${statusText}</button>`;
+        },
+        orderable: false,
+        searchable: false,
+        width: '150px'
+    }] : []),
+    {
+        data: null,
+        render: function(data, type, row) {
+            if (type !== 'display') return '';
+            const rowData = JSON.stringify(row).replace(/"/g, '&quot;');
+            let buttons = `
+                <div class="action-buttons" style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.columns[0]]}" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
+            `;
+            if (window.appConfig.tableName === 'jobs') {
+                buttons += `
+                    <button class="btn btn-info tooltip view-invoice-btn" data-job-id="${row.job_id}" data-tooltip="View invoice"><i class="fas fa-file-invoice"></i></button>
+                `;
+            }
+            buttons += `</div>`;
+            return buttons;
+        },
+        orderable: false,
+        searchable: false,
+        width: '150px'
+    }
+],
                 columnDefs: [
                     { targets: '_all', defaultContent: '-' }
                 ],
@@ -663,6 +763,83 @@ $('<style>')
     .appendTo('head');
         });
 
+        function openInvoiceModal(jobId) {
+    const modal = $('#invoice-modal');
+    const spinner = $('#invoice-spinner');
+    const details = $('#invoice-details');
+
+    console.log('Opening modal for jobId:', jobId); // Debug jobId
+    console.log('Request URL:', `${window.appConfig.basePath}/admin/manageTable/jobs`);
+
+    $('#invoice-no, #invoice-date, #invoice-value, #invoice-emp, #invoice-job, #invoice-receiving, #invoice-received, #invoice-payment-date, #invoice-remarks').text('-');
+    spinner.show();
+    details.hide();
+    modal.css('display', 'flex');
+    setTimeout(() => modal.addClass('active'), 10);
+
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
+        type: 'POST',
+        data: { action: 'get_invoice_details', job_id: jobId },
+        dataType: 'json',
+        success: function(response) {
+            console.log('AJAX Success Response:', response); // Debug response
+            spinner.hide();
+            details.show();
+
+            if (!response || response.error || !response.data) {
+                console.warn('Invalid response:', response);
+                alert('No invoice found for this job or error occurred: ' + (response.error || 'Unknown error'));
+                return;
+            }
+
+            const invoice = response.data;
+            $('#invoice-no').text(invoice.invoice_no || '-');
+            $('#invoice-date').text(invoice.invoice_date || '-');
+            $('#invoice-value').text(invoice.invoice_value ? `$${invoice.invoice_value}` : '-');
+            $('#invoice-emp').text(invoice.emp_id || '-');
+            $('#invoice-job').text(invoice.job_id || '-');
+            $('#invoice-receiving').text(invoice.receiving_payment || '-');
+            $('#invoice-received').text(invoice.received_amount ? `$${invoice.received_amount}` : '-');
+            $('#invoice-payment-date').text(invoice.payment_received_date || '-');
+            $('#invoice-remarks').text(invoice.remarks || '-');
+        },
+        error: function(xhr, status, error) {
+            spinner.hide();
+            details.show();
+            console.error('AJAX Error - Status:', status, 'Error:', error, 'Response:', xhr.responseText);
+            alert('Failed to fetch invoice details: ' + (xhr.responseText || error));
+        }
+    });
+}
+
+function closeInvoiceModal() {
+    const modal = $('#invoice-modal');
+    modal.removeClass('active');
+    setTimeout(() => modal.css('display', 'none'), 300); // Match transition duration
+}
+
+// Event listeners
+$(document).ready(function() {
+    // Delegate click event for dynamically added view-invoice-btn
+    $('#data-table').on('click', '.view-invoice-btn', function() {
+        const jobId = $(this).data('job-id');
+        if (!jobId) {
+            console.error('No jobId found on button:', this);
+            alert('Error: No job ID specified.');
+            return;
+        }
+        console.log('Opening invoice modal for jobId:', jobId);
+        openInvoiceModal(jobId);
+    });
+
+    // Close modal when clicking outside content
+    $('#invoice-modal').on('click', function(e) {
+        if (e.target === this) {
+            closeInvoiceModal();
+        }
+    });
+});
         function openModal(action, record = null) {
             const modal = $('#crud-modal');
             const title = $('#modal-title');

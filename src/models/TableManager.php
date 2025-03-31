@@ -44,15 +44,16 @@ class TableManager extends Model {
             'dateField' => 'date_started'
         ],
         'operational_expenses' => [
-            'editableFields' => ['emp_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
-            'validation' => ['expense_amount' => ['required']],
-            'formatters' => [
-                'paid' => 'getBooleanIcon',
-                'emp_id' => 'fetchEmployeeName'
-            ],
-            'searchFields' => ['expensed_date', 'expenses_category', 'description'],
-            'dateField' => 'expensed_date'
-        ],
+    'editableFields' => ['emp_id', 'job_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'], // Added job_id
+    'validation' => ['expense_amount' => ['required']],
+    'formatters' => [
+        'paid' => 'getBooleanIcon',
+        'emp_id' => 'fetchEmployeeName',
+        'job_id' => 'getJobDetails'  // Added formatter for job_id
+    ],
+    'searchFields' => ['expensed_date', 'expenses_category', 'description', 'job_id'], // Added job_id to search
+    'dateField' => 'expensed_date'
+],
         'employee_payments' => [
             'editableFields' => ['emp_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
             'validation' => ['paid_amount' => ['required']],
@@ -85,7 +86,17 @@ class TableManager extends Model {
             'validation' => ['acc_no' => ['required']],
             'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['emp_name', 'acc_no', 'bank']
-        ]
+        ],
+        'invoice_data' => [
+    'editableFields' => ['emp_id', 'job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'], // Added job_id
+    'validation' => ['invoice_value' => ['required']],
+    'formatters' => [
+        'emp_id' => 'fetchEmployeeName',
+        'job_id' => 'getJobDetails'  // Added formatter for job_id
+    ],
+    'searchFields' => ['invoice_no', 'invoice_date', 'job_id'], // Added job_id to search
+    'dateField' => 'invoice_date'
+],
     ];
 
     public function getAllowedTables() {
@@ -300,6 +311,48 @@ class TableManager extends Model {
         }
     }
 
+    public function getInvoiceDetailsForJob($jobId) {
+        if (empty($jobId)) return null;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    invoice_no,
+                    invoice_date,
+                    invoice_value,
+                    invoice,
+                    receiving_payment,
+                    received_amount,
+                    payment_received_date,
+                    remarks,
+                    emp_id,
+                    job_id
+                FROM invoice_data 
+                WHERE job_id = ?
+            ");
+            $stmt->execute([$jobId]);
+            $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($invoice) {
+                if (isset($invoice['emp_id'])) {
+                    $invoice['emp_id'] = $this->fetchEmployeeName($invoice['emp_id']);
+                }
+                if (isset($invoice['job_id'])) {
+                    $invoice['job_id'] = $this->getJobDetails($invoice['job_id']);
+                }
+                if (isset($invoice['invoice_value'])) {
+                    $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2);
+                }
+                if (isset($invoice['received_amount'])) {
+                    $invoice['received_amount'] = number_format((float)$invoice['received_amount'], 2);
+                }
+            }
+            return $invoice ?: null;
+        } catch (PDOException $e) {
+            error_log("Error in getInvoiceDetailsForJob: " . $e->getMessage());
+            return null;
+        }
+    }
+
     public function updateJobStatus($jobId) {
         try {
             $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
@@ -417,14 +470,52 @@ class TableManager extends Model {
     }
 
     public function getJobDetails($jobId) {
+        if (empty($jobId)) return 'No Job ID';
         try {
-            $stmt = $this->db->prepare("SELECT engineer FROM jobs WHERE job_id = ?");
+            $stmt = $this->db->prepare("
+                SELECT engineer, customer_reference 
+                FROM jobs 
+                WHERE job_id = ?
+            ");
             $stmt->execute([$jobId]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result && $result['engineer'] ? htmlspecialchars($result['engineer']) : 'No Engineer';
+            
+            if (!$result) return 'Job Not Found';
+            
+            $engineer = $result['engineer'] ? htmlspecialchars($result['engineer']) : 'No Engineer';
+            $customerRef = $result['customer_reference'] ? htmlspecialchars($result['customer_reference']) : 'No Reference';
+            
+            return "$engineer - $customerRef";
         } catch (PDOException $e) {
             error_log("Error in getJobDetails: " . $e->getMessage());
-            return 'Error';
+            return 'Error fetching job details';
+        }
+    }
+    public function getInvoiceByJobId($jobId) {
+        if (empty($jobId)) return null;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * 
+                FROM invoice_data 
+                WHERE job_id = ?
+            ");
+            $stmt->execute([$jobId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                // Apply formatters
+                if (isset($result['emp_id'])) {
+                    $result['emp_id'] = $this->fetchEmployeeName($result['emp_id']);
+                }
+                if (isset($result['job_id'])) {
+                    $result['job_id'] = $this->getJobDetails($result['job_id']);
+                }
+            }
+            
+            return $result ?: null;
+        } catch (PDOException $e) {
+            error_log("Error in getInvoiceByJobId: " . $e->getMessage());
+            return null;
         }
     }
 
