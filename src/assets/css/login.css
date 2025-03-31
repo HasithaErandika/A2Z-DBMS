@@ -1,0 +1,264 @@
+:root {
+    --primary: #1E3A8A; /* Deep blue for electrical theme */
+    --secondary: #F59E0B; /* Amber for solar energy */
+    --accent: #10B981; /* Green for renewable energy */
+    --background: #F1F5F9; /* Light slate background */
+    --card-bg: #FFFFFF;
+    --text-dark: #0F172A;
+    --text-muted: #64748B;
+    --shadow: rgba(0, 0, 0, 0.15);
+    --gradient: linear-gradient(135deg, #1E3A8A, #3B82F6);
+    --transition: all 0.3s ease;
+}
+
+body {
+    background: var(--background);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-dark);
+    overflow-x: hidden;
+}
+
+.navbar {
+    background: var(--card-bg);
+    padding: 1.5rem 0;
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: var(--transition);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navbar-brand .icon-solar {
+    color: var(--secondary);
+}
+
+.nav-link {
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 0.5rem 1.25rem;
+    transition: var(--transition);
+}
+
+.nav-link:hover, .nav-link:focus {
+    color: var(--primary);
+    background: rgba(30, 58, 138, 0.05);
+    border-radius: 6px;
+}
+
+.login-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    background-size: 240px;
+}
+
+.login-box {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 3rem;
+    box-shadow: 0 8px 24px var(--shadow);
+    width: 100%;
+    max-width: 450px;
+    position: relative;
+    animation: fadeIn 0.6s ease-out;
+    border-top: 4px solid var(--primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.login-header h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 0.25rem;
+}
+
+.login-header p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    border: 1px solid #CBD5E1;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    background: #F8FAFC;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.15);
+    background: #fff;
+    outline: none;
+}
+
+.btn {
+    padding: 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-select-user, .btn-login-user {
+    background: var(--secondary);
+    color: #fff;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.btn-select-user:hover, .btn-login-user:hover {
+    background: #D97706;
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-select-admin, .btn-login-admin {
+    background: var(--primary);
+    color: #fff;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.btn-select-admin:hover, .btn-login-admin:hover {
+    background: #1E40AF;
+    box-shadow: 0 6px 16px rgba(30, 58, 138, 0.3);
+    transform: translateY(-2px);
+}
+
+.alert {
+    background: #FEE2E2;
+    border: none;
+    color: #991B1B;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.role-display {
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(30, 58, 138, 0.05);
+}
+
+.role-display.user {
+    color: var(--secondary);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.role-display.admin {
+    color: var(--primary);
+    background: rgba(30, 58, 138, 0.05);
+}
+
+.back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-top: 1.75rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.back-link:hover {
+    color: var(--primary);
+    background: rgba(30, 58, 138, 0.05);
+}
+
+footer {
+    background: var(--card-bg);
+    color: var(--text-muted);
+    padding: 1.5rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    box-shadow: 0 -4px 12px var(--shadow);
+}
+
+footer a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+footer a:hover {
+    color: var(--secondary);
+}
+
+@media (max-width: 576px) {
+    .login-box {
+        padding: 2rem;
+        max-width: 90%;
+    }
+
+    .login-header h1 { font-size: 1.75rem; }
+    .btn { padding: 0.875rem; font-size: 0.9rem; }
+    .navbar-brand { font-size: 1.5rem; }
+    .form-control { padding: 0.875rem; }
+}
