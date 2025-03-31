@@ -9,14 +9,17 @@ class TableManager extends Model {
 
     private $tableConfigs = [
         'attendance' => [
-            'editableFields' => ['presence', 'start_time', 'end_time', 'remarks'],
+            'editableFields' => ['emp_id', 'presence', 'start_time', 'end_time', 'remarks'],
             'validation' => [
                 'presence' => ['required', 'in:0.0,0.5,1.0'],
                 'attendance_date' => ['required']
             ],
-            'formatters' => ['presence' => 'getPresenceDisplay', 'job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => [
+                'presence' => 'getPresenceDisplay',
+                'emp_id' => 'fetchEmployeeName'
+            ],
             'searchFields' => ['attendance_date', 'presence', 'remarks'],
-            'dateField' => 'attendance_date' // Added for export
+            'dateField' => 'attendance_date'
         ],
         'employees' => [
             'editableFields' => ['emp_name', 'emp_nic', 'date_of_birth', 'address', 'date_of_joined', 'date_of_resigned', 'designation', 'etf_number', 'daily_wage', 'basic_salary', 'nic_photo'],
@@ -24,54 +27,63 @@ class TableManager extends Model {
                 'emp_name' => ['required'],
                 'emp_nic' => ['required']
             ],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
             'searchFields' => ['emp_name', 'emp_nic', 'designation']
         ],
         'jobs' => [
-            'editableFields' => ['date_started', 'date_completed', 'engineer', 'location', 'job_capacity', 'remarks', 'project_id'],
-            'customDisplay' => ['job_id' => 'getJobDetails', 'invoice_exists' => 'checkInvoiceExists'],
-            'formatters' => ['project_id' => 'getProjectDetailsForJobs'],
-            'searchFields' => ['engineer', 'location'],
-            'dateField' => 'date_started' // Added for export
+            'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
+            'validation' => [
+                'engineer' => ['required'],
+                'date_started' => ['required']
+            ],
+            'formatters' => [
+                'project_id' => 'getProjectDetailsForJobs',
+                'emp_id' => 'fetchEmployeeName',
+                'completion' => 'getCompletionStatus'
+            ],
+            'searchFields' => ['engineer', 'location', 'customer_reference'],
+            'dateField' => 'date_started'
         ],
         'operational_expenses' => [
-            'editableFields' => ['expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
+            'editableFields' => ['emp_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
             'validation' => ['expense_amount' => ['required']],
-            'formatters' => ['paid' => 'getBooleanIcon', 'job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => [
+                'paid' => 'getBooleanIcon',
+                'emp_id' => 'fetchEmployeeName'
+            ],
             'searchFields' => ['expensed_date', 'expenses_category', 'description'],
-            'dateField' => 'expensed_date' // Added for export
+            'dateField' => 'expensed_date'
         ],
         'employee_payments' => [
-            'editableFields' => ['payment_date', 'payment_type', 'paid_amount', 'remarks'],
+            'editableFields' => ['emp_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
             'validation' => ['paid_amount' => ['required']],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['payment_date', 'payment_type'],
-            'dateField' => 'payment_date' // Added for export
+            'dateField' => 'payment_date'
         ],
         'invoice_data' => [
-            'editableFields' => ['invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
+            'editableFields' => ['emp_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
             'validation' => ['invoice_value' => ['required']],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['invoice_no', 'invoice_date'],
-            'dateField' => 'invoice_date' // Added for export
+            'dateField' => 'invoice_date'
         ],
         'projects' => [
-            'editableFields' => ['project_description', 'company_reference', 'remarks'],
+            'editableFields' => ['emp_id', 'project_description', 'company_reference', 'remarks'],
             'validation' => ['project_description' => ['required']],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['project_description', 'company_reference']
         ],
         'salary_increments' => [
-            'editableFields' => ['increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
+            'editableFields' => ['emp_id', 'increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
             'validation' => ['increment_amount' => ['required']],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['increment_type', 'increment_date'],
-            'dateField' => 'increment_date' // Added for export
+            'dateField' => 'increment_date'
         ],
         'employee_bank_details' => [
-            'editableFields' => ['emp_name', 'acc_no', 'bank', 'branch'],
+            'editableFields' => ['emp_id', 'emp_name', 'acc_no', 'bank', 'branch'],
             'validation' => ['acc_no' => ['required']],
-            'formatters' => ['job_id' => 'getCustomerReferenceForJobId'],
+            'formatters' => ['emp_id' => 'fetchEmployeeName'],
             'searchFields' => ['emp_name', 'acc_no', 'bank']
         ]
     ];
@@ -89,8 +101,10 @@ class TableManager extends Model {
             throw new Exception("Invalid table: $table");
         }
         try {
-            $stmt = $this->db->query("SHOW COLUMNS FROM " . $table);
-            return $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $stmt = $this->db->query("SHOW COLUMNS FROM `$table`");
+            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            error_log("Columns for $table: " . implode(', ', $columns));
+            return $columns;
         } catch (PDOException $e) {
             error_log("Error fetching columns for $table: " . $e->getMessage());
             throw new Exception("Failed to retrieve columns for $table");
@@ -181,6 +195,19 @@ class TableManager extends Model {
         }
     }
 
+    public function fetchEmployeeName($empId) {
+        if (empty($empId)) return 'No Employee';
+        try {
+            $stmt = $this->db->prepare("SELECT emp_name FROM employees WHERE emp_id = ?");
+            $stmt->execute([$empId]);
+            $empName = $stmt->fetchColumn();
+            return $empName !== false ? htmlspecialchars($empName) : 'Unknown Employee';
+        } catch (PDOException $e) {
+            error_log("Error in fetchEmployeeName: " . $e->getMessage());
+            return 'Error';
+        }
+    }
+
     public function getPaginatedRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC') {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -192,9 +219,8 @@ class TableManager extends Model {
             $config = $this->getConfig($table);
             $idColumn = $allColumns[0]; // Primary key
 
-            // Use DISTINCT for attendance table to avoid duplicates
-            $sql = "SELECT " . ($table === 'attendance' ? 'DISTINCT ' : '') . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
-            $countSql = "SELECT COUNT(" . ($table === 'attendance' ? 'DISTINCT ' . $idColumn : '*') . ") FROM `$table`";
+            $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
+            $countSql = "SELECT COUNT(*) FROM `$table`";
             $params = [];
 
             if ($searchTerm) {
@@ -214,10 +240,16 @@ class TableManager extends Model {
 
             $sql .= " LIMIT :offset, :perPage";
 
+            // Get total records (unfiltered)
+            $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
+            $recordsTotal = $totalStmt->fetchColumn();
+
+            // Get filtered records count
             $countStmt = $this->db->prepare($countSql);
             $countStmt->execute($params);
-            $totalRecords = $countStmt->fetchColumn();
+            $recordsFiltered = $countStmt->fetchColumn();
 
+            // Fetch paginated data
             $stmt = $this->db->prepare($sql);
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
@@ -225,34 +257,61 @@ class TableManager extends Model {
                 $stmt->bindValue($index + 1, $param);
             }
             $stmt->execute();
-            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            foreach ($records as &$record) {
+            // Apply formatters
+            foreach ($data as &$record) {
                 foreach ($allColumns as $column) {
-                    if (isset($config['customDisplay'][$column])) {
-                        $record[$column] = $this->{$config['customDisplay'][$column]}($record[$allColumns[0]]);
-                    } elseif (isset($config['formatters'][$column])) {
+                    if (isset($config['formatters'][$column])) {
                         $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
                     }
-                }
-                if ($table === 'jobs') {
-                    $record['invoice_exists'] = $this->checkInvoiceExists($record['job_id']);
                 }
             }
             unset($record);
 
-            // Log for debugging
-            error_log("Fetched " . count($records) . " records for $table, page $page, perPage $perPage");
+            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage");
 
             return [
-                'records' => $records,
-                'totalRecords' => $totalRecords,
-                'totalPages' => ceil($totalRecords / $perPage)
+                'draw' => isset($_POST['draw']) ? (int)$_POST['draw'] : 1,
+                'recordsTotal' => (int)$recordsTotal,
+                'recordsFiltered' => (int)$recordsFiltered,
+                'data' => $data
             ];
         } catch (PDOException $e) {
             error_log("Error in getPaginatedRecords for $table: " . $e->getMessage());
             throw new Exception("Failed to retrieve records from $table");
         }
+    }
+
+    public function updateJobStatus($jobId) {
+        try {
+            $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
+            $stmt->execute([$jobId]);
+            $currentCompletion = (float)$stmt->fetchColumn();
+
+            $newCompletion = $currentCompletion == 0.00 ? 50.00 : ($currentCompletion == 50.00 ? 100.00 : 0.00);
+
+            $stmt = $this->db->prepare("UPDATE jobs SET completion = ? WHERE job_id = ?");
+            $stmt->execute([$newCompletion, $jobId]);
+
+            error_log("Updated job $jobId status to $newCompletion");
+            return $newCompletion;
+        } catch (PDOException $e) {
+            error_log("Error in updateJobStatus for job_id $jobId: " . $e->getMessage());
+            throw new Exception("Failed to update job status");
+        }
+    }
+
+    public function getCompletionStatus($value) {
+        $value = (float)$value;
+        if ($value == 0.00) {
+            return '<span style="color: #EF4444;">Not Started</span>';
+        } elseif ($value == 50.00) { // Fixed from 00.50 to 50.00
+            return '<span style="color: #F59E0B;">Ongoing</span>';
+        } elseif ($value == 100.00) { // Fixed from 1.00 to 100.00
+            return '<span style="color: #10B981;">Completed</span>';
+        }
+        return htmlspecialchars($value);
     }
 
     public function create($table, $data) {
@@ -316,14 +375,15 @@ class TableManager extends Model {
     }
 
     public function getBooleanIcon($value) {
-        return $value === 'Yes' || $value === true || $value === 1 ? '<i class="fas fa-check green"></i>' : '<i class="fas fa-times red"></i>';
+        return $value === 'Yes' || $value === true || $value === 1 ? '<i class="fas fa-check" style="color: #10B981;"></i>' : '<i class="fas fa-times" style="color: #EF4444;"></i>';
     }
 
     public function getPresenceDisplay($value) {
+        $value = (float)$value;
         if ($value == 1.0) return '<span style="color: #10B981;">Full Day</span>';
         if ($value == 0.5) return '<span style="color: #F59E0B;">Half Day</span>';
         if ($value == 0.0) return '<span style="color: #EF4444;">Not Attended</span>';
-        return htmlspecialchars($value); // Fallback
+        return htmlspecialchars($value);
     }
 
     public function getJobDetails($jobId) {
@@ -397,7 +457,7 @@ class TableManager extends Model {
 
     public function getRecords($table, $page = 1, $perPage = 10) {
         $result = $this->getPaginatedRecords($table, $page, $perPage);
-        return $result['records'];
+        return $result['data'];
     }
 
     public function searchRecords($table, $searchTerm) {
@@ -425,7 +485,7 @@ class TableManager extends Model {
         }
         try {
             $config = $this->getConfig($table);
-            $dateField = $config['dateField'] ?? $this->getColumns($table)[0]; // Fallback to first column
+            $dateField = $config['dateField'] ?? $this->getColumns($table)[0];
             $allColumns = $this->getColumns($table);
 
             $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";

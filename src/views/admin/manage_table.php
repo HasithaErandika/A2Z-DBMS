@@ -1,3 +1,7 @@
+<?php
+if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app's actual base path
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -194,6 +198,7 @@
             padding: 20px;
             overflow-x: auto;
             animation: fadeIn 0.5s ease;
+            min-height: 300px; /* Ensure visibility even if empty */
         }
 
         @keyframes fadeIn {
@@ -205,14 +210,14 @@
             width: 100% !important;
             border-collapse: separate;
             border-spacing: 0 8px;
-            min-width: max-content; /* Ensures all columns stay visible */
+            min-width: max-content;
         }
 
         #data-table th, #data-table td {
             padding: 14px 20px;
             text-align: left;
             font-size: 0.95rem;
-            white-space: nowrap; /* Prevents text wrapping */
+            white-space: nowrap;
         }
 
         #data-table th {
@@ -407,21 +412,38 @@
         </div>
 
         <div class="table-container">
-        <table id="data-table" class="display" style="width:100%">
-            <thead>
-                <tr>
-                    <?php foreach ($data['columns'] as $column): ?>
-                        <th><?php echo htmlspecialchars($column); ?></th>
-                    <?php endforeach; ?>
-                    <?php if ($data['table'] === 'jobs'): ?>
-                        <th>Invoice</th>
+            <table id="data-table" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <?php foreach ($data['columns'] as $column): ?>
+                            <th><?php echo htmlspecialchars($column); ?></th>
+                        <?php endforeach; ?>
+                        <?php if ($data['table'] === 'jobs'): ?>
+                            <th>Status</th>
+                        <?php endif; ?>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($data['records'])): ?>
+                        <?php foreach ($data['records'] as $record): ?>
+                            <tr>
+                                <?php foreach ($data['columns'] as $column): ?>
+                                    <td><?php echo htmlspecialchars($record[$column] ?? '-'); ?></td>
+                                <?php endforeach; ?>
+                                <?php if ($data['table'] === 'jobs'): ?>
+                                    <td><?php echo $record['completion'] ?? '-'; ?></td>
+                                <?php endif; ?>
+                                <td>-</td> <!-- Placeholder for actions, overridden by DataTables -->
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr><td colspan="<?php echo count($data['columns']) + ($data['table'] === 'jobs' ? 2 : 1); ?>">Loading data...</td></tr>
                     <?php endif; ?>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-        </table>
-        <div class="spinner" id="loading-spinner"><i class="fas fa-spinner"></i></div>
-    </div>
+                </tbody>
+            </table>
+            <div class="spinner" id="loading-spinner"><i class="fas fa-spinner"></i></div>
+        </div>
     </div>
 
     <div class="modal" id="crud-modal">
@@ -435,7 +457,18 @@
                 foreach ($editableFields as $column): ?>
                     <div class="form-group">
                         <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
-                        <?php if ($column === 'presence'): ?>
+                        <?php if ($column === 'emp_id' && $data['table'] !== 'employees'): ?>
+                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Employee">
+                                <option value="">Select Employee</option>
+                                <?php
+                                $tableManager = new TableManager();
+                                $employees = $tableManager->getRecords('employees');
+                                foreach ($employees as $employee) {
+                                    echo "<option value='{$employee['emp_id']}'>" . htmlspecialchars($employee['emp_name']) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        <?php elseif ($column === 'presence'): ?>
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Presence Status">
                                 <option value="1.0">Full Day</option>
                                 <option value="0.5">Half Day</option>
@@ -446,6 +479,10 @@
                                 <option value="Yes">Yes</option>
                                 <option value="No">No</option>
                             </select>
+                        <?php elseif ($column === 'date_started' || $column === 'date_completed'): ?>
+                            <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
+                        <?php elseif ($column === 'completion'): ?>
+                            <input type="number" step="0.01" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>">
                         <?php else: ?>
                             <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" <?php echo in_array($column, $data['config']['validation']['required'] ?? []) ? 'required' : ''; ?> aria-label="<?php echo htmlspecialchars($column); ?>">
                         <?php endif; ?>
@@ -462,141 +499,15 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
-        $(document).ready(function() {
-            const table = $('#data-table').DataTable({
-                processing: true,
-                serverSide: true,
-                scrollX: true, // Enables horizontal scrolling
-                autoWidth: false, // Prevents automatic column width adjustment
-                ajax: {
-                    url: '<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>',
-                    type: 'POST',
-                    data: function(d) {
-                        d.action = 'get_records';
-                        d.searchTerm = d.search.value;
-                        d.sortColumn = d.columns[d.order[0].column].data;
-                        d.sortOrder = d.order[0].dir;
-                    },
-                    beforeSend: function() {
-                        $('#loading-spinner').show();
-                    },
-                    complete: function() {
-                        $('#loading-spinner').hide();
-                    }
-                },
-                columns: [
-                    <?php foreach ($data['columns'] as $column): ?>
-                        {
-                            data: '<?php echo $column; ?>',
-                            render: function(data, type, row) {
-                                <?php if ($data['table'] === 'jobs' && $column === 'job_id'): ?>
-                                    return data; // engineer from getJobDetails
-                                <?php elseif ($data['table'] === 'jobs' && $column === 'project_id'): ?>
-                                    return data; // company_reference - project_description from getProjectDetailsForJobs
-                                <?php elseif ($data['table'] !== 'jobs' && $column === 'job_id'): ?>
-                                    return data; // customer_reference from getCustomerReferenceForJobId
-                                <?php elseif ($data['table'] === 'attendance' && $column === 'presence'): ?>
-                                    return data; // Handled by getPresenceDisplay in backend
-                                <?php else: ?>
-                                    return data ? data : '-';
-                                <?php endif; ?>
-                            }
-                        },
-                    <?php endforeach; ?>
-                    <?php if ($data['table'] === 'jobs'): ?>
-                        { 
-                            data: 'invoice_exists',
-                            render: function(data) {
-                                return data ? '<i class="fas fa-check green tooltip" data-tooltip="Invoice exists"></i>' : '<i class="fas fa-times red tooltip" data-tooltip="No invoice"></i>';
-                            },
-                            width: '50px'
-                        },
-                    <?php endif; ?>
-                    {
-                        data: null,
-                        render: function(data, type, row) {
-                            return `
-                                <div style="display: flex; gap: 10px; justify-content: center;">
-                                    <button class="btn btn-primary tooltip" onclick="openModal('edit', '${JSON.stringify(row).replace(/'/g, "\\'")}')" data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-danger tooltip" onclick="deleteRecord('${row['<?php echo $data['columns'][0]; ?>']}')" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
-                                </div>
-                            `;
-                        },
-                        orderable: false,
-                        width: '120px',
-                        className: 'actions-column'
-                    }
-                ],
-                pageLength: 10,
-                lengthMenu: [10, 25, 50, 100],
-                order: [[0, 'desc']],
-                language: {
-                    processing: "Loading data...",
-                    search: "Search records:",
-                    lengthMenu: "Show _MENU_ entries",
-                    emptyTable: "No data available",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    infoEmpty: "Showing 0 to 0 of 0 entries",
-                    paginate: {
-                        first: "First",
-                        last: "Last",
-                        next: "Next",
-                        previous: "Previous"
-                    }
-                },
-                dom: 'lfrtip'
-            });
-        });
-
-        function openModal(action, record = null) {
-            const modal = document.getElementById('crud-modal');
-            const title = document.getElementById('modal-title');
-            const form = document.getElementById('crud-form');
-            const actionInput = document.getElementById('form-action');
-            const idInput = document.getElementById('form-id');
-
-            if (action === 'create') {
-                title.textContent = 'Add New <?php echo htmlspecialchars($data['table']); ?> Record';
-                actionInput.value = 'create';
-                idInput.value = '';
-                form.reset();
-            } else if (action === 'edit' && record) {
-                title.textContent = 'Edit <?php echo htmlspecialchars($data['table']); ?> Record';
-                actionInput.value = 'update';
-                const data = JSON.parse(record);
-                idInput.value = data['<?php echo $data['columns'][0]; ?>'] || '';
-                <?php foreach ($editableFields as $column): ?>
-                    document.getElementById('<?php echo $column; ?>').value = data['<?php echo $column; ?>'] || '';
-                <?php endforeach; ?>
-            }
-            modal.style.display = 'flex';
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('crud-modal');
-            modal.classList.remove('active');
-            setTimeout(() => modal.style.display = 'none', 300);
-        }
-
-        function deleteRecord(id) {
-            if (confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>';
-                form.innerHTML = `
-                    <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="id" value="${id}">
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Close modal on outside click
-        document.getElementById('crud-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
+        window.appConfig = {
+            basePath: '<?php echo BASE_PATH; ?>',
+            tableName: '<?php echo htmlspecialchars($data['table']); ?>',
+            columns: <?php echo json_encode($data['columns']); ?>,
+            editableFields: <?php echo json_encode($editableFields); ?>,
+            completionIndex: <?php echo json_encode(array_search('completion', $data['columns']) !== false ? array_search('completion', $data['columns']) : -1); ?>
+        };
+        console.log('App Config:', window.appConfig);
     </script>
+    <script src="<?php echo BASE_PATH; ?>/public/js/manage_table.js"></script>
 </body>
 </html>

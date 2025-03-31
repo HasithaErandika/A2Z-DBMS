@@ -98,31 +98,36 @@ class AdminController extends Controller {
             exit;
         }
 
-        $page = $_GET['page'] ?? 1;
-        $perPage = 10;
-
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? '';
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $columns[0];
+    
+                     
 
             if ($action === 'get_records') {
                 // Handle DataTables AJAX request
-                $page = isset($_POST['start']) ? ($_POST['start'] / $_POST['length']) + 1 : 1;
-                $perPage = $_POST['length'] ?? 10;
+                $draw = (int)($_POST['draw'] ?? 1);
+                $start = (int)($_POST['start'] ?? 0);
+                $length = (int)($_POST['length'] ?? 10);
+                $page = ($start / $length) + 1;
                 $searchTerm = $_POST['searchTerm'] ?? '';
                 $sortColumn = $_POST['sortColumn'] ?? '';
-                $sortOrder = $_POST['sortOrder'] ?? 'ASC';
+                $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
 
-                $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage, $searchTerm, $sortColumn, $sortOrder);
-
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'draw' => (int)$_POST['draw'],
-                    'recordsTotal' => $result['totalRecords'],
-                    'recordsFiltered' => $result['totalRecords'], // Adjust if implementing advanced filtering
-                    'data' => $result['records']
-                ]);
+                try {
+                    $result = $this->tableManager->getPaginatedRecords($table, $page, $length, $searchTerm, $sortColumn, $sortOrder);
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'draw' => $draw,
+                        'recordsTotal' => $result['recordsTotal'],
+                        'recordsFiltered' => $result['recordsFiltered'], // Use filtered count if search is applied
+                        'data' => $result['data']
+                    ]);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $e->getMessage()]);
+                }
                 exit;
             } elseif ($action === 'create') {
                 $data = [];
@@ -145,20 +150,36 @@ class AdminController extends Controller {
             } elseif ($action === 'export_csv') {
                 $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
                 exit;
+            }  elseif ($action === 'update_status' && $table === 'jobs') {
+                try {
+                    $jobId = $_POST['job_id'] ?? '';
+                    $newCompletion = $this->tableManager->updateJobStatus($jobId);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'completion' => $newCompletion]);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
             }
+
+            // Redirect after non-AJAX POST actions
+            $page = $_GET['page'] ?? 1;
             header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table) . "?page=$page");
             exit;
         }
 
         // Initial page load (GET request)
+        $page = (int)($_GET['page'] ?? 1);
+        $perPage = 10;
         $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage);
 
         $data = [
             'table' => $table,
             'columns' => $this->tableManager->getColumns($table),
-            'records' => $result['records'],
-            'totalRecords' => $result['totalRecords'],
-            'totalPages' => $result['totalPages'],
+            'records' => $result['data'], // Changed from 'records' to 'data' to match getPaginatedRecords
+            'totalRecords' => $result['recordsTotal'],
+            'totalPages' => ceil($result['recordsTotal'] / $perPage), // Calculate total pages
             'config' => $this->tableManager->getConfig($table),
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
@@ -173,7 +194,7 @@ class AdminController extends Controller {
         $this->render('admin/manage_table', $data);
     }
 
-    // Placeholder methods
+    // Placeholder methods (unchanged)
     public function wagesReport() { echo "Monthly Wages Report"; }
     public function expensesReport() { echo "Expenses Report"; }
     public function costCalculation($table) { echo "Site Cost Calculation for $table"; }
