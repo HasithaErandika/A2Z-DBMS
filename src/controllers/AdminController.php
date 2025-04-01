@@ -216,19 +216,26 @@ class AdminController extends Controller {
         $this->render('reports/cost_calculation', $data);
     }
 
-    public function costCalculation() { // Removed $table parameter
+    public function costCalculation() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
-
-        // Prepare data for the view (no table involvement)
+    
+        // Fetch cost data using ReportManager
+        $costData = $this->reportManager->getCostSummary();
+    
+        // Prepare data for the view
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
-            // Add static data if needed
+            'total_payments' => $costData['total_payments'],
+            'daily_wage_costs' => $costData['daily_wage_costs'],
+            'total_increments' => $costData['total_increments'],
+            'total_cost' => $costData['total_cost'],
+            'employee_breakdown' => $costData['employee_breakdown']
         ];
-
+    
         // Render the cost_calculation view
         $this->render('reports/cost_calculation', $data);
     }
