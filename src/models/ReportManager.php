@@ -1,7 +1,7 @@
 <?php
-// src/models/RecordManager.php
+// src/models/ReportManager.php
 
-class RecordManager {
+class ReportManager {
     private $db;
 
     public function __construct() {

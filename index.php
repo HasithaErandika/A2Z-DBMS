@@ -1,4 +1,6 @@
 <?php
+// A2Z-DBMS/index.php
+
 session_start();
 define('BASE_PATH', '/A2Z-DBMS');
 
@@ -10,14 +12,14 @@ if (empty($request)) {
     $request = '/';
 }
 
+error_log("Request URI: $request"); // Debug log
+
 // Check if the request is for a static file
 $staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf'];
 $fileExtension = pathinfo($request, PATHINFO_EXTENSION);
 if (in_array($fileExtension, $staticExtensions)) {
-    // Serve the file directly from the filesystem
-    $filePath = __DIR__ . '/assets/' . $request;
+    $filePath = __DIR__ . '/src/assets' . $request;
     if (file_exists($filePath)) {
-        // Set appropriate MIME type
         $mimeTypes = [
             'css' => 'text/css',
             'js' => 'application/javascript',
@@ -31,8 +33,6 @@ if (in_array($fileExtension, $staticExtensions)) {
         header('Content-Type: ' . ($mimeTypes[$fileExtension] ?? 'application/octet-stream'));
         readfile($filePath);
         exit;
-    } else {
-        // File not found, proceed to 404
     }
 }
 
@@ -52,7 +52,6 @@ $routes = [
     '/admin/sql' => ['AdminController', 'sql'],
 ];
 
-// Rest of your routing logic remains unchanged
 if (isset($routes[$request])) {
     $controllerName = $routes[$request][0];
     $methodName = $routes[$request][1];
@@ -67,17 +66,29 @@ if (isset($routes[$request])) {
     }
 } else {
     $parts = explode('/', $request);
-    if (count($parts) >= 3 && $parts[1] === 'admin' && $parts[2] === 'manageTable' && !empty($parts[3])) {
+    if (count($parts) >= 3 && $parts[1] === 'admin') {
         $controllerName = 'AdminController';
-        $methodName = 'manageTable';
-        $table = $parts[3];
         $controllerFile = "src/controllers/{$controllerName}.php";
         if (file_exists($controllerFile)) {
             require_once $controllerFile;
-            if (class_exists($controllerName) && method_exists($controllerName, $methodName)) {
-                $controllerInstance = new $controllerName();
-                $controllerInstance->$methodName($table);
-                exit;
+            $controllerInstance = new $controllerName();
+
+            if ($parts[2] === 'manageTable' && !empty($parts[3])) {
+                $methodName = 'manageTable';
+                $table = $parts[3];
+                if (method_exists($controllerInstance, $methodName)) {
+                    $controllerInstance->$methodName($table);
+                    exit;
+                }
+            }
+            elseif ($parts[2] === 'costCalculation' && !empty($parts[3])) {
+                $methodName = 'costCalculation';
+                $table = $parts[3];
+                error_log("Routing to AdminController::costCalculation($table)"); // Debug log
+                if (method_exists($controllerInstance, $methodName)) {
+                    $controllerInstance->$methodName($table);
+                    exit;
+                }
             }
         }
     }

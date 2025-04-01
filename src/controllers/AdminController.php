@@ -1,18 +1,19 @@
 <?php
-require_once 'src/core/Controller.php';
-require_once 'src/models/TableManager.php';
-require_once 'src/models/RecordManager.php'; // Add this line
+// src/controllers/AdminController.php
+require_once __DIR__ . '/../core/Controller.php';
+require_once __DIR__ . '/../models/TableManager.php';
+require_once __DIR__ . '/../models/ReportManager.php';
 
 class AdminController extends Controller {
     private $tableManager;
-    private $recordManager; // Add this property
+    private $reportManager;
 
     public function __construct() {
         if (method_exists('Controller', '__construct')) {
             parent::__construct();
         }
         $this->tableManager = new TableManager();
-        $this->recordManager = new RecordManager(); // Initialize RecordManager
+        $this->reportManager = new ReportManager();
     }
 
     public function dashboard() {
@@ -62,7 +63,7 @@ class AdminController extends Controller {
                 ['link' => '/admin/manageTable/operational_expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
                 ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
                 ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
-                ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
+                ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check dominio-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
             ]
         ];
 
@@ -74,20 +75,20 @@ class AdminController extends Controller {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
-
+    
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
             'reportCards' => [
-                ['link' => '/admin/wagesReport', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
-                ['link' => '/admin/expensesReport', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
-                ['link' => '/records/cost_Calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
-                ['link' => '/admin/materialFind', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
-                ['link' => '/admin/a2zEngineeringJobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
+                ['link' => '/records/wages_report', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
+                ['link' => '/records/expenses_report', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
+                ['link' => '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
+                ['link' => '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
+                ['link' => '/records/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
         ];
-
-        $this->render('admin/records', $data);
+    
+        $this->render('admin/reports', $data);
     }
 
     public function manageTable($table) {
@@ -106,10 +107,7 @@ class AdminController extends Controller {
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $columns[0];
     
-                     
-
             if ($action === 'get_records') {
-                // Handle DataTables AJAX request
                 $draw = (int)($_POST['draw'] ?? 1);
                 $start = (int)($_POST['start'] ?? 0);
                 $length = (int)($_POST['length'] ?? 10);
@@ -124,7 +122,7 @@ class AdminController extends Controller {
                     echo json_encode([
                         'draw' => $draw,
                         'recordsTotal' => $result['recordsTotal'],
-                        'recordsFiltered' => $result['recordsFiltered'], // Use filtered count if search is applied
+                        'recordsFiltered' => $result['recordsFiltered'],
                         'data' => $result['data']
                     ]);
                 } catch (Exception $e) {
@@ -153,7 +151,7 @@ class AdminController extends Controller {
             } elseif ($action === 'export_csv') {
                 $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
                 exit;
-            }  elseif ($action === 'update_status' && $table === 'jobs') {
+            } elseif ($action === 'update_status' && $table === 'jobs') {
                 try {
                     $jobId = $_POST['job_id'] ?? '';
                     $newCompletion = $this->tableManager->updateJobStatus($jobId);
@@ -166,13 +164,11 @@ class AdminController extends Controller {
                 exit;
             }
 
-            // Redirect after non-AJAX POST actions
             $page = $_GET['page'] ?? 1;
             header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table) . "?page=$page");
             exit;
         }
 
-        // Initial page load (GET request)
         $page = (int)($_GET['page'] ?? 1);
         $perPage = 10;
         $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage);
@@ -188,7 +184,7 @@ class AdminController extends Controller {
             'dbname' => 'operational_db',
             'page' => $page,
             'perPage' => $perPage,
-            'tableManager' => $this->tableManager // Add the TableManager instance
+            'tableManager' => $this->tableManager
         ];
 
         if ($table === 'jobs') {
@@ -198,24 +194,22 @@ class AdminController extends Controller {
         $this->render('admin/manage_table', $data);
     }
 
-    // Placeholder methods (unchanged)
     public function wagesReport() { echo "Monthly Wages Report"; }
     public function expensesReport() { echo "Expenses Report"; }
 
-    
     public function costCalculation($table) {
+        error_log("Inside costCalculation with table: $table"); // Debug log
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
 
         if ($table !== 'jobs') {
-            header("Location: " . BASE_PATH . "/admin/records");
+            header("Location: " . BASE_PATH . "/admin/reports");
             exit;
         }
         
-        // Use RecordManager instead of TableManager
-        $siteCosts = $this->recordManager->calculateSiteCosts();
+        $siteCosts = $this->reportManager->calculateSiteCosts();
         
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
@@ -224,8 +218,9 @@ class AdminController extends Controller {
             'table' => $table
         ];
 
-        $this->render('admin/cost_calculation', $data);
+        $this->render('reports/cost_calculation', $data);
     }
+
     public function materialFind() { echo "Material Cost Calculation"; }
     public function a2zEngineeringJobs() { echo "A2Z Engineering Jobs"; }
 }

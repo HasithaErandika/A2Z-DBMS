@@ -45,12 +45,18 @@ class Controller {
     }
 
     protected function render($view, $data = []) {
-        extract($data);
-        $viewPath = "src/views/$view.php";
-        if (file_exists($viewPath)) {
-            include_once $viewPath;
+        $viewFile = __DIR__ . "/../views/$view.php"; // e.g., src/views/reports/cost_calculation.php
+        error_log("Rendering view: $viewFile"); // Debug log
+        if (file_exists($viewFile)) {
+            extract($data);
+            require_once $viewFile;
         } else {
-            die("View '$view' not found at $viewPath");
+            error_log("View not found: $viewFile");
+            header("HTTP/1.0 404 Not Found");
+            require_once __DIR__ . "/../controllers/ErrorController.php";
+            $errorController = new ErrorController();
+            $errorController->notFound();
+            exit;
         }
     }
 } 

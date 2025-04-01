@@ -358,7 +358,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
         <ul class="sidebar-menu">
             <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/admin/tables"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/records" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/reports" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li> <!-- Updated to /admin/reports -->
             <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -384,25 +384,25 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
                 <input type="text" class="search-bar" placeholder="Search sites..." onkeyup="filterTable(this)" aria-label="Search sites">
             </div>
             <table class="cost-table">
-    <thead>
-        <tr>
-            <th>Site Name</th>
-            <th>Total Jobs</th>
-            <th>Total Cost</th>
-            <th>Avg Cost/Job</th>
-        </tr>
-    </thead>
-    <tbody id="cost-table-body">
-        <?php foreach ($data['siteCosts'] as $site): ?>
-            <tr>
-                <td><?php echo htmlspecialchars($site['site_name'] ?? 'Unknown'); ?></td>
-                <td><?php echo htmlspecialchars($site['total_jobs']); ?></td>
-                <td>$<?php echo number_format($site['total_cost'], 2); ?></td>
-                <td>$<?php echo number_format($site['avg_cost_per_job'], 2); ?></td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
+                <thead>
+                    <tr>
+                        <th>Site Name</th>
+                        <th>Total Jobs</th>
+                        <th>Total Cost</th>
+                        <th>Avg Cost/Job</th>
+                    </tr>
+                </thead>
+                <tbody id="cost-table-body">
+                    <?php foreach ($data['siteCosts'] as $site): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($site['site_name'] ?? 'Unknown'); ?></td>
+                            <td><?php echo htmlspecialchars($site['total_jobs']); ?></td>
+                            <td>$<?php echo number_format($site['total_cost'], 2); ?></td>
+                            <td>$<?php echo number_format($site['avg_cost_per_job'], 2); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 

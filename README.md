@@ -53,11 +53,23 @@ A2Z-DBMS/
 ├── database/
 │   └── setup.sql         # Database structure
 ├── src/
+│   ├── assets/     # Styling and js
+│   │   ├── css  # CSS
+│   │   │   ├── adminDashboard.css
+│   │   │   ├── index.css
+│   │   │   ├── login.css
+│   │   │   ├── manage_table.css
+│   │   │   ├── records.css
+│   │   │   ├── tables.css
+│   │   ├── images # image files
+│   │   ├── js  # javascript
 │   ├── core/            # Core framework classes
 │   │   ├── Model.php    # Base Model class
 │   │   └── Controller.php # Base Controller class
 │   │   └── Database.php # Database class
 │   ├── models/          # Database models
+│   │   ├── ReportManager.php    # Base Model class
+│   │   ├── TableManager.php    # Base Model class
 │   │   └── User.php     # User model
 │   ├── controllers/     # Controllers
 │   │   ├── AuthController.php # Authentication controller
@@ -65,6 +77,8 @@ A2Z-DBMS/
 │   │   └── HomeController.php # Home controller
 │   │   └── ErrorController.php # Error Controller 
 │   ├── views/          # View templates
+│   │   ├── reports/    # report page
+│   │   │   ├── cost_calculation.php.php
 │   │   ├── errors/    # error page
 │   │   │   ├── error.php
 │   │   ├── auth/       # Authentication views
