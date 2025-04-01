@@ -12,13 +12,12 @@ if (empty($request)) {
     $request = '/';
 }
 
-error_log("Request URI: $request"); // Debug log
-
 // Check if the request is for a static file
 $staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf'];
 $fileExtension = pathinfo($request, PATHINFO_EXTENSION);
 if (in_array($fileExtension, $staticExtensions)) {
-    $filePath = __DIR__ . '/src/assets' . $request;
+    // Serve the file directly from src/assets/
+    $filePath = __DIR__ . '/src/assets' . $request; // Updated to src/assets/
     if (file_exists($filePath)) {
         $mimeTypes = [
             'css' => 'text/css',
@@ -33,6 +32,8 @@ if (in_array($fileExtension, $staticExtensions)) {
         header('Content-Type: ' . ($mimeTypes[$fileExtension] ?? 'application/octet-stream'));
         readfile($filePath);
         exit;
+    } else {
+        // File not found, proceed to 404
     }
 }
 
@@ -43,15 +44,18 @@ $routes = [
     '/admin' => ['AdminController', 'dashboard'],
     '/admin/dashboard' => ['AdminController', 'dashboard'],
     '/admin/tables' => ['AdminController', 'tables'],
-    '/admin/records' => ['AdminController', 'records'],
+    '/admin/records' => ['AdminController', 'records'], // Note: Should this be /admin/reports?
     '/admin/employees' => ['AdminController', 'employees'],
     '/admin/jobs' => ['AdminController', 'jobs'],
     '/admin/attendance' => ['AdminController', 'attendance'],
     '/admin/expenses' => ['AdminController', 'expenses'],
     '/admin/users' => ['AdminController', 'users'],
     '/admin/sql' => ['AdminController', 'sql'],
+    '/reports/cost_calculation' => ['AdminController', 'costCalculation'], 
+    '/reports/expenses_report' => ['AdminController', 'expensesReport'],
 ];
 
+// Handle defined routes
 if (isset($routes[$request])) {
     $controllerName = $routes[$request][0];
     $methodName = $routes[$request][1];
@@ -65,6 +69,7 @@ if (isset($routes[$request])) {
         }
     }
 } else {
+    // Handle dynamic routes
     $parts = explode('/', $request);
     if (count($parts) >= 3 && $parts[1] === 'admin') {
         $controllerName = 'AdminController';
@@ -73,6 +78,7 @@ if (isset($routes[$request])) {
             require_once $controllerFile;
             $controllerInstance = new $controllerName();
 
+            // Handle /admin/manageTable/{table}
             if ($parts[2] === 'manageTable' && !empty($parts[3])) {
                 $methodName = 'manageTable';
                 $table = $parts[3];
@@ -81,10 +87,10 @@ if (isset($routes[$request])) {
                     exit;
                 }
             }
+            // Handle /admin/costCalculation/{table} (kept for backward compatibility, optional)
             elseif ($parts[2] === 'costCalculation' && !empty($parts[3])) {
                 $methodName = 'costCalculation';
                 $table = $parts[3];
-                error_log("Routing to AdminController::costCalculation($table)"); // Debug log
                 if (method_exists($controllerInstance, $methodName)) {
                     $controllerInstance->$methodName($table);
                     exit;
@@ -94,6 +100,7 @@ if (isset($routes[$request])) {
     }
 }
 
+// Fallback to 404
 require_once 'src/controllers/ErrorController.php';
 $errorController = new ErrorController();
 $errorController->notFound();

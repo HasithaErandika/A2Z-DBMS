@@ -58,12 +58,13 @@ class AdminController extends Controller {
                 ['link' => '/admin/manageTable/attendance', 'icon' => 'fa-calendar-check', 'title' => 'Attendance', 'desc' => 'Track employee attendance'],
                 ['link' => '/admin/manageTable/employees', 'icon' => 'fa-user-tie', 'title' => 'Employees', 'desc' => 'Manage employee records'],
                 ['link' => '/admin/manageTable/employee_bank_details', 'icon' => 'fa-university', 'title' => 'Employee Bank Details', 'desc' => 'Banking information'],
+                ['link' => '/admin/manageTable/employee_payment_rates', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payment Rates', 'desc' => 'Fixed or Daily Wage'],
                 ['link' => '/admin/manageTable/projects', 'icon' => 'fa-project-diagram', 'title' => 'Projects', 'desc' => 'Project management'],
                 ['link' => '/admin/manageTable/jobs', 'icon' => 'fa-briefcase', 'title' => 'Jobs', 'desc' => 'Job assignments'],
                 ['link' => '/admin/manageTable/operational_expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
                 ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
                 ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
-                ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check dominio-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
+                ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
             ]
         ];
 
@@ -80,11 +81,11 @@ class AdminController extends Controller {
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
             'reportCards' => [
-                ['link' => '/records/wages_report', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
-                ['link' => '/records/expenses_report', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
-                ['link' => '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
-                ['link' => '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
-                ['link' => '/records/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
+                ['link' => BASE_PATH . '/records/wages_report', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
+                ['link' => BASE_PATH . '/reports/expenses_report', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
+                ['link' => BASE_PATH . '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
+                ['link' => BASE_PATH . '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
+                ['link' => BASE_PATH . '/records/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
         ];
     
@@ -194,33 +195,49 @@ class AdminController extends Controller {
         $this->render('admin/manage_table', $data);
     }
 
-    public function wagesReport() { echo "Monthly Wages Report"; }
-    public function expensesReport() { echo "Expenses Report"; }
-
-    public function costCalculation($table) {
-        error_log("Inside costCalculation with table: $table"); // Debug log
+    public function wagesReport() { 
+        echo "Monthly Wages Report"; 
+    }
+    
+    public function expensesReport() { // Removed $table parameter
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
 
-        if ($table !== 'jobs') {
-            header("Location: " . BASE_PATH . "/admin/reports");
-            exit;
-        }
-        
-        $siteCosts = $this->reportManager->calculateSiteCosts();
-        
+        // Prepare data for the view (no table involvement)
         $data = [
             'username' => $_SESSION['username'] ?? 'Admin',
             'dbname' => 'operational_db',
-            'siteCosts' => $siteCosts,
-            'table' => $table
+            // Add static data if needed
         ];
 
+        // Render the cost_calculation view
         $this->render('reports/cost_calculation', $data);
     }
 
-    public function materialFind() { echo "Material Cost Calculation"; }
-    public function a2zEngineeringJobs() { echo "A2Z Engineering Jobs"; }
+    public function costCalculation() { // Removed $table parameter
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
+            header("Location: " . BASE_PATH . "/login");
+            exit;
+        }
+
+        // Prepare data for the view (no table involvement)
+        $data = [
+            'username' => $_SESSION['username'] ?? 'Admin',
+            'dbname' => 'operational_db',
+            // Add static data if needed
+        ];
+
+        // Render the cost_calculation view
+        $this->render('reports/cost_calculation', $data);
+    }
+
+    public function materialFind() { 
+        echo "Material Cost Calculation"; 
+    }
+    
+    public function a2zEngineeringJobs() { 
+        echo "A2Z Engineering Jobs"; 
+    }
 }
