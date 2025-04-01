@@ -1,15 +1,18 @@
 <?php
 require_once 'src/core/Controller.php';
 require_once 'src/models/TableManager.php';
+require_once 'src/models/RecordManager.php'; // Add this line
 
 class AdminController extends Controller {
     private $tableManager;
+    private $recordManager; // Add this property
 
     public function __construct() {
         if (method_exists('Controller', '__construct')) {
             parent::__construct();
         }
         $this->tableManager = new TableManager();
+        $this->recordManager = new RecordManager(); // Initialize RecordManager
     }
 
     public function dashboard() {
@@ -78,7 +81,7 @@ class AdminController extends Controller {
             'reportCards' => [
                 ['link' => '/admin/wagesReport', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
                 ['link' => '/admin/expensesReport', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
-                ['link' => '/admin/costCalculation/jobs', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
+                ['link' => '/records/cost_Calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
                 ['link' => '/admin/materialFind', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
                 ['link' => '/admin/a2zEngineeringJobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
@@ -198,7 +201,31 @@ class AdminController extends Controller {
     // Placeholder methods (unchanged)
     public function wagesReport() { echo "Monthly Wages Report"; }
     public function expensesReport() { echo "Expenses Report"; }
-    public function costCalculation($table) { echo "Site Cost Calculation for $table"; }
+
+    
+    public function costCalculation($table) {
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
+            header("Location: " . BASE_PATH . "/login");
+            exit;
+        }
+
+        if ($table !== 'jobs') {
+            header("Location: " . BASE_PATH . "/admin/records");
+            exit;
+        }
+        
+        // Use RecordManager instead of TableManager
+        $siteCosts = $this->recordManager->calculateSiteCosts();
+        
+        $data = [
+            'username' => $_SESSION['username'] ?? 'Admin',
+            'dbname' => 'operational_db',
+            'siteCosts' => $siteCosts,
+            'table' => $table
+        ];
+
+        $this->render('admin/cost_calculation', $data);
+    }
     public function materialFind() { echo "Material Cost Calculation"; }
     public function a2zEngineeringJobs() { echo "A2Z Engineering Jobs"; }
 }
