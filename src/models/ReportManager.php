@@ -1,6 +1,4 @@
 <?php
-// src/models/ReportManager.php
-
 class ReportManager {
     private $db;
 
@@ -22,7 +20,7 @@ class ReportManager {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    public function getJobCostData($filters = []) { // Removed $limit and $offset parameters
+    public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
         $query = "
             SELECT 
                 j.job_id, j.date_completed, j.customer_reference, j.location, j.job_capacity, j.engineer,
@@ -73,12 +71,14 @@ class ReportManager {
         }
         $query .= " GROUP BY j.job_id, j.date_completed, j.customer_reference, j.location, j.job_capacity, j.engineer, 
                     p.company_reference, id.invoice_no, id.invoice_value, id.receiving_payment, id.received_amount, 
-                    id.payment_received_date ORDER BY j.job_id DESC"; // Removed LIMIT and OFFSET
+                    id.payment_received_date ORDER BY j.job_id DESC LIMIT :limit OFFSET :offset";
 
         $stmt = $this->db->prepare($query);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -121,5 +121,90 @@ class ReportManager {
         $stmt->bindValue(':job_id', $jobId, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // New methods for expenses report
+    public function getExpensesByCategory($start_date = null, $end_date = null) {
+        $query = "SELECT expenses_category, SUM(expense_amount) AS total_expenses 
+                  FROM operational_expenses 
+                  " . ($start_date ? "WHERE expensed_date BETWEEN :start_date AND :end_date" : "") . " 
+                  GROUP BY expenses_category";
+        $stmt = $this->db->prepare($query);
+        if ($start_date) {
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getInvoicesSummary($start_date = null, $end_date = null) {
+        $query = "SELECT SUM(invoice_value) AS total_invoices, COUNT(invoice_no) AS invoice_count 
+                  FROM invoice_data 
+                  " . ($start_date ? "WHERE invoice_date BETWEEN :start_date AND :end_date" : "");
+        $stmt = $this->db->prepare($query);
+        if ($start_date) {
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+        }
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getJobsSummary($start_date = null, $end_date = null) {
+        $query = "SELECT COUNT(job_id) AS job_count, SUM(job_capacity) AS total_capacity 
+                  FROM jobs 
+                  " . ($start_date ? "WHERE date_completed BETWEEN :start_date AND :end_date" : "");
+        $stmt = $this->db->prepare($query);
+        if ($start_date) {
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+        }
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getAttendanceCosts($start_date = null, $end_date = null) {
+        $query = "
+            SELECT 
+                COALESCE(
+                    (SELECT si.increment_amount 
+                     FROM salary_increments si 
+                     WHERE si.emp_id = e.emp_id 
+                     AND si.increment_date <= a.attendance_date
+                     ORDER BY si.increment_date DESC 
+                     LIMIT 1),
+                    epr.rate_amount
+                ) AS effective_rate,
+                a.presence
+            FROM attendance a
+            JOIN employees e ON a.emp_id = e.emp_id
+            LEFT JOIN employee_payment_rates epr ON e.emp_id = epr.emp_id
+                AND epr.rate_type = 'Daily'
+                AND (epr.end_date IS NULL OR epr.end_date >= a.attendance_date)
+                AND epr.effective_date <= a.attendance_date
+            " . ($start_date ? "WHERE a.attendance_date BETWEEN :start_date AND :end_date" : "");
+        $stmt = $this->db->prepare($query);
+        if ($start_date) {
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getEPFCosts($start_date = null) {
+        $query = "SELECT basic_salary, date_of_resigned FROM employees";
+        $stmt = $this->db->prepare($query);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $epf_costs = 0;
+        foreach ($results as $row) {
+            $resigned_date = $row['date_of_resigned'] === '0000-00-00' ? null : $row['date_of_resigned'];
+            if (!$resigned_date || ($start_date && $resigned_date > $start_date)) {
+                $epf_costs += floatval($row['basic_salary']) * 0.12;
+            }
+        }
+        return $epf_costs;
     }
 }

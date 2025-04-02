@@ -199,21 +199,133 @@ class AdminController extends Controller {
         echo "Monthly Wages Report"; 
     }
     
-    public function expensesReport() { // Removed $table parameter
+    public function expenseReport() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
             header("Location: " . BASE_PATH . "/login");
             exit;
         }
 
-        // Prepare data for the view (no table involvement)
-        $data = [
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
-            // Add static data if needed
-        ];
+        try {
+            $start_date = null;
+            $end_date = null;
+            $report_title = "Full Company Expense Report (All Time)";
 
-        // Render the cost_calculation view
-        $this->render('reports/cost_calculation', $data);
+            // Process filter
+            if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['year'], $_POST['month'])) {
+                $year = filter_var($_POST['year'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 2024, 'max_range' => 2025]]);
+                $month = filter_var($_POST['month'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 12]]);
+                if ($year === false || $month === false) {
+                    throw new Exception("Invalid year or month selected.");
+                }
+                $start_date = sprintf("%d-%02d-01", $year, $month);
+                $end_date = sprintf("%d-%02d-%d", $year, $month, date('t', mktime(0, 0, 0, $month, 1, $year)));
+                $month_name = date('F', mktime(0, 0, 0, $month, 1, $year));
+                $report_title = "Company Expense Report for $month_name $year";
+            }
+
+            // Fetch data
+            $expenses_data = $this->reportManager->getExpensesByCategory($start_date, $end_date);
+            $invoices_data = $this->reportManager->getInvoicesSummary($start_date, $end_date);
+            $jobs_data = $this->reportManager->getJobsSummary($start_date, $end_date);
+            $attendance_data = $this->reportManager->getAttendanceCosts($start_date, $end_date);
+            $epf_costs = $this->reportManager->getEPFCosts($start_date);
+
+            // Process expenses
+            $total_expenses = 0;
+            $total_employee_costs = 0;
+            $expenses_by_category = [];
+            $employee_costs_by_type = ['Attendance-Based' => 0, 'Hiring of Labor' => 0];
+
+            foreach ($expenses_data as $row) {
+                $category = $row['expenses_category'];
+                $amount = floatval($row['total_expenses']);
+                if (strcasecmp($category, 'Hiring of Labor') === 0) {
+                    $employee_costs_by_type['Hiring of Labor'] = $amount;
+                    $total_employee_costs += $amount;
+                } else {
+                    $expenses_by_category[$category] = $amount;
+                    $total_expenses += $amount;
+                }
+            }
+
+            // Process attendance costs
+            foreach ($attendance_data as $row) {
+                $payment = ($row['presence'] ?? 0) * ($row['effective_rate'] ?? 0);
+                if ($row['presence'] > 0) {
+                    $employee_costs_by_type['Attendance-Based'] += $payment;
+                    $total_employee_costs += $payment;
+                }
+            }
+
+            // Add EPF to employee costs
+            $total_employee_costs += $epf_costs;
+            $expenses_by_category['EPF'] = $epf_costs;
+
+            // Process invoices and jobs
+            $total_invoices = floatval($invoices_data['total_invoices'] ?? 0);
+            $total_invoices_count = intval($invoices_data['invoice_count'] ?? 0);
+            $total_jobs = intval($jobs_data['job_count'] ?? 0);
+            $total_job_capacity = floatval($jobs_data['total_capacity'] ?? 0);
+
+            // Calculate profit
+            $profit = $total_invoices - ($total_expenses + $total_employee_costs);
+
+            $data = [
+                'username' => $_SESSION['username'] ?? 'Admin',
+                'dbname' => 'operational_db',
+                'report_title' => $report_title,
+                'total_expenses' => $total_expenses,
+                'total_invoices' => $total_invoices,
+                'total_invoices_count' => $total_invoices_count,
+                'total_jobs' => $total_jobs,
+                'total_job_capacity' => $total_job_capacity,
+                'total_employee_costs' => $total_employee_costs,
+                'profit' => $profit,
+                'expenses_by_category' => $expenses_by_category,
+                'employee_costs_by_type' => $employee_costs_by_type,
+                'filters' => ['year' => $_POST['year'] ?? '', 'month' => $_POST['month'] ?? '']
+            ];
+
+            // CSV export
+            if (isset($_GET['download_csv'])) {
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="expense_report_' . date('Y-m-d') . '.csv"');
+                $output = fopen('php://output', 'w');
+                fputcsv($output, [$report_title]);
+                fputcsv($output, ['']);
+                fputcsv($output, ['Financial Overview', 'Value']);
+                fputcsv($output, ['Total Invoices', number_format($total_invoices, 2)]);
+                fputcsv($output, ['Total Operational Expenses', number_format($total_expenses, 2)]);
+                fputcsv($output, ['Total Employee Costs', number_format($total_employee_costs, 2)]);
+                fputcsv($output, ['Net Profit', number_format($profit, 2)]);
+                fputcsv($output, ['']);
+                fputcsv($output, ['Operational Expenses by Category', 'Amount']);
+                foreach ($expenses_by_category as $category => $amount) {
+                    fputcsv($output, [$category, number_format($amount, 2)]);
+                }
+                fputcsv($output, ['']);
+                fputcsv($output, ['Employee Costs by Type', 'Amount']);
+                foreach ($employee_costs_by_type as $type => $amount) {
+                    fputcsv($output, [$type, number_format($amount, 2)]);
+                }
+                fputcsv($output, ['']);
+                fputcsv($output, ['Additional Metrics', 'Value']);
+                fputcsv($output, ['Invoice Count', $total_invoices_count]);
+                fputcsv($output, ['Total Jobs', $total_jobs]);
+                fputcsv($output, ['Total Job Capacity', number_format($total_job_capacity, 2)]);
+                fclose($output);
+                exit();
+            }
+
+            $this->render('reports/expenses_report', $data);
+        } catch (Exception $e) {
+            error_log("Error in expenseReport: " . $e->getMessage());
+            $this->render('reports/expenses_report', [
+                'username' => $_SESSION['username'] ?? 'Admin',
+                'dbname' => 'operational_db',
+                'error' => "Error generating report: " . $e->getMessage()
+            ]);
+        }
     }
 
     public function costCalculation() {
