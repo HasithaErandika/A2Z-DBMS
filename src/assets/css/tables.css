@@ -301,6 +301,23 @@ body {
 .card:hover i {
     transform: scale(1.1);
 }
+/* src/assets/css/tables.css */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.datepicker, .timepicker {
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.timepicker + .bootstrap-timepicker-widget {
+    z-index: 1050; /* Ensure it appears above other elements */
+}
+
+.datepicker + .datepicker-days {
+    z-index: 1050;
+}
 
 .card-title {
     font-size: 1.25rem;

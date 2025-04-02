@@ -64,40 +64,65 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
     </div>
 
     <script>
+        // Toggle sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const container = document.getElementById('container');
             sidebar.classList.toggle('collapsed');
             container.classList.toggle('full-width');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         }
 
+        // Filter cards based on search input
         function filterCards(input, gridId) {
-            const searchTerm = input.value.toLowerCase();
+            const searchTerm = input.value.toLowerCase().trim();
             const grid = document.getElementById(`${gridId}-grid`);
             const cards = grid.getElementsByClassName('card');
             Array.from(cards).forEach(card => {
                 const title = card.querySelector('.card-title').textContent.toLowerCase();
                 const desc = card.querySelector('.card-desc').textContent.toLowerCase();
-                card.style.display = (title.includes(searchTerm) || desc.includes(searchTerm)) ? 'flex' : 'none';
+                card.style.display = (title.includes(searchTerm) || desc.includes(searchTerm)) ? '' : 'none';
             });
         }
 
+        // Update date and time
         function updateDateTime() {
             const datetime = document.getElementById('datetime');
-            const now = new Date();
-            datetime.textContent = now.toLocaleString('en-US', {
-                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
+            if (datetime) {
+                const now = new Date();
+                datetime.textContent = now.toLocaleString('en-US', {
+                    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                });
+            }
         }
 
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restore sidebar state
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('container').classList.add('full-width');
+            }
 
-        // Smooth hover effects for cards
-        document.querySelectorAll('.card').forEach(card => {
-            card.addEventListener('mouseenter', () => card.style.transition = 'all 0.3s ease');
-            card.addEventListener('mouseleave', () => card.style.transition = 'all 0.3s ease');
+            // Update time every second
+            setInterval(updateDateTime, 1000);
+            updateDateTime();
+
+            // Card hover effects
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'translateY(-5px)';
+                    card.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
+                });
+            });
         });
     </script>
 </body>

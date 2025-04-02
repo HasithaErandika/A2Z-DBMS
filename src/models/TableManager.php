@@ -4,21 +4,24 @@ require_once 'src/core/Model.php';
 class TableManager extends Model {
     private $allowedTables = [
         'attendance', 'employees', 'employee_bank_details', 'projects', 'jobs',
-        'operational_expenses', 'invoice_data', 'employee_payments', 'salary_increments'
+        'operational_expenses', 'invoice_data', 'employee_payments', 'salary_increments',
+        'employee_payment_rates'
     ];
 
     private $tableConfigs = [
         'attendance' => [
-            'editableFields' => ['emp_id', 'presence', 'start_time', 'end_time', 'remarks'],
+            'editableFields' => ['emp_id', 'job_id', 'presence', 'start_time', 'end_time', 'remarks'],
             'validation' => [
                 'presence' => ['required', 'in:0.0,0.5,1.0'],
-                'attendance_date' => ['required']
+                'attendance_date' => ['required'],
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'presence' => 'getPresenceDisplay',
-                'emp_id' => 'fetchEmployeeName'
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['attendance_date', 'presence', 'remarks'],
+            'searchFields' => ['attendance_date', 'presence', 'remarks', 'job_id'],
             'dateField' => 'attendance_date'
         ],
         'employees' => [
@@ -28,6 +31,30 @@ class TableManager extends Model {
                 'emp_nic' => ['required']
             ],
             'searchFields' => ['emp_name', 'emp_nic', 'designation']
+        ],
+        'employee_bank_details' => [
+            'editableFields' => ['emp_id', 'job_id', 'emp_name', 'acc_no', 'bank', 'branch'],
+            'validation' => [
+                'acc_no' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['emp_name', 'acc_no', 'bank', 'job_id']
+        ],
+        'projects' => [
+            'editableFields' => ['emp_id', 'job_id', 'project_description', 'company_reference', 'remarks'],
+            'validation' => [
+                'project_description' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['project_description', 'company_reference', 'job_id']
         ],
         'jobs' => [
             'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
@@ -44,59 +71,73 @@ class TableManager extends Model {
             'dateField' => 'date_started'
         ],
         'operational_expenses' => [
-    'editableFields' => ['emp_id', 'job_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'], // Added job_id
-    'validation' => ['expense_amount' => ['required']],
-    'formatters' => [
-        'paid' => 'getBooleanIcon',
-        'emp_id' => 'fetchEmployeeName',
-        'job_id' => 'getJobDetails'  // Added formatter for job_id
-    ],
-    'searchFields' => ['expensed_date', 'expenses_category', 'description', 'job_id'], // Added job_id to search
-    'dateField' => 'expensed_date'
-],
-        'employee_payments' => [
-            'editableFields' => ['emp_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
-            'validation' => ['paid_amount' => ['required']],
-            'formatters' => ['emp_id' => 'fetchEmployeeName'],
-            'searchFields' => ['payment_date', 'payment_type'],
-            'dateField' => 'payment_date'
+            'editableFields' => ['emp_id', 'job_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
+            'validation' => [
+                'expense_amount' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'paid' => 'getBooleanIcon',
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'job_id'],
+            'dateField' => 'expensed_date'
         ],
         'invoice_data' => [
-            'editableFields' => ['emp_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
-            'validation' => ['invoice_value' => ['required']],
-            'formatters' => ['emp_id' => 'fetchEmployeeName'],
-            'searchFields' => ['invoice_no', 'invoice_date'],
+            'editableFields' => ['emp_id', 'job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
+            'validation' => [
+                'invoice_value' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['invoice_no', 'invoice_date', 'job_id'],
             'dateField' => 'invoice_date'
         ],
-        'projects' => [
-            'editableFields' => ['emp_id', 'project_description', 'company_reference', 'remarks'],
-            'validation' => ['project_description' => ['required']],
-            'formatters' => ['emp_id' => 'fetchEmployeeName'],
-            'searchFields' => ['project_description', 'company_reference']
+        'employee_payments' => [
+            'editableFields' => ['emp_id', 'job_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
+            'validation' => [
+                'paid_amount' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['payment_date', 'payment_type', 'job_id'],
+            'dateField' => 'payment_date'
         ],
         'salary_increments' => [
-            'editableFields' => ['emp_id', 'increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
-            'validation' => ['increment_amount' => ['required']],
-            'formatters' => ['emp_id' => 'fetchEmployeeName'],
-            'searchFields' => ['increment_type', 'increment_date'],
+            'editableFields' => ['emp_id', 'job_id', 'increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
+            'validation' => [
+                'increment_amount' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['increment_type', 'increment_date', 'job_id'],
             'dateField' => 'increment_date'
         ],
-        'employee_bank_details' => [
-            'editableFields' => ['emp_id', 'emp_name', 'acc_no', 'bank', 'branch'],
-            'validation' => ['acc_no' => ['required']],
-            'formatters' => ['emp_id' => 'fetchEmployeeName'],
-            'searchFields' => ['emp_name', 'acc_no', 'bank']
+        'employee_payment_rates' => [
+            'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
+            'validation' => [
+                'emp_id' => ['required'],
+                'rate_type' => ['required', 'in:Fixed,Daily'],
+                'rate_amount' => ['required'],
+                'effective_date' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'rate_amount' => 'formatCurrency'
+            ],
+            'searchFields' => ['rate_type', 'effective_date'],
+            'dateField' => 'effective_date'
         ],
-        'invoice_data' => [
-    'editableFields' => ['emp_id', 'job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'], // Added job_id
-    'validation' => ['invoice_value' => ['required']],
-    'formatters' => [
-        'emp_id' => 'fetchEmployeeName',
-        'job_id' => 'getJobDetails'  // Added formatter for job_id
-    ],
-    'searchFields' => ['invoice_no', 'invoice_date', 'job_id'], // Added job_id to search
-    'dateField' => 'invoice_date'
-],
     ];
 
     public function getAllowedTables() {
@@ -389,9 +430,9 @@ class TableManager extends Model {
         $value = (float)$value;
         if ($value == 0.00) {
             return '<span style="color: #EF4444;">Not Started</span>';
-        } elseif ($value == 50.00) {
+        } elseif ($value == 0.50) {
             return '<span style="color: #F59E0B;">Ongoing</span>';
-        } elseif ($value == 100.00) {
+        } elseif ($value == 1.00) {
             return '<span style="color: #10B981;">Completed</span>';
         }
         return htmlspecialchars($value);
@@ -401,16 +442,38 @@ class TableManager extends Model {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
+
         try {
+            // Get table configuration and validate data
             $config = $this->getConfig($table);
             $this->validate($table, $data, $config['validation'] ?? []);
-            $keys = implode(',', array_map(fn($col) => "`$col`", array_keys($data)));
-            $placeholders = implode(',', array_fill(0, count($data), '?'));
-            $stmt = $this->db->prepare("INSERT INTO `$table` ($keys) VALUES ($placeholders)");
-            $stmt->execute(array_values($data));
+
+            // Filter data to only include editable fields
+            $editableFields = $config['editableFields'] ?? $this->getColumns($table);
+            $filteredData = array_intersect_key($data, array_flip($editableFields));
+
+            if (empty($filteredData)) {
+                throw new Exception("No valid fields provided for insertion in $table");
+            }
+
+            // Prepare and execute the insert query
+            $columns = array_keys($filteredData);
+            $placeholders = array_fill(0, count($columns), '?');
+            $sql = "INSERT INTO `$table` (" . implode(',', array_map(fn($col) => "`$col`", $columns)) . ") 
+                    VALUES (" . implode(',', $placeholders) . ")";
+            
+            $stmt = $this->db->prepare($sql);
+            $values = array_values($filteredData);
+            $stmt->execute($values);
+
+            // Return the last inserted ID
+            $lastId = $this->db->lastInsertId();
+            
+            error_log("Successfully created record in $table with ID: $lastId");
+            return $lastId;
         } catch (PDOException $e) {
             error_log("Error in create for $table: " . $e->getMessage());
-            throw new Exception("Failed to create record in $table");
+            throw new Exception("Failed to create record in $table: " . $e->getMessage());
         }
     }
 
@@ -418,17 +481,36 @@ class TableManager extends Model {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
+
         try {
+            // Get table configuration and validate data
             $config = $this->getConfig($table);
             $this->validate($table, $data, $config['validation'] ?? []);
-            $setClause = implode(',', array_map(fn($col) => "`$col` = ?", array_keys($data)));
-            $stmt = $this->db->prepare("UPDATE `$table` SET $setClause WHERE `$idColumn` = ?");
-            $values = array_values($data);
-            $values[] = $id;
+
+            // Filter data to only include editable fields
+            $editableFields = $config['editableFields'] ?? $this->getColumns($table);
+            $filteredData = array_intersect_key($data, array_flip($editableFields));
+
+            if (empty($filteredData)) {
+                throw new Exception("No valid fields provided for update in $table");
+            }
+
+            // Prepare and execute the update query
+            $setClause = implode(',', array_map(fn($col) => "`$col` = ?", array_keys($filteredData)));
+            $sql = "UPDATE `$table` SET $setClause WHERE `$idColumn` = ?";
+            
+            $stmt = $this->db->prepare($sql);
+            $values = array_values($filteredData);
+            $values[] = $id; // Add the ID as the last parameter
+            
             $stmt->execute($values);
+            $rowCount = $stmt->rowCount();
+
+            error_log("Updated $rowCount record(s) in $table with $idColumn = $id");
+            return $rowCount > 0;
         } catch (PDOException $e) {
             error_log("Error in update for $table: " . $e->getMessage());
-            throw new Exception("Failed to update record in $table");
+            throw new Exception("Failed to update record in $table: " . $e->getMessage());
         }
     }
 
@@ -436,12 +518,28 @@ class TableManager extends Model {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
+
         try {
-            $stmt = $this->db->prepare("DELETE FROM `$table` WHERE `$idColumn` = ?");
+            // Verify record exists before deletion
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM `$table` WHERE `$idColumn` = ?");
+            $checkStmt->execute([$id]);
+            $exists = $checkStmt->fetchColumn();
+
+            if (!$exists) {
+                throw new Exception("Record with $idColumn = $id not found in $table");
+            }
+
+            // Perform deletion
+            $sql = "DELETE FROM `$table` WHERE `$idColumn` = ?";
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([$id]);
+            $rowCount = $stmt->rowCount();
+
+            error_log("Deleted $rowCount record(s) from $table with $idColumn = $id");
+            return $rowCount > 0;
         } catch (PDOException $e) {
             error_log("Error in delete for $table: " . $e->getMessage());
-            throw new Exception("Failed to delete record from $table");
+            throw new Exception("Failed to delete record from $table: " . $e->getMessage());
         }
     }
 
@@ -491,6 +589,7 @@ class TableManager extends Model {
             return 'Error fetching job details';
         }
     }
+
     public function getInvoiceByJobId($jobId) {
         if (empty($jobId)) return null;
         try {
@@ -503,7 +602,6 @@ class TableManager extends Model {
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($result) {
-                // Apply formatters
                 if (isset($result['emp_id'])) {
                     $result['emp_id'] = $this->fetchEmployeeName($result['emp_id']);
                 }
@@ -633,6 +731,10 @@ class TableManager extends Model {
             error_log("Error in exportRecordsToCSV for $table: " . $e->getMessage());
             throw new Exception("Failed to export records from $table");
         }
+    }
+
+    public function formatCurrency($value) {
+        return number_format((float)$value, 2);
     }
 
     private function validate($table, $data, $rules) {
