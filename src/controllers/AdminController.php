@@ -222,22 +222,153 @@ class AdminController extends Controller {
             exit;
         }
     
-        // Fetch cost data using ReportManager
-        $costData = $this->reportManager->getCostSummary();
-    
-        // Prepare data for the view
-        $data = [
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
-            'total_payments' => $costData['total_payments'],
-            'daily_wage_costs' => $costData['daily_wage_costs'],
-            'total_increments' => $costData['total_increments'],
-            'total_cost' => $costData['total_cost'],
-            'employee_breakdown' => $costData['employee_breakdown']
+        // Filters from GET request
+        $filters = [
+            'invoice_no' => $_GET['invoice_id'] ?? '',
+            'customer_reference' => $_GET['customer_name'] ?? '',
+            'company_reference' => $_GET['client_ref'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'from_date' => $_GET['from_date'] ?? '',
+            'to_date' => $_GET['to_date'] ?? ''
         ];
     
-        // Render the cost_calculation view
-        $this->render('reports/cost_calculation', $data);
+        try {
+            $customerRefs = $this->reportManager->getCustomerRefs();
+            $companyRefs = $this->reportManager->getCompanyRefs();
+            $jobData = $this->reportManager->getJobCostData($filters);
+            $overallSummary = $this->reportManager->getOverallSummary();
+    
+            // Calculate summaries
+            $totalInvoiceAmount = array_sum(array_column($jobData, 'invoice_value'));
+            $totalPaidAmount = array_sum(array_column($jobData, 'received_amount'));
+            $totalUnpaidAmount = 0;
+            $unpaidInvoiceCount = 0;
+            $totalExpenses = 0;
+            $totalEmployeeCostsSum = 0;
+            $totalCapacity = 0;
+            $totalNetProfit = 0;
+    
+            foreach ($jobData as &$row) {
+                // Operational expenses (all categories included)
+                $operationalExpenses = [];
+                if ($row['expense_summary'] !== 'No expenses') {
+                    foreach (explode(', ', $row['expense_summary']) as $expense) {
+                        [$category, $amount] = explode(': ', $expense);
+                        $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
+                    }
+                }
+                $row['operational_expenses'] = array_sum($operationalExpenses);
+                $row['expense_details'] = $operationalExpenses;
+    
+                // Employee costs based solely on attendance
+                $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
+                $totalEmployeeCosts = 0;
+                $row['employee_details'] = [];
+    
+                // Aggregate attendance by employee
+                $employeeBreakdown = [];
+                foreach ($employeeCosts as $cost) {
+                    $empName = $cost['emp_name'];
+                    if (!isset($employeeBreakdown[$empName])) {
+                        $employeeBreakdown[$empName] = [
+                            'emp_name' => $empName,
+                            'total_payment' => 0,
+                            'days' => []
+                        ];
+                    }
+                    $payment = ($cost['presence'] ?? 0) * ($cost['effective_rate'] ?? 0);
+                    $totalEmployeeCosts += $payment;
+                    $employeeBreakdown[$empName]['total_payment'] += $payment;
+                    $employeeBreakdown[$empName]['days'][] = [
+                        'date' => $cost['attendance_date'],
+                        'presence' => $cost['presence'],
+                        'payment' => $payment,
+                        'rate' => $cost['effective_rate']
+                    ];
+                }
+    
+                foreach ($employeeBreakdown as $emp) {
+                    $row['employee_details'][] = [
+                        'emp_name' => $emp['emp_name'],
+                        'payment' => $emp['total_payment'],
+                        'days' => $emp['days']
+                    ];
+                }
+                $row['total_employee_costs'] = $totalEmployeeCosts;
+    
+                // Summary calculations
+                if (floatval($row['received_amount']) == 0) {
+                    $totalUnpaidAmount += floatval($row['invoice_value']);
+                    $unpaidInvoiceCount++;
+                }
+                $totalExpenses += $row['operational_expenses'];
+                $totalEmployeeCostsSum += $totalEmployeeCosts;
+                $totalCapacity += floatval($row['job_capacity'] ?? 0);
+                $netProfit = floatval($row['invoice_value']) - ($totalEmployeeCosts + $row['operational_expenses']);
+                $row['net_profit'] = $netProfit;
+                $totalNetProfit += $netProfit;
+            }
+            unset($row);
+    
+            $dueBalance = $totalInvoiceAmount - $totalPaidAmount;
+            $profitMargin = $totalInvoiceAmount > 0 ? ($totalNetProfit / $totalInvoiceAmount) * 100 : 0;
+            $overallDueBalance = $overallSummary['total_invoices'] - $overallSummary['total_paid'];
+    
+            $data = [
+                'username' => $_SESSION['username'] ?? 'Admin',
+                'dbname' => 'operational_db',
+                'customer_refs' => $customerRefs,
+                'company_refs' => $companyRefs,
+                'job_data' => $jobData,
+                'total_invoice_amount' => $totalInvoiceAmount,
+                'total_paid_amount' => $totalPaidAmount,
+                'total_unpaid_amount' => $totalUnpaidAmount,
+                'unpaid_invoice_count' => $unpaidInvoiceCount,
+                'due_balance' => $dueBalance,
+                'total_expenses' => $totalExpenses,
+                'total_employee_costs_sum' => $totalEmployeeCostsSum,
+                'total_capacity' => $totalCapacity,
+                'total_net_profit' => $totalNetProfit,
+                'profit_margin' => $profitMargin,
+                'overall_invoice_amount' => $overallSummary['total_invoices'],
+                'overall_paid_amount' => $overallSummary['total_paid'],
+                'overall_unpaid_amount' => $overallDueBalance,
+                'overall_unpaid_count' => count(array_filter($jobData, fn($row) => floatval($row['received_amount']) == 0)),
+                'overall_due_balance' => $overallDueBalance,
+                'filters' => $filters
+            ];
+    
+            // Handle CSV download
+            if (isset($_GET['download_csv'])) {
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="cost_calculation_' . date('Y-m-d') . '.csv"');
+                $output = fopen('php://output', 'w');
+                fputcsv($output, [
+                    'Job ID', 'Date', 'Customer', 'Location', 'Company Ref', 'Engineer', 'Capacity',
+                    'Invoice No', 'Invoice Value', 'Received', 'Date Paid', 'Expenses', 'Employee Costs', 'Outstanding', 'Net Profit'
+                ]);
+                foreach ($jobData as $row) {
+                    $outstanding = floatval($row['invoice_value']) - floatval($row['received_amount']);
+                    fputcsv($output, [
+                        $row['job_id'], $row['date_completed'], $row['customer_reference'], $row['location'],
+                        $row['company_reference'] ?? 'N/A', $row['engineer'] ?? 'N/A', $row['job_capacity'],
+                        $row['invoice_no'], $row['invoice_value'], $row['received_amount'], $row['payment_received_date'],
+                        $row['operational_expenses'], $row['total_employee_costs'], $outstanding, $row['net_profit']
+                    ]);
+                }
+                fclose($output);
+                exit;
+            }
+    
+            $this->render('reports/cost_calculation', $data);
+        } catch (Exception $e) {
+            error_log("Error in costCalculation: " . $e->getMessage());
+            $this->render('reports/cost_calculation', [
+                'username' => $_SESSION['username'] ?? 'Admin',
+                'dbname' => 'operational_db',
+                'error' => "Error generating report: " . $e->getMessage()
+            ]);
+        }
     }
 
     public function materialFind() { 
