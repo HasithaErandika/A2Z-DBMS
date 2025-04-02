@@ -268,8 +268,8 @@
             .table { font-size: 12px; }
             .chart-container { max-width: 100%; }
         }
+        .details ul ul { margin-left: 20px; font-size: 12px; }
     </style>
-
 </head>
 <body>
     <div class="container">

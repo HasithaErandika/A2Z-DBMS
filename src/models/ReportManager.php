@@ -9,13 +9,11 @@ class ReportManager {
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    // Fetch distinct customer references
     public function getCustomerRefs() {
         $stmt = $this->db->query("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    // Fetch distinct company references
     public function getCompanyRefs() {
         $stmt = $this->db->query("SELECT DISTINCT p.company_reference 
                                   FROM jobs j 
@@ -24,8 +22,7 @@ class ReportManager {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    // Main job cost query with filters
-    public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
+    public function getJobCostData($filters = []) { // Removed $limit and $offset parameters
         $query = "
             SELECT 
                 j.job_id, j.date_completed, j.customer_reference, j.location, j.job_capacity, j.engineer,
@@ -76,19 +73,16 @@ class ReportManager {
         }
         $query .= " GROUP BY j.job_id, j.date_completed, j.customer_reference, j.location, j.job_capacity, j.engineer, 
                     p.company_reference, id.invoice_no, id.invoice_value, id.receiving_payment, id.received_amount, 
-                    id.payment_received_date ORDER BY j.job_id DESC LIMIT :limit OFFSET :offset";
+                    id.payment_received_date ORDER BY j.job_id DESC"; // Removed LIMIT and OFFSET
 
         $stmt = $this->db->prepare($query);
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Overall summary for all jobs
     public function getOverallSummary() {
         $stmt = $this->db->query("
             SELECT SUM(id.invoice_value) AS total_invoices, 
@@ -100,7 +94,6 @@ class ReportManager {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Detailed employee costs per job using attendance with presence details
     public function getEmployeeCosts($jobId) {
         $stmt = $this->db->prepare("
             SELECT 
@@ -111,7 +104,7 @@ class ReportManager {
                     (SELECT si.increment_amount 
                      FROM salary_increments si 
                      WHERE si.emp_id = e.emp_id 
-                     AND si.increment_date <= (SELECT date_completed FROM jobs WHERE job_id = :job_id)
+                     AND si.increment_date <= a.attendance_date
                      ORDER BY si.increment_date DESC 
                      LIMIT 1),
                     epr.rate_amount

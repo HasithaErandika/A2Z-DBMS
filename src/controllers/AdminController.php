@@ -222,7 +222,6 @@ class AdminController extends Controller {
             exit;
         }
     
-        // Filters from GET request
         $filters = [
             'invoice_no' => $_GET['invoice_id'] ?? '',
             'customer_reference' => $_GET['customer_name'] ?? '',
@@ -235,10 +234,9 @@ class AdminController extends Controller {
         try {
             $customerRefs = $this->reportManager->getCustomerRefs();
             $companyRefs = $this->reportManager->getCompanyRefs();
-            $jobData = $this->reportManager->getJobCostData($filters);
+            $jobData = $this->reportManager->getJobCostData($filters); // No limit or offset
             $overallSummary = $this->reportManager->getOverallSummary();
     
-            // Calculate summaries
             $totalInvoiceAmount = array_sum(array_column($jobData, 'invoice_value'));
             $totalPaidAmount = array_sum(array_column($jobData, 'received_amount'));
             $totalUnpaidAmount = 0;
@@ -249,14 +247,13 @@ class AdminController extends Controller {
             $totalNetProfit = 0;
     
             foreach ($jobData as &$row) {
-                // Operational expenses (excluding Hiring of Labor)
                 $operationalExpenses = [];
                 $hiringLaborCost = 0;
                 if ($row['expense_summary'] !== 'No expenses') {
                     foreach (explode(', ', $row['expense_summary']) as $expense) {
                         [$category, $amount] = explode(': ', $expense);
                         if (strcasecmp($category, 'Hiring of Labor') === 0) {
-                            $hiringLaborCost = floatval($amount);
+                            $hiringLaborCost += floatval($amount);
                         } else {
                             $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
                         }
@@ -265,21 +262,18 @@ class AdminController extends Controller {
                 $row['operational_expenses'] = array_sum($operationalExpenses);
                 $row['expense_details'] = $operationalExpenses;
     
-                // Employee costs based on attendance + Hiring of Labor
                 $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
                 $totalEmployeeCosts = $hiringLaborCost;
                 $row['employee_details'] = [];
     
-                // Add Hiring of Labor as a line item
                 if ($hiringLaborCost > 0) {
                     $row['employee_details'][] = [
                         'emp_name' => 'Hiring of Labor',
                         'payment' => $hiringLaborCost,
-                        'days' => [] // No daily breakdown
+                        'days' => []
                     ];
                 }
     
-                // Aggregate attendance by employee
                 $employeeBreakdown = [];
                 foreach ($employeeCosts as $cost) {
                     $empName = $cost['emp_name'];
@@ -291,7 +285,7 @@ class AdminController extends Controller {
                         ];
                     }
                     $payment = ($cost['presence'] ?? 0) * ($cost['effective_rate'] ?? 0);
-                    if ($cost['presence'] > 0) { // Only include attended days
+                    if ($cost['presence'] > 0) {
                         $totalEmployeeCosts += $payment;
                         $employeeBreakdown[$empName]['total_payment'] += $payment;
                         $employeeBreakdown[$empName]['days'][] = [
@@ -304,7 +298,7 @@ class AdminController extends Controller {
                 }
     
                 foreach ($employeeBreakdown as $emp) {
-                    if ($emp['total_payment'] > 0) { // Only include employees with payment
+                    if ($emp['total_payment'] > 0) {
                         $row['employee_details'][] = [
                             'emp_name' => $emp['emp_name'],
                             'payment' => $emp['total_payment'],
@@ -314,7 +308,6 @@ class AdminController extends Controller {
                 }
                 $row['total_employee_costs'] = $totalEmployeeCosts;
     
-                // Summary calculations
                 if (floatval($row['received_amount']) == 0) {
                     $totalUnpaidAmount += floatval($row['invoice_value']);
                     $unpaidInvoiceCount++;
@@ -356,7 +349,6 @@ class AdminController extends Controller {
                 'filters' => $filters
             ];
     
-            // Handle CSV download
             if (isset($_GET['download_csv'])) {
                 header('Content-Type: text/csv');
                 header('Content-Disposition: attachment; filename="cost_calculation_' . date('Y-m-d') . '.csv"');
