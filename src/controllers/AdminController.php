@@ -249,21 +249,35 @@ class AdminController extends Controller {
             $totalNetProfit = 0;
     
             foreach ($jobData as &$row) {
-                // Operational expenses (all categories included)
+                // Operational expenses (excluding Hiring of Labor)
                 $operationalExpenses = [];
+                $hiringLaborCost = 0;
                 if ($row['expense_summary'] !== 'No expenses') {
                     foreach (explode(', ', $row['expense_summary']) as $expense) {
                         [$category, $amount] = explode(': ', $expense);
-                        $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
+                        if (strcasecmp($category, 'Hiring of Labor') === 0) {
+                            $hiringLaborCost = floatval($amount);
+                        } else {
+                            $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
+                        }
                     }
                 }
                 $row['operational_expenses'] = array_sum($operationalExpenses);
                 $row['expense_details'] = $operationalExpenses;
     
-                // Employee costs based solely on attendance
+                // Employee costs based on attendance + Hiring of Labor
                 $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
-                $totalEmployeeCosts = 0;
+                $totalEmployeeCosts = $hiringLaborCost;
                 $row['employee_details'] = [];
+    
+                // Add Hiring of Labor as a line item
+                if ($hiringLaborCost > 0) {
+                    $row['employee_details'][] = [
+                        'emp_name' => 'Hiring of Labor',
+                        'payment' => $hiringLaborCost,
+                        'days' => [] // No daily breakdown
+                    ];
+                }
     
                 // Aggregate attendance by employee
                 $employeeBreakdown = [];
@@ -277,22 +291,26 @@ class AdminController extends Controller {
                         ];
                     }
                     $payment = ($cost['presence'] ?? 0) * ($cost['effective_rate'] ?? 0);
-                    $totalEmployeeCosts += $payment;
-                    $employeeBreakdown[$empName]['total_payment'] += $payment;
-                    $employeeBreakdown[$empName]['days'][] = [
-                        'date' => $cost['attendance_date'],
-                        'presence' => $cost['presence'],
-                        'payment' => $payment,
-                        'rate' => $cost['effective_rate']
-                    ];
+                    if ($cost['presence'] > 0) { // Only include attended days
+                        $totalEmployeeCosts += $payment;
+                        $employeeBreakdown[$empName]['total_payment'] += $payment;
+                        $employeeBreakdown[$empName]['days'][] = [
+                            'date' => $cost['attendance_date'],
+                            'presence' => $cost['presence'],
+                            'payment' => $payment,
+                            'rate' => $cost['effective_rate']
+                        ];
+                    }
                 }
     
                 foreach ($employeeBreakdown as $emp) {
-                    $row['employee_details'][] = [
-                        'emp_name' => $emp['emp_name'],
-                        'payment' => $emp['total_payment'],
-                        'days' => $emp['days']
-                    ];
+                    if ($emp['total_payment'] > 0) { // Only include employees with payment
+                        $row['employee_details'][] = [
+                            'emp_name' => $emp['emp_name'],
+                            'payment' => $emp['total_payment'],
+                            'days' => $emp['days']
+                        ];
+                    }
                 }
                 $row['total_employee_costs'] = $totalEmployeeCosts;
     

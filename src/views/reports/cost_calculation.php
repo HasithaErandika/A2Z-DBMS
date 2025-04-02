@@ -416,15 +416,18 @@
 
                             $employeeDetails = "<ul>";
                             foreach ($row['employee_details'] as $emp) {
-                                $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name']) . ": " . number_format($emp['payment'], 2) . "<ul>";
-                                foreach ($emp['days'] as $day) {
-                                    $presenceText = $day['presence'] == 1.0 ? 'Full Day' : ($day['presence'] == 0.5 ? 'Half Day' : 'Not Attended');
-                                    $employeeDetails .= "<li>{$day['date']}: {$presenceText} - " . number_format($day['payment'], 2) . 
-                                                        " (Rate: " . number_format($day['rate'], 2) . ")</li>";
+                                $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name']) . ": " . number_format($emp['payment'], 2);
+                                if (!empty($emp['days'])) {
+                                    $employeeDetails .= "<ul>";
+                                    foreach ($emp['days'] as $day) {
+                                        $presenceText = $day['presence'] == 1.0 ? 'Full Day' : 'Half Day';
+                                        $employeeDetails .= "<li>{$day['date']}: {$presenceText}</li>";
+                                    }
+                                    $employeeDetails .= "</ul>";
                                 }
-                                $employeeDetails .= "</ul></li>";
+                                $employeeDetails .= "</li>";
                             }
-                            $employeeDetails .= empty($row['employee_details']) ? "<li>No attendance data</li></ul>" : "</ul>";
+                            $employeeDetails .= empty($row['employee_details']) ? "<li>No employee costs</li></ul>" : "</ul>";
 
                             $outstanding = floatval($row['invoice_value']) - floatval($row['received_amount']);
                             ?>
