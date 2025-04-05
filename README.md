@@ -87,8 +87,7 @@ A2Z-DBMS/
 │   │   │   └── dashboard.php
 │   │   └── home/       # Home views
 │   │       └── index.php
-│   └── config/         # Configuration files
-│       └── database.php # Database connection
+│   └── 
 ```
 
 ## Security Features

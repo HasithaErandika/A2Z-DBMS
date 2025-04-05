@@ -1,12 +1,7 @@
 <?php
-class ReportManager {
-    private $db;
+require_once 'src/core/Model.php';
 
-    public function __construct() {
-        $this->db = new PDO("mysql:host=localhost;dbname=operational_db", "root", "");
-        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    }
-
+class ReportManager extends Model {
     public function getCustomerRefs() {
         $stmt = $this->db->query("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL");
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -123,7 +118,6 @@ class ReportManager {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // New methods for expenses report
     public function getExpensesByCategory($start_date = null, $end_date = null) {
         $query = "SELECT expenses_category, SUM(expense_amount) AS total_expenses 
                   FROM operational_expenses 

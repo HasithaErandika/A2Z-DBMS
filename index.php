@@ -2,7 +2,7 @@
 // A2Z-DBMS/index.php
 
 session_start();
-define('BASE_PATH', '/A2Z-DBMS');
+define('BASE_PATH', '/A2Z-DBMS'); // Adjust to '' if in root directory on HostGator
 
 $request = $_SERVER['REQUEST_URI'];
 $request = str_replace(BASE_PATH, '', $request);
@@ -16,8 +16,7 @@ if (empty($request)) {
 $staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf'];
 $fileExtension = pathinfo($request, PATHINFO_EXTENSION);
 if (in_array($fileExtension, $staticExtensions)) {
-    // Serve the file directly from src/assets/
-    $filePath = __DIR__ . '/src/assets' . $request; // Updated to src/assets/
+    $filePath = __DIR__ . '/src/assets' . $request;
     if (file_exists($filePath)) {
         $mimeTypes = [
             'css' => 'text/css',
@@ -32,8 +31,6 @@ if (in_array($fileExtension, $staticExtensions)) {
         header('Content-Type: ' . ($mimeTypes[$fileExtension] ?? 'application/octet-stream'));
         readfile($filePath);
         exit;
-    } else {
-        // File not found, proceed to 404
     }
 }
 
@@ -44,15 +41,16 @@ $routes = [
     '/admin' => ['AdminController', 'dashboard'],
     '/admin/dashboard' => ['AdminController', 'dashboard'],
     '/admin/tables' => ['AdminController', 'tables'],
-    '/admin/records' => ['AdminController', 'records'], // Note: Should this be /admin/reports?
+    '/admin/reports' => ['AdminController', 'records'], // Updated from /admin/records
     '/admin/employees' => ['AdminController', 'employees'],
     '/admin/jobs' => ['AdminController', 'jobs'],
     '/admin/attendance' => ['AdminController', 'attendance'],
     '/admin/expenses' => ['AdminController', 'expenses'],
     '/admin/users' => ['AdminController', 'users'],
     '/admin/sql' => ['AdminController', 'sql'],
-    '/reports/cost_calculation' => ['AdminController', 'costCalculation'], 
-    '/reports/expenses_report' => ['AdminController', 'expensesReport'],
+    '/reports/cost_calculation' => ['AdminController', 'costCalculation'],
+    '/reports/expenses_report' => ['AdminController', 'expenseReport'], // Fixed typo
+    '/user/dashboard' => ['UserController', 'dashboard'], // Added for user redirect
 ];
 
 // Handle defined routes
@@ -81,15 +79,6 @@ if (isset($routes[$request])) {
             // Handle /admin/manageTable/{table}
             if ($parts[2] === 'manageTable' && !empty($parts[3])) {
                 $methodName = 'manageTable';
-                $table = $parts[3];
-                if (method_exists($controllerInstance, $methodName)) {
-                    $controllerInstance->$methodName($table);
-                    exit;
-                }
-            }
-            // Handle /admin/costCalculation/{table} (kept for backward compatibility, optional)
-            elseif ($parts[2] === 'costCalculation' && !empty($parts[3])) {
-                $methodName = 'costCalculation';
                 $table = $parts[3];
                 if (method_exists($controllerInstance, $methodName)) {
                     $controllerInstance->$methodName($table);
