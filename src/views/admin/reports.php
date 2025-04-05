@@ -1,5 +1,23 @@
 <?php
-if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
+// Ensure BASE_PATH is defined for relative paths (though we'll use FULL_BASE_URL)
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', '/A2Z-DBMS');
+}
+
+// Define FULL_BASE_URL for absolute links
+if (!defined('FULL_BASE_URL')) {
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+}
+
+// Check if $data is available (passed from AdminController::records)
+if (!isset($data) || !is_array($data)) {
+    $data = [
+        'username' => 'Unknown',
+        'dbname' => 'Unknown',
+        'reportCards' => []
+    ];
+    error_log("Warning: \$data not provided to reports.php. Using fallback values.");
+}
 ?>
 
 <!DOCTYPE html>
@@ -8,24 +26,24 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A2Z Engineering Report Records for Solar, AC, and Electrical Power Management">
-    <title>A2Z Engineering - Records</title>
+    <title>A2Z Engineering - Reports</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/records.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/css/records.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <img src="<?php echo BASE_PATH; ?>/src/assets/images/logo.png" alt="A2Z Engineering Logo">
+                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/logo.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Logo">
             </div>
             <h2>A2Z Engineering</h2>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/tables"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/records" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
 
@@ -40,7 +58,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             </div>
             <div class="user-info">
                 <i class="fas fa-user-circle"></i>
-                <span><?php echo htmlspecialchars($data['username']); ?> | DB: <?php echo htmlspecialchars($data['dbname']); ?></span>
+                <span><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?> | DB: <?php echo htmlspecialchars($data['dbname'], ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
         </div>
 
@@ -50,15 +68,19 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
                 <input type="text" class="search-bar" placeholder="Search reports..." onkeyup="filterCards(this, 'reports')" aria-label="Search reports">
             </div>
             <div class="card-grid" id="reports-grid">
-                <?php foreach ($data['reportCards'] as $card): ?>
-                    <div class="card">
-                        <a href="<?php echo htmlspecialchars(BASE_PATH . $card['link'], ENT_QUOTES, 'UTF-8'); ?>">
-                            <i class="fas <?php echo htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
-                            <div class="card-title"><?php echo htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8'); ?></div>
-                            <div class="card-desc"><?php echo htmlspecialchars($card['desc'], ENT_QUOTES, 'UTF-8'); ?></div>
-                        </a>
-                    </div>
-                <?php endforeach; ?>
+                <?php if (empty($data['reportCards'])): ?>
+                    <p>No reports available.</p>
+                <?php else: ?>
+                    <?php foreach ($data['reportCards'] as $card): ?>
+                        <div class="card">
+                            <a href="<?php echo htmlspecialchars($card['link'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <i class="fas <?php echo htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
+                                <div class="card-title"><?php echo htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="card-desc"><?php echo htmlspecialchars($card['desc'], ENT_QUOTES, 'UTF-8'); ?></div>
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -94,7 +116,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // Smooth hover effects for cards
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('mouseenter', () => card.style.transition = 'all 0.3s ease');
             card.addEventListener('mouseleave', () => card.style.transition = 'all 0.3s ease');

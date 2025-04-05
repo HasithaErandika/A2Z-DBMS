@@ -6,7 +6,7 @@ class Database {
     private function __construct($dbUsername, $dbPassword) {
         try {
             $this->connection = new PDO(
-                "mysql:host=localhost:3306;dbname=suramalr_a2zOperationalDB",
+                "mysql:host=localhost;dbname=suramalr_a2zOperationalDB",
                 $dbUsername,
                 $dbPassword,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]

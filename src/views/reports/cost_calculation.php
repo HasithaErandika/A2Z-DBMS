@@ -1,4 +1,42 @@
-<!-- views/reports/cost_calculation.php -->
+<?php
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', '/A2Z-DBMS');
+}
+if (!defined('FULL_BASE_URL')) {
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+}
+
+if (!isset($filters) || !is_array($filters)) {
+    $filters = [
+        'invoice_no' => '',
+        'customer_reference' => '',
+        'company_reference' => '',
+        'status' => '',
+        'from_date' => '',
+        'to_date' => ''
+    ];
+}
+if (!isset($customer_refs) || !is_array($customer_refs)) $customer_refs = [];
+if (!isset($company_refs) || !is_array($company_refs)) $company_refs = [];
+if (!isset($job_data) || !is_array($job_data)) $job_data = [];
+if (!isset($total_invoice_amount)) $total_invoice_amount = 0;
+if (!isset($total_paid_amount)) $total_paid_amount = 0;
+if (!isset($total_unpaid_amount)) $total_unpaid_amount = 0;
+if (!isset($unpaid_invoice_count)) $unpaid_invoice_count = 0;
+if (!isset($due_balance)) $due_balance = 0;
+if (!isset($total_expenses)) $total_expenses = 0;
+if (!isset($total_employee_costs_sum)) $total_employee_costs_sum = 0;
+if (!isset($total_capacity)) $total_capacity = 0;
+if (!isset($total_net_profit)) $total_net_profit = 0;
+if (!isset($profit_margin)) $profit_margin = 0;
+if (!isset($overall_invoice_amount)) $overall_invoice_amount = 0;
+if (!isset($overall_paid_amount)) $overall_paid_amount = 0;
+if (!isset($overall_unpaid_amount)) $overall_unpaid_amount = 0;
+if (!isset($overall_unpaid_count)) $overall_unpaid_count = 0;
+if (!isset($overall_due_balance)) $overall_due_balance = 0;
+if (!isset($error)) $error = null;
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,12 +62,7 @@
             --hover-bg: #f1f5f9;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--background);
@@ -76,27 +109,11 @@
             transition: background 0.2s, transform 0.1s;
         }
 
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #167bd6;
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #00a896;
-        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #167bd6; }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-secondary:hover { background: #00a896; }
 
         .filter-card, .summary-card, .table-card, .chart-card {
             background: var(--card-bg);
@@ -131,9 +148,7 @@
             transition: border-color 0.2s;
         }
 
-        .filter-item input:focus, .filter-item select:focus {
-            border-color: var(--accent);
-        }
+        .filter-item input:focus, .filter-item select:focus { border-color: var(--accent); }
 
         .summary-grid {
             display: grid;
@@ -215,9 +230,7 @@
             vertical-align: middle;
         }
 
-        .table tr:hover {
-            background: var(--hover-bg);
-        }
+        .table tr:hover { background: var(--hover-bg); }
 
         .collapsible {
             cursor: pointer;
@@ -226,18 +239,9 @@
             gap: 8px;
         }
 
-        .collapsible .total {
-            font-weight: 600;
-        }
-
-        .collapsible .icon {
-            font-size: 12px;
-            transition: transform 0.2s;
-        }
-
-        .collapsible.active .icon {
-            transform: rotate(180deg);
-        }
+        .collapsible .total { font-weight: 600; }
+        .collapsible .icon { font-size: 12px; transition: transform 0.2s; }
+        .collapsible.active .icon { transform: rotate(180deg); }
 
         .details {
             display: none;
@@ -254,12 +258,20 @@
             color: var(--text-muted);
         }
 
+        .details ul ul { margin-left: 20px; font-size: 12px; }
+
         .profit-positive { color: var(--success); font-weight: 600; }
         .profit-negative { color: var(--danger); font-weight: 600; }
 
-        .chart-container {
-            max-width: 600px;
-            margin: 0 auto;
+        .chart-container { max-width: 600px; margin: 0 auto; }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
         }
 
         @media (max-width: 768px) {
@@ -268,7 +280,6 @@
             .table { font-size: 12px; }
             .chart-container { max-width: 100%; }
         }
-        .details ul ul { margin-left: 20px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -276,27 +287,29 @@
         <div class="header">
             <h1>Cost Calculation Report</h1>
             <div class="header-controls">
-                <button class="btn btn-primary"><i class="ri-printer-line"></i> Print</button>
-                <button class="btn btn-primary" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'"><i class="ri-arrow-left-line"></i> Go Back</button>
+                <button class="btn btn-primary" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
+                <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
                 <button class="btn btn-secondary" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
             </div>
         </div>
 
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error-message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php else: ?>
             <div class="filter-card">
-                <form method="GET" class="filter-form" id="filterForm" action="<?php echo BASE_PATH; ?>/reports/cost_calculation">
+                <form method="GET" class="filter-form" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/cost_calculation', ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="filter-item">
                         <label>Invoice ID</label>
-                        <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no']); ?>">
+                        <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no'], ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="filter-item">
                         <label>Customer</label>
                         <select name="customer_name">
                             <option value="">All</option>
                             <?php foreach ($customer_refs as $ref): ?>
-                                <option value="<?php echo htmlspecialchars($ref); ?>" <?php echo $filters['customer_reference'] === $ref ? 'selected' : ''; ?>><?php echo htmlspecialchars($ref); ?></option>
+                                <option value="<?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['customer_reference'] === $ref ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -305,7 +318,9 @@
                         <select name="client_ref">
                             <option value="">All</option>
                             <?php foreach ($company_refs as $ref): ?>
-                                <option value="<?php echo htmlspecialchars($ref); ?>" <?php echo $filters['company_reference'] === $ref ? 'selected' : ''; ?>><?php echo htmlspecialchars($ref); ?></option>
+                                <option value="<?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['company_reference'] === $ref ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -319,11 +334,11 @@
                     </div>
                     <div class="filter-item">
                         <label>From Date</label>
-                        <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date']); ?>">
+                        <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date'], ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="filter-item">
                         <label>To Date</label>
-                        <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date']); ?>">
+                        <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'], ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <button type="submit" class="btn btn-primary"><i class="ri-filter-line"></i> Filter</button>
                 </form>
@@ -335,7 +350,7 @@
                     <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($total_invoice_amount, 2); ?></p></div>
                     <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($total_paid_amount, 2); ?></p></div>
                     <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($total_unpaid_amount, 2); ?></p></div>
-                    <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo $unpaid_invoice_count; ?></p></div>
+                    <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($unpaid_invoice_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
                     <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($due_balance, 2); ?></p></div>
                 </div>
                 <div class="section">
@@ -343,7 +358,7 @@
                     <div class="summary-grid">
                         <div class="summary-item"><h3>Total Expenses</h3><p><?php echo number_format($total_expenses, 2); ?></p></div>
                         <div class="summary-item"><h3>Total Employee Costs</h3><p><?php echo number_format($total_employee_costs_sum, 2); ?></p></div>
-                        <div class="summary-item"><h3>Total Jobs</h3><p><?php echo count($job_data); ?></p></div>
+                        <div class="summary-item"><h3>Total Jobs</h3><p><?php echo htmlspecialchars(count($job_data), ENT_QUOTES, 'UTF-8'); ?></p></div>
                         <div class="summary-item"><h3>Total Capacity</h3><p><?php echo number_format($total_capacity, 2); ?></p></div>
                         <div class="summary-item <?php echo $total_net_profit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
                             <h3>Net Profit</h3><p><?php echo number_format($total_net_profit, 2); ?></p>
@@ -359,7 +374,7 @@
                         <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($overall_invoice_amount, 2); ?></p></div>
                         <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($overall_paid_amount, 2); ?></p></div>
                         <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($overall_unpaid_amount, 2); ?></p></div>
-                        <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo $overall_unpaid_count; ?></p></div>
+                        <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($overall_unpaid_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
                         <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($overall_due_balance, 2); ?></p></div>
                     </div>
                 </div>
@@ -391,80 +406,90 @@
                         <?php foreach ($job_data as $row): ?>
                             <?php
                             $jobDetails = "<ul>";
-                            $jobDetails .= "<li>Job ID: " . htmlspecialchars($row['job_id']) . "</li>";
-                            $jobDetails .= "<li>Location: " . htmlspecialchars($row['location']) . "</li>";
-                            $jobDetails .= "<li>Company Ref: " . htmlspecialchars($row['company_reference'] ?? 'N/A') . "</li>";
-                            $jobDetails .= "<li>Engineer: " . htmlspecialchars($row['engineer'] ?? 'N/A') . "</li>";
+                            $jobDetails .= "<li>Job ID: " . htmlspecialchars($row['job_id'], ENT_QUOTES, 'UTF-8') . "</li>";
+                            $jobDetails .= "<li>Location: " . htmlspecialchars($row['location'], ENT_QUOTES, 'UTF-8') . "</li>";
+                            $jobDetails .= "<li>Company Ref: " . htmlspecialchars($row['company_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
+                            $jobDetails .= "<li>Engineer: " . htmlspecialchars($row['engineer'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
                             $jobDetails .= "</ul>";
 
                             $invoiceDetails = "<ul>";
-                            $invoiceDetails .= "<li>No: " . htmlspecialchars($row['invoice_no']) . "</li>";
-                            $invoiceDetails .= "<li>Value: " . number_format($row['invoice_value'], 2) . "</li>";
-                            $invoiceDetails .= "<li>Received: " . number_format($row['received_amount'], 2) . "</li>";
-                            $invoiceDetails .= "<li>Date Paid: " . htmlspecialchars($row['payment_received_date']) . "</li>";
+                            $invoiceDetails .= "<li>No: " . htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8') . "</li>";
+                            $invoiceDetails .= "<li>Value: " . number_format(floatval($row['invoice_value']), 2) . "</li>";
+                            $invoiceDetails .= "<li>Received: " . number_format(floatval($row['received_amount']), 2) . "</li>";
+                            $invoiceDetails .= "<li>Date Paid: " . htmlspecialchars($row['payment_received_date'], ENT_QUOTES, 'UTF-8') . "</li>";
                             $invoiceDetails .= "</ul>";
 
                             $expenseDetails = "<ul>";
                             if (!empty($row['expense_details'])) {
                                 foreach ($row['expense_details'] as $category => $amount) {
-                                    $expenseDetails .= "<li>" . htmlspecialchars($category) . ": " . number_format($amount, 2) . "</li>";
+                                    $expenseDetails .= "<li>" . htmlspecialchars($category, ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($amount), 2) . "</li>";
                                 }
                             } else {
-                                $expenseDetails .= "<li>No expenses</li>";
+                                $expenseDetails .= "<li>No expenses recorded</li>";
                             }
                             $expenseDetails .= "</ul>";
 
                             $employeeDetails = "<ul>";
-                            foreach ($row['employee_details'] as $emp) {
-                                $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name']) . ": " . number_format($emp['payment'], 2);
-                                if (!empty($emp['days'])) {
-                                    $employeeDetails .= "<ul>";
-                                    foreach ($emp['days'] as $day) {
-                                        $presenceText = $day['presence'] == 1.0 ? 'Full Day' : 'Half Day';
-                                        $employeeDetails .= "<li>{$day['date']}: {$presenceText}</li>";
+                            if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
+                                foreach ($row['employee_details'] as $emp) {
+                                    $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($emp['payment'] ?? 0), 2);
+                                    if (!empty($emp['days']) && is_array($emp['days'])) {
+                                        $employeeDetails .= "<ul>";
+                                        foreach ($emp['days'] as $day) {
+                                            $presence = floatval($day['presence'] ?? 0);
+                                            $presenceText = $presence == 1.0 ? 'Full Day' : ($presence == 0.5 ? 'Half Day' : number_format($presence, 1) . ' Days');
+                                            $rate = number_format(floatval($day['rate'] ?? 0), 2);
+                                            $payment = number_format(floatval($day['payment'] ?? 0), 2);
+                                            $date = htmlspecialchars($day['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                            $employeeDetails .= "<li>$date: $presenceText (Rate: $rate, Paid: $payment)</li>";
+                                        }
+                                        $employeeDetails .= "</ul>";
+                                    } else {
+                                        $employeeDetails .= " (No attendance recorded)";
                                     }
-                                    $employeeDetails .= "</ul>";
+                                    $employeeDetails .= "</li>";
                                 }
-                                $employeeDetails .= "</li>";
+                            } else {
+                                $employeeDetails .= "<li>No employee costs recorded for Job ID: " . htmlspecialchars($row['job_id'], ENT_QUOTES, 'UTF-8') . " (Check attendance or rate data)</li>";
                             }
-                            $employeeDetails .= empty($row['employee_details']) ? "<li>No employee costs</li></ul>" : "</ul>";
+                            $employeeDetails .= "</ul>";
 
                             $outstanding = floatval($row['invoice_value']) - floatval($row['received_amount']);
                             ?>
                             <tr>
                                 <td>
                                     <div class="collapsible">
-                                        <span class="total">Customer: <?php echo htmlspecialchars($row['customer_reference']); ?></span>
+                                        <span class="total">Customer: <?php echo htmlspecialchars($row['customer_reference'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $jobDetails; ?></div>
                                 </td>
-                                <td><?php echo htmlspecialchars($row['date_completed']); ?></td>
-                                <td><?php echo htmlspecialchars($row['job_capacity']); ?></td>
+                                <td><?php echo htmlspecialchars($row['date_completed'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($row['job_capacity'], ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td>
                                     <div class="collapsible">
-                                        <span class="total"><?php echo htmlspecialchars($row['invoice_no']); ?></span>
+                                        <span class="total"><?php echo htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $invoiceDetails; ?></div>
                                 </td>
                                 <td>
                                     <div class="collapsible">
-                                        <span class="total">Total: <?php echo number_format($row['operational_expenses'], 2); ?></span>
+                                        <span class="total">Total: <?php echo number_format(floatval($row['operational_expenses']), 2); ?></span>
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $expenseDetails; ?></div>
                                 </td>
                                 <td>
                                     <div class="collapsible">
-                                        <span class="total">Total: <?php echo number_format($row['total_employee_costs'], 2); ?></span>
+                                        <span class="total">Total: <?php echo number_format(floatval($row['total_employee_costs']), 2); ?></span>
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $employeeDetails; ?></div>
                                 </td>
                                 <td><?php echo number_format($outstanding, 2); ?></td>
                                 <td class="<?php echo $row['net_profit'] >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
-                                    <?php echo number_format($row['net_profit'], 2); ?>
+                                    <?php echo number_format(floatval($row['net_profit']), 2); ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

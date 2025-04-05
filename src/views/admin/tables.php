@@ -24,7 +24,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
         <ul class="sidebar-menu">
             <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/admin/tables" class="active"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/records"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
+            <li><a href="<?php echo BASE_PATH; ?>/admin/reports"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
             <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -44,10 +44,21 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             </div>
         </div>
 
+        <?php if (!empty($data['message'])): ?>
+            <div class="message" style="color: green; padding: 10px; text-align: center;">
+                <?php echo htmlspecialchars($data['message']); ?>
+            </div>
+        <?php endif; ?>
+        <?php if (!empty($data['error'])): ?>
+            <div class="error" style="color: red; padding: 10px; text-align: center;">
+                <?php echo htmlspecialchars($data['error']); ?>
+            </div>
+        <?php endif; ?>
+
         <div class="main-content">
             <div class="section-header">
                 <h2>Operational Data</h2>
-                <input type="text" class="search-bar" placeholder="Search tables..." onkeyup="filterCards(this, 'operational')" aria-label="Search tables">
+                <input type="text" class="search-bar" placeholder="Search tables..." onkeyup="filterCards(this, 'operational')" aria-label="Search operational data tables">
             </div>
             <div class="card-grid" id="operational-grid">
                 <?php foreach ($data['operationalCards'] as $card): ?>
@@ -64,7 +75,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
     </div>
 
     <script>
-        // Toggle sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const container = document.getElementById('container');
@@ -73,7 +83,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         }
 
-        // Filter cards based on search input
         function filterCards(input, gridId) {
             const searchTerm = input.value.toLowerCase().trim();
             const grid = document.getElementById(`${gridId}-grid`);
@@ -85,7 +94,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             });
         }
 
-        // Update date and time
         function updateDateTime() {
             const datetime = document.getElementById('datetime');
             if (datetime) {
@@ -97,20 +105,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             }
         }
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            // Restore sidebar state
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (isCollapsed) {
                 document.getElementById('sidebar').classList.add('collapsed');
                 document.getElementById('container').classList.add('full-width');
             }
-
-            // Update time every second
             setInterval(updateDateTime, 1000);
             updateDateTime();
-
-            // Card hover effects
             document.querySelectorAll('.card').forEach(card => {
                 card.addEventListener('mouseenter', () => {
                     card.style.transition = 'all 0.3s ease';
