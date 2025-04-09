@@ -109,6 +109,7 @@ class ReportManager extends Model {
         }
     }
 
+<<<<<<< HEAD
 
 public function getEmployeeCosts($jobId) {
     try {
@@ -223,6 +224,41 @@ public function getAttendanceCosts($start_date = null, $end_date = null) {
     }
 }
 
+=======
+    public function getEmployeeCosts($jobId) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+    e.emp_name,
+    a.attendance_date,
+    a.presence,
+    COALESCE(
+        (SELECT si.increment_amount 
+         FROM salary_increments si 
+         WHERE si.emp_id = e.emp_id 
+         AND si.increment_date <= a.attendance_date
+         ORDER BY si.increment_date DESC 
+         LIMIT 1),
+        epr.rate_amount
+    ) AS effective_rate
+FROM attendance a
+JOIN employees e ON a.emp_id = e.emp_id
+LEFT JOIN employee_payment_rates epr ON e.emp_id = epr.emp_id
+    AND epr.rate_type = 'Daily'
+    AND (epr.end_date IS NULL OR epr.end_date >= a.attendance_date)
+    AND epr.effective_date <= a.attendance_date
+WHERE a.job_id = :job_id
+ORDER BY e.emp_name, a.attendance_date
+            ");
+            $stmt->bindValue(':job_id', $jobId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getEmployeeCosts for job_id $jobId: " . $e->getMessage());
+            return [];
+        }
+    }
+>>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 
     public function getExpensesByCategory($start_date = null, $end_date = null) {
         $query = "SELECT expenses_category, SUM(expense_amount) AS total_expenses 
@@ -246,7 +282,11 @@ public function getAttendanceCosts($start_date = null, $end_date = null) {
     public function getInvoicesSummary($start_date = null, $end_date = null) {
         $query = "SELECT SUM(invoice_value) AS total_invoices, COUNT(invoice_no) AS invoice_count 
                   FROM invoice_data 
+<<<<<<< HEAD
                   " . ($start_date ? "WHERE invoice_date BETWEEN :start_date AND :end_date" : "") . "";
+=======
+                  " . ($start_date ? "WHERE invoice_date BETWEEN :start_date AND :end_date" : "");
+>>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         try {
             $stmt = $this->db->prepare($query);
             if ($start_date) {
@@ -254,7 +294,11 @@ public function getAttendanceCosts($start_date = null, $end_date = null) {
                 $stmt->bindParam(':end_date', $end_date);
             }
             $stmt->execute();
+<<<<<<< HEAD
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
+=======
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+>>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         } catch (PDOException $e) {
             error_log("Error in getInvoicesSummary: " . $e->getMessage());
             return ['total_invoices' => 0, 'invoice_count' => 0];
@@ -264,7 +308,11 @@ public function getAttendanceCosts($start_date = null, $end_date = null) {
     public function getJobsSummary($start_date = null, $end_date = null) {
         $query = "SELECT COUNT(job_id) AS job_count, SUM(job_capacity) AS total_capacity 
                   FROM jobs 
+<<<<<<< HEAD
                   " . ($start_date ? "WHERE date_completed BETWEEN :start_date AND :end_date" : "") . "";
+=======
+                  " . ($start_date ? "WHERE date_completed BETWEEN :start_date AND :end_date" : "");
+>>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         try {
             $stmt = $this->db->prepare($query);
             if ($start_date) {
@@ -279,8 +327,44 @@ public function getAttendanceCosts($start_date = null, $end_date = null) {
         }
     }
 
+<<<<<<< HEAD
     
 
+=======
+    public function getAttendanceCosts($start_date = null, $end_date = null) {
+        $query = "
+            SELECT 
+                COALESCE(
+                    (SELECT si.increment_amount 
+                     FROM salary_increments si 
+                     WHERE si.emp_id = e.emp_id 
+                     AND si.increment_date <= a.attendance_date
+                     ORDER BY si.increment_date DESC 
+                     LIMIT 1),
+                    epr.rate_amount
+                ) AS effective_rate,
+                a.presence
+            FROM attendance a
+            JOIN employees e ON a.emp_id = e.emp_id
+            LEFT JOIN employee_payment_rates epr ON e.emp_id = epr.emp_id
+                AND epr.rate_type = 'Daily'
+                AND (epr.end_date IS NULL OR epr.end_date >= a.attendance_date)
+                AND epr.effective_date <= a.attendance_date
+            " . ($start_date ? "WHERE a.attendance_date BETWEEN :start_date AND :end_date" : "");
+        try {
+            $stmt = $this->db->prepare($query);
+            if ($start_date) {
+                $stmt->bindParam(':start_date', $start_date);
+                $stmt->bindParam(':end_date', $end_date);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getAttendanceCosts: " . $e->getMessage());
+            return [];
+        }
+    }
+>>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 
     public function getEPFCosts($start_date = null) {
         $query = "SELECT basic_salary, date_of_resigned FROM employees";
