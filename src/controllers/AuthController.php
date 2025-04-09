@@ -1,58 +1,50 @@
 <?php
 require_once 'src/core/Controller.php';
-require_once 'src/models/User.php';
+require_once 'src/core/Database.php';
 
 class AuthController extends Controller {
-    private $userModel;
-    
-    public function __construct() {
-        $this->userModel = new User();
-    }
-    
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['username']) && isset($_POST['password'])) {
-                $username = trim($_POST['username'] ?? '');
-                $password = trim($_POST['password'] ?? '');
-                $user_type = trim($_POST['user_type'] ?? '');
+            if (isset($_POST['db_username']) && isset($_POST['db_password'])) {
+                $dbUsername = trim($_POST['db_username'] ?? '');
+                $dbPassword = trim($_POST['db_password'] ?? '');
 
-                error_log("Login attempt - Username: $username, Password: $password, User Type: $user_type");
+                error_log("Login attempt - DB Username: $dbUsername");
 
-                if (empty($username) || empty($password)) {
-                    $error = "Please enter both username and password.";
+                if (empty($dbUsername)) {
+                    $error = "Please enter the database username.";
+                } elseif (empty($dbPassword)) {
+                    $error = "Please enter the database password.";
                 } else {
-                    $user = $this->userModel->authenticate($username, $password);
-                    error_log("Authenticate result: " . print_r($user, true));
-                    
-                    if ($user && isset($user['user_type'])) {
-                        if ($user['user_type'] === $user_type) {
-                            $_SESSION['user_id'] = $user['id'];
-                            $_SESSION['username'] = $user['username'];
-                            $_SESSION['user_type'] = $user['user_type'];
-                            error_log("Login successful - Session set: " . print_r($_SESSION, true));
-                            
-                            if ($user['user_type'] === 'admin') {
-                                header("Location: " . BASE_PATH . "/admin");
-                            } else {
-                                header("Location: " . BASE_PATH . "/user/dashboard");
-                            }
-                            exit;
-                        } else {
-                            $error = "Invalid user type for these credentials.";
-                            error_log("User type mismatch - DB: {$user['user_type']}, Form: $user_type");
-                        }
-                    } else {
-                        $error = "Invalid username or password.";
-                        error_log("Authentication failed - No user found or missing user_type");
+                    try {
+                        Database::resetInstance(); // Clear any existing connection
+                        $db = Database::getInstance($dbUsername, $dbPassword);
+
+                        // Store both username and password in session
+                        $_SESSION['db_username'] = $dbUsername;
+                        $_SESSION['db_password'] = $dbPassword; // Note: Consider security implications
+                        error_log("Login successful - Session set: " . print_r($_SESSION, true));
+                        header("Location: " . BASE_PATH . "/admin"); // Single dashboard
+                        exit;
+                    } catch (Exception $e) {
+                        $error = "Database connection failed: " . $e->getMessage();
+                        error_log("DB Connection error: " . $e->getMessage());
                     }
                 }
+            } else {
+                $error = "Database username and password are required.";
             }
         }
 
-        include_once "src/views/auth/login.php";
+        $data = [
+            'dbname' => 'suramalr_a2zOperationalDB',
+            'error' => $error ?? null
+        ];
+        $this->render('auth/login', $data);
     }
     
     public function logout() {
+        Database::resetInstance(); // Clear database connection
         session_destroy();
         header("Location: " . BASE_PATH . "/login");
         exit;

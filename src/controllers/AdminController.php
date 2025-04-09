@@ -1,8 +1,18 @@
 <?php
 // src/controllers/AdminController.php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_log('Error reporting enabled in AdminController.php');
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/../core/Controller.php';
 require_once __DIR__ . '/../models/TableManager.php';
 require_once __DIR__ . '/../models/ReportManager.php';
+require_once __DIR__ . '/../core/Database.php';
+
+if (!defined('FULL_BASE_URL')) {
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+}
 
 class AdminController extends Controller {
     private $tableManager;
@@ -17,14 +27,22 @@ class AdminController extends Controller {
     }
 
     public function dashboard() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+
+        try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+        } catch (Exception $e) {
+            error_log("DB connection failed in dashboard: " . $e->getMessage());
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
 
         $data = [
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
+            'username' => $_SESSION['db_username'] ?? 'Admin',
+            'dbname' => 'suramalr_a2zOperationalDB',
             'summary' => [
                 'total_employees' => $this->tableManager->getTotalEmployees(),
                 'active_jobs' => $this->tableManager->getActiveJobs(),
@@ -38,7 +56,7 @@ class AdminController extends Controller {
                 'php_version' => phpversion(),
                 'mysql_version' => $this->tableManager->getMySQLVersion(),
                 'server_software' => $_SERVER['SERVER_SOFTWARE'],
-                'db_name' => 'operational_db',
+                'db_name' => 'suramalr_a2zOperationalDB',
             ]
         ];
 
@@ -46,14 +64,22 @@ class AdminController extends Controller {
     }
 
     public function tables() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+
+        try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+        } catch (Exception $e) {
+            error_log("DB connection failed in tables: " . $e->getMessage());
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
 
         $data = [
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
+            'username' => $_SESSION['db_username'] ?? 'Admin',
+            'dbname' => 'suramalr_a2zOperationalDB',
             'operationalCards' => [
                 ['link' => '/admin/manageTable/attendance', 'icon' => 'fa-calendar-check', 'title' => 'Attendance', 'desc' => 'Track employee attendance'],
                 ['link' => '/admin/manageTable/employees', 'icon' => 'fa-user-tie', 'title' => 'Employees', 'desc' => 'Manage employee records'],
@@ -65,6 +91,7 @@ class AdminController extends Controller {
                 ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
                 ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
                 ['link' => '/admin/manageTable/salary_increments', 'icon' => 'fa-money-check-alt', 'title' => 'Salary Increments', 'desc' => 'Salary adjustments'],
+                ['link' => '/admin/manageTable/cash_hand', 'icon' => 'fa-hand-holding-usd', 'title' => 'Cash In Hand', 'desc' => 'Manage internal cash flow transactions'],
             ]
         ];
 
@@ -72,34 +99,50 @@ class AdminController extends Controller {
     }
 
     public function records() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
-    
+
+        try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+        } catch (Exception $e) {
+            error_log("DB connection failed in records: " . $e->getMessage());
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+
         $data = [
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
+            'username' => $_SESSION['db_username'] ?? 'Admin',
+            'dbname' => 'suramalr_a2zOperationalDB',
             'reportCards' => [
-                ['link' => BASE_PATH . '/records/wages_report', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
-                ['link' => BASE_PATH . '/reports/expenses_report', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
-                ['link' => BASE_PATH . '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
-                ['link' => BASE_PATH . '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
-                ['link' => BASE_PATH . '/records/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
+                ['link' => FULL_BASE_URL . '/reports/wages_report', 'icon' => 'fa-money-bill', 'title' => 'Monthly Wages', 'desc' => 'Wage summary'],
+                ['link' => FULL_BASE_URL . '/reports/expenses_report', 'icon' => 'fa-file-invoice-dollar', 'title' => 'Expenses Report', 'desc' => 'Expense analysis'],
+                ['link' => FULL_BASE_URL . '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
+                ['link' => FULL_BASE_URL . '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
+                ['link' => FULL_BASE_URL . '/reports/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
             ]
         ];
-    
+
         $this->render('admin/reports', $data);
     }
 
     public function manageTable($table) {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+
+        try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+        } catch (Exception $e) {
+            error_log("DB connection failed in manageTable: " . $e->getMessage());
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
 
         if (!in_array($table, $this->tableManager->getAllowedTables())) {
-            header("Location: " . BASE_PATH . "/admin");
+            header("Location: " . FULL_BASE_URL . "/admin");
             exit;
         }
 
@@ -107,7 +150,8 @@ class AdminController extends Controller {
             $action = $_POST['action'] ?? '';
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $columns[0];
-    
+            $page = $_GET['page'] ?? 1;
+
             if ($action === 'get_records') {
                 $draw = (int)($_POST['draw'] ?? 1);
                 $start = (int)($_POST['start'] ?? 0);
@@ -138,17 +182,44 @@ class AdminController extends Controller {
                         $data[$column] = $_POST[$column] ?? '';
                     }
                 }
-                $this->tableManager->create($table, $data);
+                try {
+                    $this->tableManager->create($table, $data);
+                    $message = "Record created successfully!";
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
+                } catch (Exception $e) {
+                    $error = "Error creating record: " . $e->getMessage();
+                    error_log($error);
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
+                }
+                exit;
             } elseif ($action === 'update') {
                 $id = $_POST['id'] ?? '';
                 $data = [];
                 foreach ($columns as $column) {
                     $data[$column] = $_POST[$column] ?? '';
                 }
-                $this->tableManager->update($table, $data, $idColumn, $id);
+                try {
+                    $this->tableManager->update($table, $data, $idColumn, $id);
+                    $message = "Record updated successfully!";
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
+                } catch (Exception $e) {
+                    $error = "Error updating record: " . $e->getMessage();
+                    error_log($error);
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
+                }
+                exit;
             } elseif ($action === 'delete') {
                 $id = $_POST['id'] ?? '';
-                $this->tableManager->delete($table, $idColumn, $id);
+                try {
+                    $this->tableManager->delete($table, $idColumn, $id);
+                    $message = "Record deleted successfully!";
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
+                } catch (Exception $e) {
+                    $error = "Error deleting record: " . $e->getMessage();
+                    error_log($error);
+                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
+                }
+                exit;
             } elseif ($action === 'export_csv') {
                 $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
                 exit;
@@ -164,10 +235,6 @@ class AdminController extends Controller {
                 }
                 exit;
             }
-
-            $page = $_GET['page'] ?? 1;
-            header("Location: " . BASE_PATH . "/admin/manageTable/" . urlencode($table) . "?page=$page");
-            exit;
         }
 
         $page = (int)($_GET['page'] ?? 1);
@@ -181,11 +248,13 @@ class AdminController extends Controller {
             'totalRecords' => $result['recordsTotal'],
             'totalPages' => ceil($result['recordsTotal'] / $perPage),
             'config' => $this->tableManager->getConfig($table),
-            'username' => $_SESSION['username'] ?? 'Admin',
-            'dbname' => 'operational_db',
+            'username' => $_SESSION['db_username'] ?? 'Admin',
+            'dbname' => 'suramalr_a2zOperationalDB',
             'page' => $page,
             'perPage' => $perPage,
-            'tableManager' => $this->tableManager
+            'tableManager' => $this->tableManager,
+            'message' => $_GET['message'] ?? '',
+            'error' => $_GET['error'] ?? ''
         ];
 
         if ($table === 'jobs') {
@@ -195,22 +264,26 @@ class AdminController extends Controller {
         $this->render('admin/manage_table', $data);
     }
 
-    public function wagesReport() { 
-        echo "Monthly Wages Report"; 
+    public function wagesReport() {
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+        echo "Monthly Wages Report";
     }
-    
+
     public function expenseReport() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
 
         try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
             $start_date = null;
             $end_date = null;
             $report_title = "Full Company Expense Report (All Time)";
 
-            // Process filter
             if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['year'], $_POST['month'])) {
                 $year = filter_var($_POST['year'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 2024, 'max_range' => 2025]]);
                 $month = filter_var($_POST['month'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 12]]);
@@ -223,14 +296,12 @@ class AdminController extends Controller {
                 $report_title = "Company Expense Report for $month_name $year";
             }
 
-            // Fetch data
             $expenses_data = $this->reportManager->getExpensesByCategory($start_date, $end_date);
             $invoices_data = $this->reportManager->getInvoicesSummary($start_date, $end_date);
             $jobs_data = $this->reportManager->getJobsSummary($start_date, $end_date);
             $attendance_data = $this->reportManager->getAttendanceCosts($start_date, $end_date);
             $epf_costs = $this->reportManager->getEPFCosts($start_date);
 
-            // Process expenses
             $total_expenses = 0;
             $total_employee_costs = 0;
             $expenses_by_category = [];
@@ -248,31 +319,28 @@ class AdminController extends Controller {
                 }
             }
 
-            // Process attendance costs
             foreach ($attendance_data as $row) {
-                $payment = ($row['presence'] ?? 0) * ($row['effective_rate'] ?? 0);
+                $payment = floatval($row['actual_cost'] ?? 0); // Use actual_cost which includes increments
                 if ($row['presence'] > 0) {
                     $employee_costs_by_type['Attendance-Based'] += $payment;
                     $total_employee_costs += $payment;
                 }
             }
 
-            // Add EPF to employee costs
             $total_employee_costs += $epf_costs;
             $expenses_by_category['EPF'] = $epf_costs;
 
-            // Process invoices and jobs
-            $total_invoices = floatval($invoices_data['total_invoices'] ?? 0);
-            $total_invoices_count = intval($invoices_data['invoice_count'] ?? 0);
+            // Note: getInvoicesSummary returns an array of rows, so access the first row
+            $total_invoices = floatval($invoices_data[0]['total_invoices'] ?? 0);
+            $total_invoices_count = intval($invoices_data[0]['invoice_count'] ?? 0);
             $total_jobs = intval($jobs_data['job_count'] ?? 0);
             $total_job_capacity = floatval($jobs_data['total_capacity'] ?? 0);
 
-            // Calculate profit
             $profit = $total_invoices - ($total_expenses + $total_employee_costs);
 
             $data = [
-                'username' => $_SESSION['username'] ?? 'Admin',
-                'dbname' => 'operational_db',
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
                 'report_title' => $report_title,
                 'total_expenses' => $total_expenses,
                 'total_invoices' => $total_invoices,
@@ -286,7 +354,6 @@ class AdminController extends Controller {
                 'filters' => ['year' => $_POST['year'] ?? '', 'month' => $_POST['month'] ?? '']
             ];
 
-            // CSV export
             if (isset($_GET['download_csv'])) {
                 header('Content-Type: text/csv');
                 header('Content-Disposition: attachment; filename="expense_report_' . date('Y-m-d') . '.csv"');
@@ -321,34 +388,35 @@ class AdminController extends Controller {
         } catch (Exception $e) {
             error_log("Error in expenseReport: " . $e->getMessage());
             $this->render('reports/expenses_report', [
-                'username' => $_SESSION['username'] ?? 'Admin',
-                'dbname' => 'operational_db',
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
                 'error' => "Error generating report: " . $e->getMessage()
             ]);
         }
     }
 
     public function costCalculation() {
-        if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'admin') {
-            header("Location: " . BASE_PATH . "/login");
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
-    
-        $filters = [
-            'invoice_no' => $_GET['invoice_id'] ?? '',
-            'customer_reference' => $_GET['customer_name'] ?? '',
-            'company_reference' => $_GET['client_ref'] ?? '',
-            'status' => $_GET['status'] ?? '',
-            'from_date' => $_GET['from_date'] ?? '',
-            'to_date' => $_GET['to_date'] ?? ''
-        ];
-    
+
         try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+            $filters = [
+                'invoice_no' => $_GET['invoice_id'] ?? '',
+                'customer_reference' => $_GET['customer_name'] ?? '',
+                'company_reference' => $_GET['client_ref'] ?? '',
+                'status' => $_GET['status'] ?? '',
+                'from_date' => $_GET['from_date'] ?? '',
+                'to_date' => $_GET['to_date'] ?? ''
+            ];
+
             $customerRefs = $this->reportManager->getCustomerRefs();
             $companyRefs = $this->reportManager->getCompanyRefs();
-            $jobData = $this->reportManager->getJobCostData($filters); // No limit or offset
+            $jobData = $this->reportManager->getJobCostData($filters, PHP_INT_MAX, 0);
             $overallSummary = $this->reportManager->getOverallSummary();
-    
+
             $totalInvoiceAmount = array_sum(array_column($jobData, 'invoice_value'));
             $totalPaidAmount = array_sum(array_column($jobData, 'received_amount'));
             $totalUnpaidAmount = 0;
@@ -357,7 +425,7 @@ class AdminController extends Controller {
             $totalEmployeeCostsSum = 0;
             $totalCapacity = 0;
             $totalNetProfit = 0;
-    
+
             foreach ($jobData as &$row) {
                 $operationalExpenses = [];
                 $hiringLaborCost = 0;
@@ -373,11 +441,11 @@ class AdminController extends Controller {
                 }
                 $row['operational_expenses'] = array_sum($operationalExpenses);
                 $row['expense_details'] = $operationalExpenses;
-    
+
                 $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
                 $totalEmployeeCosts = $hiringLaborCost;
                 $row['employee_details'] = [];
-    
+
                 if ($hiringLaborCost > 0) {
                     $row['employee_details'][] = [
                         'emp_name' => 'Hiring of Labor',
@@ -385,41 +453,51 @@ class AdminController extends Controller {
                         'days' => []
                     ];
                 }
-    
+
                 $employeeBreakdown = [];
                 foreach ($employeeCosts as $cost) {
                     $empName = $cost['emp_name'];
                     if (!isset($employeeBreakdown[$empName])) {
                         $employeeBreakdown[$empName] = [
                             'emp_name' => $empName,
-                            'total_payment' => 0,
+                            'payment' => 0,
                             'days' => []
                         ];
                     }
-                    $payment = ($cost['presence'] ?? 0) * ($cost['effective_rate'] ?? 0);
-                    if ($cost['presence'] > 0) {
-                        $totalEmployeeCosts += $payment;
-                        $employeeBreakdown[$empName]['total_payment'] += $payment;
-                        $employeeBreakdown[$empName]['days'][] = [
-                            'date' => $cost['attendance_date'],
-                            'presence' => $cost['presence'],
-                            'payment' => $payment,
-                            'rate' => $cost['effective_rate']
-                        ];
+
+                    $presence = floatval($cost['presence'] ?? 0);
+                    $payment = floatval($cost['actual_cost'] ?? 0);
+
+                    if ($presence > 0 && ($cost['total_rate'] ?? 0) == 0) {
+                        error_log("Warning: No rate or increment found for job_id {$row['job_id']}, employee: $empName, date: {$cost['attendance_date']}, presence: $presence");
                     }
+
+                    $employeeBreakdown[$empName]['payment'] += $payment;
+                    $employeeBreakdown[$empName]['days'][] = [
+                        'date' => $cost['attendance_date'],
+                        'presence' => $presence,
+                        'rate_amount' => $cost['rate_amount'] ?? 0,
+                        'increment_amount' => $cost['increment_amount'] ?? 0,
+                        'total_rate' => $cost['total_rate'] ?? 0
+                    ];
+                    $totalEmployeeCosts += $payment;
                 }
-    
+
                 foreach ($employeeBreakdown as $emp) {
-                    if ($emp['total_payment'] > 0) {
-                        $row['employee_details'][] = [
-                            'emp_name' => $emp['emp_name'],
-                            'payment' => $emp['total_payment'],
-                            'days' => $emp['days']
-                        ];
-                    }
+                    $row['employee_details'][] = [
+                        'emp_name' => $emp['emp_name'],
+                        'payment' => $emp['payment'],
+                        'days' => $emp['days']
+                    ];
                 }
                 $row['total_employee_costs'] = $totalEmployeeCosts;
-    
+
+                if (empty($row['employee_details']) && $totalEmployeeCosts == 0) {
+                    error_log("No employee costs calculated for job_id {$row['job_id']} - check attendance or rate data");
+                } else {
+                    error_log("Employee costs for job_id {$row['job_id']}: " . json_encode($row['employee_details']));
+                }
+
                 if (floatval($row['received_amount']) == 0) {
                     $totalUnpaidAmount += floatval($row['invoice_value']);
                     $unpaidInvoiceCount++;
@@ -432,14 +510,14 @@ class AdminController extends Controller {
                 $totalNetProfit += $netProfit;
             }
             unset($row);
-    
+
             $dueBalance = $totalInvoiceAmount - $totalPaidAmount;
             $profitMargin = $totalInvoiceAmount > 0 ? ($totalNetProfit / $totalInvoiceAmount) * 100 : 0;
-            $overallDueBalance = $overallSummary['total_invoices'] - $overallSummary['total_paid'];
-    
+            $overallDueBalance = floatval($overallSummary['total_invoices'] ?? 0) - floatval($overallSummary['total_paid'] ?? 0);
+
             $data = [
-                'username' => $_SESSION['username'] ?? 'Admin',
-                'dbname' => 'operational_db',
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
                 'customer_refs' => $customerRefs,
                 'company_refs' => $companyRefs,
                 'job_data' => $jobData,
@@ -453,14 +531,13 @@ class AdminController extends Controller {
                 'total_capacity' => $totalCapacity,
                 'total_net_profit' => $totalNetProfit,
                 'profit_margin' => $profitMargin,
-                'overall_invoice_amount' => $overallSummary['total_invoices'],
-                'overall_paid_amount' => $overallSummary['total_paid'],
+                'overall_invoice_amount' => floatval($overallSummary['total_invoices'] ?? 0),
+                'overall_paid_amount' => floatval($overallSummary['total_paid'] ?? 0),
                 'overall_unpaid_amount' => $overallDueBalance,
-                'overall_unpaid_count' => count(array_filter($jobData, fn($row) => floatval($row['received_amount']) == 0)),
                 'overall_due_balance' => $overallDueBalance,
                 'filters' => $filters
             ];
-    
+
             if (isset($_GET['download_csv'])) {
                 header('Content-Type: text/csv');
                 header('Content-Disposition: attachment; filename="cost_calculation_' . date('Y-m-d') . '.csv"');
@@ -481,23 +558,31 @@ class AdminController extends Controller {
                 fclose($output);
                 exit;
             }
-    
+
             $this->render('reports/cost_calculation', $data);
         } catch (Exception $e) {
             error_log("Error in costCalculation: " . $e->getMessage());
             $this->render('reports/cost_calculation', [
-                'username' => $_SESSION['username'] ?? 'Admin',
-                'dbname' => 'operational_db',
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
                 'error' => "Error generating report: " . $e->getMessage()
             ]);
         }
     }
 
-    public function materialFind() { 
-        echo "Material Cost Calculation"; 
+    public function materialFind() {
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+        echo "Material Cost Calculation";
     }
-    
-    public function a2zEngineeringJobs() { 
-        echo "A2Z Engineering Jobs"; 
+
+    public function a2zEngineeringJobs() {
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+        echo "A2Z Engineering Jobs";
     }
 }
