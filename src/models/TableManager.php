@@ -283,76 +283,75 @@ class TableManager extends Model {
     }
 
     public function getPaginatedRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC') {
-    if (!in_array($table, $this->allowedTables)) {
-        throw new Exception("Invalid table: $table");
-    }
-
-    try {
-        $allColumns = $this->getColumns($table);
-        $offset = (int)(($page - 1) * $perPage); // Explicitly cast to int
-        $perPage = (int)$perPage; // Explicitly cast to int
-        $config = $this->getConfig($table);
-        $idColumn = $allColumns[0]; // Primary key
-
-        $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
-        $countSql = "SELECT COUNT(*) FROM `$table`";
-        $params = [];
-
-        if ($searchTerm) {
-            $searchFields = $config['searchFields'] ?? $allColumns;
-            $searchTerm = "%$searchTerm%";
-            $conditions = array_map(fn($col) => "`$col` LIKE ?", $searchFields);
-            $sql .= " WHERE " . implode(' OR ', $conditions);
-            $countSql .= " WHERE " . implode(' OR ', $conditions);
-            $params = array_fill(0, count($searchFields), $searchTerm);
+        if (!in_array($table, $this->allowedTables)) {
+            throw new Exception("Invalid table: $table");
         }
 
-        if ($sortColumn && in_array($sortColumn, $allColumns)) {
-            $sql .= " ORDER BY `$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
-        } else {
-            $sql .= " ORDER BY `$idColumn` DESC";
-        }
+        try {
+            $allColumns = $this->getColumns($table);
+            $offset = (int)(($page - 1) * $perPage);
+            $perPage = (int)$perPage;
+            $config = $this->getConfig($table);
+            $idColumn = $allColumns[0];
 
-        $sql .= " LIMIT :offset, :perPage";
+            $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
+            $countSql = "SELECT COUNT(*) FROM `$table`";
+            $params = [];
 
-        $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
-        $recordsTotal = $totalStmt->fetchColumn();
+            if ($searchTerm) {
+                $searchFields = $config['searchFields'] ?? $allColumns;
+                $searchTerm = "%$searchTerm%";
+                $conditions = array_map(fn($col) => "`$col` LIKE ?", $searchFields);
+                $sql .= " WHERE " . implode(' OR ', $conditions);
+                $countSql .= " WHERE " . implode(' OR ', $conditions);
+                $params = array_fill(0, count($searchFields), $searchTerm);
+            }
 
-        $countStmt = $this->db->prepare($countSql);
-        $countStmt->execute($params);
-        $recordsFiltered = $countStmt->fetchColumn();
+            if ($sortColumn && in_array($sortColumn, $allColumns)) {
+                $sql .= " ORDER BY `$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
+            } else {
+                $sql .= " ORDER BY `$idColumn` DESC";
+            }
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
-        foreach ($params as $index => $param) {
-            $stmt->bindValue($index + 1, $param);
-        }
-        $stmt->execute();
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $sql .= " LIMIT :offset, :perPage";
 
-        foreach ($data as &$record) {
-            foreach ($allColumns as $column) {
-                if (isset($config['formatters'][$column])) {
-                    $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
+            $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
+            $recordsTotal = $totalStmt->fetchColumn();
+
+            $countStmt = $this->db->prepare($countSql);
+            $countStmt->execute($params);
+            $recordsFiltered = $countStmt->fetchColumn();
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
+            foreach ($params as $index => $param) {
+                $stmt->bindValue($index + 1, $param);
+            }
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($data as &$record) {
+                foreach ($allColumns as $column) {
+                    if (isset($config['formatters'][$column])) {
+                        $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
+                    }
                 }
             }
+            unset($record);
+
+            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage");
+            return [
+                'draw' => isset($_POST['draw']) ? (int)$_POST['draw'] : 1,
+                'recordsTotal' => (int)$recordsTotal,
+                'recordsFiltered' => (int)$recordsFiltered,
+                'data' => $data
+            ];
+        } catch (PDOException $e) {
+            error_log("Error in getPaginatedRecords for $table: " . $e->getMessage());
+            throw new Exception("Failed to retrieve records from $table: " . $e->getMessage());
         }
-        unset($record);
-
-        error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage");
-
-        return [
-            'draw' => isset($_POST['draw']) ? (int)$_POST['draw'] : 1,
-            'recordsTotal' => (int)$recordsTotal,
-            'recordsFiltered' => (int)$recordsFiltered,
-            'data' => $data
-        ];
-    } catch (PDOException $e) {
-        error_log("Error in getPaginatedRecords for $table: " . $e->getMessage());
-        throw new Exception("Failed to retrieve records from $table: " . $e->getMessage());
     }
-}
 
     public function getInvoiceDetailsForJob($jobId) {
         if (empty($jobId)) {
@@ -372,7 +371,7 @@ class TableManager extends Model {
                     payment_received_date,
                     remarks,
                     job_id,
-                    emp_id  -- Added emp_id to fetch directly
+                    emp_id
                 FROM invoice_data 
                 WHERE job_id = ?
             ");
@@ -380,7 +379,6 @@ class TableManager extends Model {
             $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($invoice) {
-                // Fetch job details if job_id exists
                 if (isset($invoice['job_id'])) {
                     $jobDetails = $this->getJobDetails($invoice['job_id']);
                     if (is_array($jobDetails)) {
@@ -389,11 +387,9 @@ class TableManager extends Model {
                         $invoice['job_id'] = ['job_id' => $invoice['job_id'], 'details' => $jobDetails];
                     }
                 }
-                // Fetch employee name if emp_id exists
                 if (isset($invoice['emp_id'])) {
                     $invoice['emp_id'] = $this->fetchEmployeeName($invoice['emp_id']);
                 }
-                // Format monetary values
                 if (isset($invoice['invoice_value'])) {
                     $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2, '.', '');
                 }
@@ -412,59 +408,104 @@ class TableManager extends Model {
         }
     }
 
-    public function updateJobStatus($jobId, $newCompletion = null) {
-    try {
+    // New method for get_invoice_details action
+    public function getInvoiceDetails($jobId) {
         if (empty($jobId)) {
-            error_log("Empty jobId passed to updateJobStatus");
-            return ['success' => false, 'error' => 'Job ID is required'];
+            throw new Exception("Job ID is required");
         }
 
-        // Fetch current completion
-        $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
-        $stmt->execute([$jobId]);
-        $currentCompletion = $stmt->fetchColumn();
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    invoice_no,
+                    invoice_date,
+                    invoice_value,
+                    job_id,
+                    receiving_payment,
+                    received_amount,
+                    payment_received_date,
+                    remarks
+                FROM invoice_data 
+                WHERE job_id = ? 
+                LIMIT 1
+            ");
+            $stmt->execute([$jobId]);
+            $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($currentCompletion === false) {
-            error_log("Job $jobId not found in updateJobStatus");
-            return ['success' => false, 'error' => 'Job not found'];
-        }
-        $currentCompletion = (float)$currentCompletion;
-
-        // If no new completion is provided, determine the next logical step
-        if ($newCompletion === null) {
-            $statusMap = [
-                0.0 => 0.2,  // Not Started -> Started
-                0.2 => 0.5,  // Started -> Ongoing
-                0.5 => 1.0   // Ongoing -> Completed
-            ];
-            $newCompletion = $statusMap[$currentCompletion] ?? $currentCompletion;
-        } else {
-            $validCompletions = [0.0, 0.1, 0.2, 0.5, 1.0];
-            $newCompletion = (float)$newCompletion;
-            if (!in_array($newCompletion, $validCompletions)) {
-                error_log("Invalid completion value $newCompletion for job_id $jobId");
-                return ['success' => false, 'error' => 'Invalid completion value'];
+            if (!$invoice) {
+                error_log("No invoice found for job_id $jobId in getInvoiceDetails");
+                return []; // Return empty array if no invoice exists
             }
+
+            // Ensure all expected fields are present, even if null
+            $invoice = array_merge([
+                'invoice_no' => null,
+                'invoice_date' => null,
+                'invoice_value' => null,
+                'job_id' => null,
+                'receiving_payment' => null,
+                'received_amount' => null,
+                'payment_received_date' => null,
+                'remarks' => null
+            ], $invoice);
+
+            error_log("Fetched invoice details for job_id $jobId in getInvoiceDetails: " . json_encode($invoice));
+            return $invoice;
+        } catch (PDOException $e) {
+            error_log("Error in getInvoiceDetails for job_id $jobId: " . $e->getMessage());
+            throw new Exception("Failed to fetch invoice details: " . $e->getMessage());
         }
-
-        // Prevent updates if already completed or cancelled
-        if ($currentCompletion == 1.0 || $currentCompletion == 0.1) {
-            error_log("Job $jobId is already completed or cancelled, no update allowed");
-            return ['success' => false, 'error' => 'Job is already completed or cancelled'];
-        }
-
-        // Update the job status
-        $stmt = $this->db->prepare("UPDATE jobs SET completion = ? WHERE job_id = ?");
-        $stmt->execute([$newCompletion, $jobId]);
-        $rowCount = $stmt->rowCount();
-
-        error_log("Updated job $jobId status from $currentCompletion to $newCompletion, affected rows: $rowCount");
-        return ['success' => true, 'completion' => $newCompletion];
-    } catch (PDOException $e) {
-        error_log("Error in updateJobStatus for job_id $jobId: " . $e->getMessage());
-        return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
     }
-}
+
+    public function updateJobStatus($jobId, $newCompletion = null) {
+        try {
+            if (empty($jobId)) {
+                error_log("Empty jobId passed to updateJobStatus");
+                return ['success' => false, 'error' => 'Job ID is required'];
+            }
+
+            $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
+            $stmt->execute([$jobId]);
+            $currentCompletion = $stmt->fetchColumn();
+
+            if ($currentCompletion === false) {
+                error_log("Job $jobId not found in updateJobStatus");
+                return ['success' => false, 'error' => 'Job not found'];
+            }
+            $currentCompletion = (float)$currentCompletion;
+
+            if ($newCompletion === null) {
+                $statusMap = [
+                    0.0 => 0.2,
+                    0.2 => 0.5,
+                    0.5 => 1.0
+                ];
+                $newCompletion = $statusMap[$currentCompletion] ?? $currentCompletion;
+            } else {
+                $validCompletions = [0.0, 0.1, 0.2, 0.5, 1.0];
+                $newCompletion = (float)$newCompletion;
+                if (!in_array($newCompletion, $validCompletions)) {
+                    error_log("Invalid completion value $newCompletion for job_id $jobId");
+                    return ['success' => false, 'error' => 'Invalid completion value'];
+                }
+            }
+
+            if ($currentCompletion == 1.0 || $currentCompletion == 0.1) {
+                error_log("Job $jobId is already completed or cancelled, no update allowed");
+                return ['success' => false, 'error' => 'Job is already completed or cancelled'];
+            }
+
+            $stmt = $this->db->prepare("UPDATE jobs SET completion = ? WHERE job_id = ?");
+            $stmt->execute([$newCompletion, $jobId]);
+            $rowCount = $stmt->rowCount();
+
+            error_log("Updated job $jobId status from $currentCompletion to $newCompletion, affected rows: $rowCount");
+            return ['success' => true, 'completion' => $newCompletion];
+        } catch (PDOException $e) {
+            error_log("Error in updateJobStatus for job_id $jobId: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+        }
+    }
 
     public function getCompletionStatus($value) {
         $value = (float)$value;
@@ -578,7 +619,7 @@ class TableManager extends Model {
     }
 
     public function getEmployeeName($empId) {
-        return $this->fetchEmployeeName($empId); // Alias for consistency
+        return $this->fetchEmployeeName($empId);
     }
 
     public function getBooleanIcon($value) {

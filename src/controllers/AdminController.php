@@ -157,7 +157,7 @@ class AdminController extends Controller {
                 $start = (int)($_POST['start'] ?? 0);
                 $length = (int)($_POST['length'] ?? 10);
                 $page = ($start / $length) + 1;
-                $searchTerm = $_POST['searchTerm'] ?? '';
+                $searchTerm = $_POST['search']['value'] ?? ''; // Adjusted to match DataTables search object
                 $sortColumn = $_POST['sortColumn'] ?? '';
                 $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
 
@@ -229,6 +229,20 @@ class AdminController extends Controller {
                     $newCompletion = $this->tableManager->updateJobStatus($jobId);
                     header('Content-Type: application/json');
                     echo json_encode(['success' => true, 'completion' => $newCompletion]);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
+            } elseif ($action === 'get_invoice_details' && $table === 'jobs') {
+                try {
+                    $jobId = $_POST['job_id'] ?? '';
+                    if (empty($jobId)) {
+                        throw new Exception("Job ID is required");
+                    }
+                    $invoiceData = $this->tableManager->getInvoiceDetails($jobId);
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'data' => $invoiceData]);
                 } catch (Exception $e) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -320,7 +334,7 @@ class AdminController extends Controller {
             }
 
             foreach ($attendance_data as $row) {
-                $payment = floatval($row['actual_cost'] ?? 0); // Use actual_cost which includes increments
+                $payment = floatval($row['actual_cost'] ?? 0);
                 if ($row['presence'] > 0) {
                     $employee_costs_by_type['Attendance-Based'] += $payment;
                     $total_employee_costs += $payment;
@@ -330,7 +344,6 @@ class AdminController extends Controller {
             $total_employee_costs += $epf_costs;
             $expenses_by_category['EPF'] = $epf_costs;
 
-            // Note: getInvoicesSummary returns an array of rows, so access the first row
             $total_invoices = floatval($invoices_data[0]['total_invoices'] ?? 0);
             $total_invoices_count = intval($invoices_data[0]['invoice_count'] ?? 0);
             $total_jobs = intval($jobs_data['job_count'] ?? 0);
