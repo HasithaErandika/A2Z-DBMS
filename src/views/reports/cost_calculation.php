@@ -35,7 +35,6 @@ if (!isset($overall_unpaid_amount)) $overall_unpaid_amount = 0;
 if (!isset($overall_unpaid_count)) $overall_unpaid_count = 0;
 if (!isset($overall_due_balance)) $overall_due_balance = 0;
 if (!isset($error)) $error = null;
-<<<<<<< HEAD
 
 // Apply filters to $job_data
 $filtered_job_data = array_filter($job_data, function($row) use ($filters) {
@@ -114,8 +113,6 @@ foreach ($filtered_job_data as $row) {
 
 $total_net_profit = $total_invoice_amount - $total_expenses - $total_employee_costs_sum;
 $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invoice_amount) * 100) : 0;
-=======
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 ?>
 
 <!DOCTYPE html>
@@ -127,245 +124,7 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<<<<<<< HEAD
     <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/cost_calculation.css', ENT_QUOTES, 'UTF-8'); ?>">
-=======
-    <style>
-        :root {
-            --primary: #ff6b00;
-            --secondary: #00c4b4;
-            --accent: #1e90ff;
-            --background: #ffffff;
-            --card-bg: #f9fafb;
-            --text-dark: #1f2937;
-            --text-muted: #6b7280;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --border: #e5e7eb;
-            --success: #10b981;
-            --danger: #ef4444;
-            --hover-bg: #f1f5f9;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--background);
-            color: var(--text-dark);
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            padding: 20px 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 15px;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 13px;
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        .btn:hover { transform: translateY(-1px); }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover { background: #167bd6; }
-        .btn-secondary { background: var(--secondary); color: white; }
-        .btn-secondary:hover { background: #00a896; }
-
-        .filter-card, .summary-card, .table-card, .chart-card {
-            background: var(--card-bg);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 8px var(--shadow);
-            margin-bottom: 30px;
-        }
-
-        .filter-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            align-items: end;
-        }
-
-        .filter-item label {
-            display: block;
-            font-weight: 500;
-            font-size: 13px;
-            margin-bottom: 5px;
-            color: var(--text-muted);
-        }
-
-        .filter-item input, .filter-item select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .filter-item input:focus, .filter-item select:focus { border-color: var(--accent); }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-        }
-
-        .summary-item {
-            background: rgba(30, 144, 255, 0.05);
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-        }
-
-        .summary-item h3 {
-            font-size: 13px;
-            color: var(--accent);
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .summary-item p {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .summary-item.unpaid p { color: var(--danger); }
-        .summary-item.paid p { color: var(--success); }
-        .summary-item.neutral p { color: var(--text-dark); }
-        .summary-item.profit-positive p { color: var(--success); }
-        .summary-item.profit-negative p { color: var(--danger); }
-
-        .summary-card h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-
-        .summary-card .section {
-            border-top: 1px solid var(--border);
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-
-        .table-card h2, .chart-card h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: var(--card-bg);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px var(--shadow);
-        }
-
-        .table th, .table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .table th {
-            background: var(--accent);
-            color: white;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .table td {
-            font-size: 13px;
-            color: var(--text-dark);
-            vertical-align: middle;
-        }
-
-        .table tr:hover { background: var(--hover-bg); }
-
-        .collapsible {
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .collapsible .total { font-weight: 600; }
-        .collapsible .icon { font-size: 12px; transition: transform 0.2s; }
-        .collapsible.active .icon { transform: rotate(180deg); }
-
-        .details {
-            display: none;
-            padding: 10px;
-            background: var(--hover-bg);
-            border-radius: 4px;
-            margin-top: 5px;
-        }
-
-        .details ul {
-            list-style: none;
-            padding: 0;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .details ul ul { margin-left: 20px; font-size: 12px; }
-
-        .profit-positive { color: var(--success); font-weight: 600; }
-        .profit-negative { color: var(--danger); font-weight: 600; }
-
-        .chart-container { max-width: 600px; margin: 0 auto; }
-
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-
-        @media (max-width: 768px) {
-            .filter-form { grid-template-columns: 1fr; }
-            .summary-grid { grid-template-columns: 1fr; }
-            .table { font-size: 12px; }
-            .chart-container { max-width: 100%; }
-        }
-    </style>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 </head>
 <body>
     <div class="container">
@@ -373,44 +132,27 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
             <h1>Cost Calculation Report</h1>
             <div class="header-controls">
                 <button class="btn btn-primary" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
-<<<<<<< HEAD
                 <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
-=======
-                <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                 <button class="btn btn-secondary" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
             </div>
         </div>
 
         <?php if (isset($error)): ?>
-<<<<<<< HEAD
             <div class="error-message"><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
-=======
-            <div class="error-message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         <?php else: ?>
             <div class="filter-card">
                 <form method="GET" class="filter-form" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/cost_calculation', ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="filter-item">
                         <label>Invoice ID</label>
-<<<<<<< HEAD
                         <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-=======
-                        <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no'], ENT_QUOTES, 'UTF-8'); ?>">
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     </div>
                     <div class="filter-item">
                         <label>Customer</label>
                         <select name="customer_name">
                             <option value="">All</option>
                             <?php foreach ($customer_refs as $ref): ?>
-<<<<<<< HEAD
                                 <option value="<?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['customer_reference'] === $ref ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>
-=======
-                                <option value="<?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['customer_reference'] === $ref ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -420,13 +162,8 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                         <select name="client_ref">
                             <option value="">All</option>
                             <?php foreach ($company_refs as $ref): ?>
-<<<<<<< HEAD
                                 <option value="<?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['company_reference'] === $ref ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>
-=======
-                                <option value="<?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['company_reference'] === $ref ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($ref, ENT_QUOTES, 'UTF-8'); ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -441,19 +178,11 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                     </div>
                     <div class="filter-item">
                         <label>From Date</label>
-<<<<<<< HEAD
                         <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="filter-item">
                         <label>To Date</label>
                         <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-=======
-                        <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date'], ENT_QUOTES, 'UTF-8'); ?>">
-                    </div>
-                    <div class="filter-item">
-                        <label>To Date</label>
-                        <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'], ENT_QUOTES, 'UTF-8'); ?>">
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     </div>
                     <button type="submit" class="btn btn-primary"><i class="ri-filter-line"></i> Filter</button>
                 </form>
@@ -465,11 +194,7 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                     <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($total_invoice_amount, 2); ?></p></div>
                     <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($total_paid_amount, 2); ?></p></div>
                     <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($total_unpaid_amount, 2); ?></p></div>
-<<<<<<< HEAD
                     <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($unpaid_invoice_count ?? '', ENT_QUOTES, 'UTF-8'); ?></p></div>
-=======
-                    <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($unpaid_invoice_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($due_balance, 2); ?></p></div>
                 </div>
                 <div class="section">
@@ -477,11 +202,7 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                     <div class="summary-grid">
                         <div class="summary-item"><h3>Total Expenses</h3><p><?php echo number_format($total_expenses, 2); ?></p></div>
                         <div class="summary-item"><h3>Total Employee Costs</h3><p><?php echo number_format($total_employee_costs_sum, 2); ?></p></div>
-<<<<<<< HEAD
                         <div class="summary-item"><h3>Total Jobs</h3><p><?php echo htmlspecialchars(count($filtered_job_data), ENT_QUOTES, 'UTF-8'); ?></p></div>
-=======
-                        <div class="summary-item"><h3>Total Jobs</h3><p><?php echo htmlspecialchars(count($job_data), ENT_QUOTES, 'UTF-8'); ?></p></div>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                         <div class="summary-item"><h3>Total Capacity</h3><p><?php echo number_format($total_capacity, 2); ?></p></div>
                         <div class="summary-item <?php echo $total_net_profit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
                             <h3>Net Profit</h3><p><?php echo number_format($total_net_profit, 2); ?></p>
@@ -497,11 +218,7 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                         <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($overall_invoice_amount, 2); ?></p></div>
                         <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($overall_paid_amount, 2); ?></p></div>
                         <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($overall_unpaid_amount, 2); ?></p></div>
-<<<<<<< HEAD
                         <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($overall_unpaid_count ?? '', ENT_QUOTES, 'UTF-8'); ?></p></div>
-=======
-                        <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($overall_unpaid_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                         <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($overall_due_balance, 2); ?></p></div>
                     </div>
                 </div>
@@ -533,76 +250,45 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                         <?php foreach ($filtered_job_data as $row): ?>
                             <?php
                             $jobDetails = "<ul>";
-<<<<<<< HEAD
                             $jobDetails .= "<li>Job ID: " . htmlspecialchars($row['job_id'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
                             $jobDetails .= "<li>Location: " . htmlspecialchars($row['location'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
-=======
-                            $jobDetails .= "<li>Job ID: " . htmlspecialchars($row['job_id'], ENT_QUOTES, 'UTF-8') . "</li>";
-                            $jobDetails .= "<li>Location: " . htmlspecialchars($row['location'], ENT_QUOTES, 'UTF-8') . "</li>";
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             $jobDetails .= "<li>Company Ref: " . htmlspecialchars($row['company_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
                             $jobDetails .= "<li>Engineer: " . htmlspecialchars($row['engineer'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
                             $jobDetails .= "</ul>";
 
                             $invoiceDetails = "<ul>";
-<<<<<<< HEAD
                             $invoiceDetails .= "<li>No: " . htmlspecialchars($row['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
                             $invoiceDetails .= "<li>Value: " . number_format(floatval($row['invoice_value'] ?? 0), 2) . "</li>";
                             $invoiceDetails .= "<li>Received: " . number_format(floatval($row['received_amount'] ?? 0), 2) . "</li>";
                             $invoiceDetails .= "<li>Date Paid: " . htmlspecialchars($row['payment_received_date'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
-=======
-                            $invoiceDetails .= "<li>No: " . htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8') . "</li>";
-                            $invoiceDetails .= "<li>Value: " . number_format(floatval($row['invoice_value']), 2) . "</li>";
-                            $invoiceDetails .= "<li>Received: " . number_format(floatval($row['received_amount']), 2) . "</li>";
-                            $invoiceDetails .= "<li>Date Paid: " . htmlspecialchars($row['payment_received_date'], ENT_QUOTES, 'UTF-8') . "</li>";
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             $invoiceDetails .= "</ul>";
 
                             $expenseDetails = "<ul>";
                             $totalExpensesForJob = 0;
                             if (!empty($row['expense_details'])) {
                                 foreach ($row['expense_details'] as $category => $amount) {
-<<<<<<< HEAD
                                     $expenseDetails .= "<li>" . htmlspecialchars($category ?? '', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($amount ?? 0), 2) . "</li>";
                                     $totalExpensesForJob += floatval($amount ?? 0);
                                 }
                             }
                             if ($totalExpensesForJob == 0) {
-=======
-                                    $expenseDetails .= "<li>" . htmlspecialchars($category, ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($amount), 2) . "</li>";
-                                }
-                            } else {
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 $expenseDetails .= "<li>No expenses recorded</li>";
                             }
                             $expenseDetails .= "</ul>";
 
                             $employeeDetails = "<ul>";
-<<<<<<< HEAD
                             $totalEmployeeCostsForJob = 0;
                             if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
                                 foreach ($row['employee_details'] as $emp) {
                                     $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($emp['payment'] ?? 0), 2);
                                     $totalEmployeeCostsForJob += floatval($emp['payment'] ?? 0);
-=======
-                            if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
-                                foreach ($row['employee_details'] as $emp) {
-                                    $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($emp['payment'] ?? 0), 2);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                     if (!empty($emp['days']) && is_array($emp['days'])) {
                                         $employeeDetails .= "<ul>";
                                         foreach ($emp['days'] as $day) {
                                             $presence = floatval($day['presence'] ?? 0);
                                             $presenceText = $presence == 1.0 ? 'Full Day' : ($presence == 0.5 ? 'Half Day' : number_format($presence, 1) . ' Days');
-<<<<<<< HEAD
                                             $date = htmlspecialchars($day['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
                                             $employeeDetails .= "<li>$date: $presenceText </li>";
-=======
-                                            $rate = number_format(floatval($day['rate'] ?? 0), 2);
-                                            $payment = number_format(floatval($day['payment'] ?? 0), 2);
-                                            $date = htmlspecialchars($day['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
-                                            $employeeDetails .= "<li>$date: $presenceText (Rate: $rate, Paid: $payment)</li>";
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                         }
                                         $employeeDetails .= "</ul>";
                                     } else {
@@ -610,16 +296,10 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                                     }
                                     $employeeDetails .= "</li>";
                                 }
-<<<<<<< HEAD
                             }
                             if ($totalEmployeeCostsForJob == 0) {
                                 $employeeDetails .= "<li>No employee costs recorded for Job ID: " . htmlspecialchars($row['job_id'] ?? '', ENT_QUOTES, 'UTF-8') . " (Check attendance or rate data)</li>";
                             }
-=======
-                            } else {
-                                $employeeDetails .= "<li>No employee costs recorded for Job ID: " . htmlspecialchars($row['job_id'], ENT_QUOTES, 'UTF-8') . " (Check attendance or rate data)</li>";
-                            }
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             $employeeDetails .= "</ul>";
 
                             $outstanding = floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0);
@@ -628,62 +308,37 @@ $profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invo
                             <tr>
                                 <td>
                                     <div class="collapsible">
-<<<<<<< HEAD
                                         <span class="total">Customer: <?php echo htmlspecialchars($row['customer_reference'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
-=======
-                                        <span class="total">Customer: <?php echo htmlspecialchars($row['customer_reference'], ENT_QUOTES, 'UTF-8'); ?></span>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $jobDetails; ?></div>
                                 </td>
-<<<<<<< HEAD
                                 <td><?php echo htmlspecialchars($row['date_completed'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?php echo htmlspecialchars($row['job_capacity'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td>
                                     <div class="collapsible">
                                         <span class="total"><?php echo htmlspecialchars($row['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
-=======
-                                <td><?php echo htmlspecialchars($row['date_completed'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?php echo htmlspecialchars($row['job_capacity'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td>
-                                    <div class="collapsible">
-                                        <span class="total"><?php echo htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8'); ?></span>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $invoiceDetails; ?></div>
                                 </td>
                                 <td>
                                     <div class="collapsible">
-<<<<<<< HEAD
                                         <span class="total">Total: <?php echo number_format($totalExpensesForJob, 2); ?></span>
-=======
-                                        <span class="total">Total: <?php echo number_format(floatval($row['operational_expenses']), 2); ?></span>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $expenseDetails; ?></div>
                                 </td>
                                 <td>
                                     <div class="collapsible">
-<<<<<<< HEAD
                                         <span class="total">Total: <?php echo number_format($totalEmployeeCostsForJob, 2); ?></span>
-=======
-                                        <span class="total">Total: <?php echo number_format(floatval($row['total_employee_costs']), 2); ?></span>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                         <i class="ri-arrow-down-s-line icon"></i>
                                     </div>
                                     <div class="details"><?php echo $employeeDetails; ?></div>
                                 </td>
                                 <td><?php echo number_format($outstanding, 2); ?></td>
-<<<<<<< HEAD
                                 <td class="<?php echo $netProfit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
                                     <?php echo number_format($netProfit, 2); ?>
-=======
-                                <td class="<?php echo $row['net_profit'] >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
-                                    <?php echo number_format(floatval($row['net_profit']), 2); ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 </td>
                             </tr>
                         <?php endforeach; ?>

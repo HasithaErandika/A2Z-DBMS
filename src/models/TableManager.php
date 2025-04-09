@@ -283,7 +283,6 @@ class TableManager extends Model {
     }
 
     public function getPaginatedRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC') {
-<<<<<<< HEAD
     if (!in_array($table, $this->allowedTables)) {
         throw new Exception("Invalid table: $table");
     }
@@ -306,10 +305,6 @@ class TableManager extends Model {
             $sql .= " WHERE " . implode(' OR ', $conditions);
             $countSql .= " WHERE " . implode(' OR ', $conditions);
             $params = array_fill(0, count($searchFields), $searchTerm);
-=======
-        if (!in_array($table, $this->allowedTables)) {
-            throw new Exception("Invalid table: $table");
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
 
         if ($sortColumn && in_array($sortColumn, $allColumns)) {
@@ -336,51 +331,12 @@ class TableManager extends Model {
         $stmt->execute();
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-<<<<<<< HEAD
         foreach ($data as &$record) {
             foreach ($allColumns as $column) {
                 if (isset($config['formatters'][$column])) {
                     $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
                 }
             }
-=======
-            $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
-            $recordsTotal = $totalStmt->fetchColumn();
-
-            $countStmt = $this->db->prepare($countSql);
-            $countStmt->execute($params);
-            $recordsFiltered = $countStmt->fetchColumn();
-
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
-            foreach ($params as $index => $param) {
-                $stmt->bindValue($index + 1, $param);
-            }
-            $stmt->execute();
-            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($data as &$record) {
-                foreach ($allColumns as $column) {
-                    if (isset($config['formatters'][$column])) {
-                        $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
-                    }
-                }
-            }
-            unset($record);
-
-            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage");
-
-            return [
-                'draw' => isset($_POST['draw']) ? (int)$_POST['draw'] : 1,
-                'recordsTotal' => (int)$recordsTotal,
-                'recordsFiltered' => (int)$recordsFiltered,
-                'data' => $data
-            ];
-        } catch (PDOException $e) {
-            error_log("Error in getPaginatedRecords for $table: " . $e->getMessage());
-            throw new Exception("Failed to retrieve records from $table: " . $e->getMessage());
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
         unset($record);
 
@@ -399,7 +355,6 @@ class TableManager extends Model {
 }
 
     public function getInvoiceDetailsForJob($jobId) {
-<<<<<<< HEAD
         if (empty($jobId)) {
             error_log("Empty jobId passed to getInvoiceDetailsForJob");
             return null;
@@ -454,90 +409,14 @@ class TableManager extends Model {
         } catch (PDOException $e) {
             error_log("Error in getInvoiceDetailsForJob for job_id $jobId: " . $e->getMessage());
             return null;
-=======
-    if (empty($jobId)) return null;
-    try {
-        $stmt = $this->db->prepare("
-            SELECT 
-                invoice_no,
-                invoice_date,
-                invoice_value,
-                invoice,
-                receiving_payment,
-                received_amount,
-                payment_received_date,
-                remarks,
-                emp_id,
-                job_id
-            FROM invoice_data 
-            WHERE job_id = ?
-        ");
-        $stmt->execute([$jobId]);
-        $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($invoice) {
-            // Fetch employee name (or any other info) if necessary
-            if (isset($invoice['emp_id'])) {
-                $invoice['emp_id'] = $this->fetchEmployeeName($invoice['emp_id']);
-            }
-            // If you have job details as project-description-engineer
-            if (isset($invoice['job_id'])) {
-                $invoice['job_id'] = $this->getJobDetails($invoice['job_id']);
-            }
-            // Ensure the numbers are formatted properly
-            if (isset($invoice['invoice_value'])) {
-                $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2);
-            }
-            if (isset($invoice['received_amount'])) {
-                $invoice['received_amount'] = number_format((float)$invoice['received_amount'], 2);
-            }
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
-        return $invoice ?: null;
-    } catch (PDOException $e) {
-        error_log("Error in getInvoiceDetailsForJob: " . $e->getMessage());
-        return null;
     }
-}
 
-
-
-<<<<<<< HEAD
     public function updateJobStatus($jobId, $newCompletion = null) {
     try {
         if (empty($jobId)) {
             error_log("Empty jobId passed to updateJobStatus");
             return ['success' => false, 'error' => 'Job ID is required'];
-=======
-    public function updateJobStatus($jobId) {
-        try {
-            $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
-            $stmt->execute([$jobId]);
-            $currentCompletion = (float)$stmt->fetchColumn();
-    
-            if ($currentCompletion == 1.0) {
-                return ['success' => true, 'completion' => 1.0];
-            }
-    
-            if ($currentCompletion == 0.0) {
-                $newCompletion = 0.2;
-            } elseif ($currentCompletion == 0.2) {
-                $newCompletion = 0.5;
-            } elseif ($currentCompletion == 0.5) {
-                $newCompletion = 1.0;
-            } else {
-                $newCompletion = 0.0;
-            }
-    
-            $stmt = $this->db->prepare("UPDATE jobs SET completion = ? WHERE job_id = ?");
-            $stmt->execute([$newCompletion, $jobId]);
-    
-            error_log("Updated job $jobId status from $currentCompletion to $newCompletion");
-            return ['success' => true, 'completion' => $newCompletion];
-        } catch (PDOException $e) {
-            error_log("Error in updateJobStatus for job_id $jobId: " . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
 
         // Fetch current completion
@@ -633,11 +512,7 @@ class TableManager extends Model {
             throw new Exception("Failed to create record in $table: " . $e->getMessage());
         } catch (Exception $e) {
             error_log("Validation Error in create for $table: " . $e->getMessage());
-<<<<<<< HEAD
             throw $e;
-=======
-            throw $e; // Re-throw validation exceptions
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
     }
 
@@ -718,7 +593,6 @@ class TableManager extends Model {
         return htmlspecialchars($value);
     }
 
-<<<<<<< HEAD
     public function getTransactionTypeDisplay($value) {
         if ($value === 'In') {
             return '<span style="color: #10B981;">Received</span>';
@@ -728,8 +602,6 @@ class TableManager extends Model {
         return htmlspecialchars($value);
     }
 
-=======
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
     public function getInvoiceByJobId($jobId) {
         if (empty($jobId)) return null;
         try {
@@ -773,7 +645,6 @@ class TableManager extends Model {
     }
 
     public function getProjectDetailsForJobs($projectId = null) {
-<<<<<<< HEAD
         if (!empty($projectId)) {
             try {
                 $stmt = $this->db->prepare("
@@ -819,72 +690,8 @@ class TableManager extends Model {
         } catch (PDOException $e) {
             error_log("Error in getProjectDetailsForJobs (options): " . $e->getMessage());
             return '<option value="">Error loading projects</option>';
-=======
-    // If a project ID is provided, return a single project's details
-    if (!empty($projectId)) {
-        try {
-            $stmt = $this->db->prepare("
-                SELECT company_reference, project_description 
-                FROM projects 
-                WHERE project_id = ?
-            ");
-            $stmt->execute([$projectId]);
-
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$result) {
-                return 'No Project Found';
-            }
-
-            $companyRef  = !empty($result['company_reference']) 
-                           ? htmlspecialchars($result['company_reference']) 
-                           : 'No Company';
-
-            $projectDesc = !empty($result['project_description']) 
-                           ? htmlspecialchars($result['project_description']) 
-                           : 'No Description';
-
-            return "$companyRef - $projectDesc";
-
-        } catch (PDOException $e) {
-            error_log("Error in getProjectDetailsForJobs (details): " . $e->getMessage());
-            return 'Error';
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         }
     }
-
-    // If no project ID is provided, return the <option> list
-    try {
-        $stmt = $this->db->query("
-            SELECT project_id, company_reference, project_description 
-            FROM projects 
-            ORDER BY project_id DESC
-        ");
-        $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $options = ['<option value="">Select Project</option>'];
-
-        foreach ($projects as $project) {
-            $projectId    = htmlspecialchars($project['project_id']);
-            $companyRef   = htmlspecialchars($project['company_reference']);
-            $projectDesc  = htmlspecialchars($project['project_description']);
-
-            $options[] = sprintf(
-                '<option value="%s">(%s - %s - %s)</option>',
-                $projectId,
-                $projectId,
-                $companyRef,
-                $projectDesc
-            );
-        }
-
-        return implode('', $options);
-
-    } catch (PDOException $e) {
-        error_log("Error in getProjectDetailsForJobs (options): " . $e->getMessage());
-        return '<option value="">Error loading projects</option>';
-    }
-}
-
 
     public function checkInvoiceExists($jobId) {
         try {
@@ -1090,140 +897,6 @@ class TableManager extends Model {
             return '<option value="">Error loading projects</option>';
         }
     }
-    
-    public function getEmployeeOptions() {
-    try {
-        $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees ORDER BY emp_id DESC");
-        $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $options = ['<option value="">Select Employee</option>'];
-
-        foreach ($employees as $employee) {
-            $empId   = htmlspecialchars($employee['emp_id']);
-            $empName = htmlspecialchars($employee['emp_name']);
-
-            $options[] = sprintf(
-                '<option value="%s">(%s - %s)</option>',
-                $empId,
-                $empId,
-                $empName
-            );
-        }
-
-        return implode('', $options);
-    } catch (PDOException $e) {
-        error_log("Error in getEmployeeOptions: " . $e->getMessage());
-        return '<option value="">Error loading employees</option>';
-    }
-}
-
-    public function getJobDetails($jobId = null) {
-    // If a job ID is provided, return the job's details in the specified format
-    if (!empty($jobId)) {
-        try {
-            $stmt = $this->db->prepare("
-                SELECT 
-                    p.project_description, 
-                    p.company_reference, 
-                    j.engineer
-                FROM jobs j
-                LEFT JOIN projects p ON j.project_id = p.project_id
-                WHERE j.job_id = ?
-            ");
-            $stmt->execute([$jobId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$result) return 'Job Not Found';
-
-            $projectDesc = $result['project_description'] ? htmlspecialchars($result['project_description']) : 'No Description';
-            $companyRef  = $result['company_reference'] ? htmlspecialchars($result['company_reference']) : 'No Company';
-            $engineer    = $result['engineer'] ? htmlspecialchars($result['engineer']) : 'No Engineer';
-
-            return "$projectDesc - $companyRef - $engineer";
-
-        } catch (PDOException $e) {
-            error_log("Error in getJobDetails (details): " . $e->getMessage());
-            return 'Error fetching job details';
-        }
-    }
-
-    // If no job ID is provided, return the <option> list for jobs with project details
-    try {
-        $query = "
-            SELECT 
-                j.job_id, 
-                j.engineer, 
-                p.project_description, 
-                p.company_reference
-            FROM jobs j
-            LEFT JOIN projects p ON j.project_id = p.project_id
-            ORDER BY j.job_id DESC
-        ";
-
-        $result = $this->db->query($query);
-        $options = ['<option value="">Select Job</option>'];
-
-        while ($row = $result->fetch()) {
-            $jobId           = htmlspecialchars($row['job_id']);
-            $engineer        = htmlspecialchars($row['engineer']);
-            $projectDesc     = htmlspecialchars($row['project_description']);
-            $companyRef      = htmlspecialchars($row['company_reference']);
-
-            $options[] = sprintf(
-                '<option value="%s">(%s - %s - %s - %s)</option>',
-                $jobId,
-                $jobId,
-                $projectDesc,
-                $companyRef,
-                $engineer
-            );
-        }
-
-        return implode('', $options);
-
-    } catch (PDOException $e) {
-        error_log("Error in getJobDetails (options): " . $e->getMessage());
-        return '<option value="">Error loading jobs</option>';
-    }
-}
-
-
-    
-// New method for project options
-   public function getProjectOptionsCRUD() {
-    // Initialize the default option
-    $options = '<option value="">Select Project</option>';
-
-    // Query projects ordered by project_id
-    $query = "
-        SELECT 
-            project_id, 
-            company_reference, 
-            project_description 
-        FROM projects 
-        ORDER BY project_id DESC
-    ";
-
-    $result = $this->db->query($query);
-
-    // Build option elements
-    while ($row = $result->fetch()) {
-        $projectId     = htmlspecialchars($row['project_id']);
-        $companyRef    = htmlspecialchars($row['company_reference']);
-        $projectDesc   = htmlspecialchars($row['project_description']);
-
-        $options .= sprintf(
-            '<option value="%s">(%s - %s - %s)</option>',
-            $projectId,
-            $projectId,
-            $companyRef,
-            $projectDesc
-        );
-    }
-
-    return $options;
-}
-
 
     private function validate($table, $data, $rules) {
         foreach ($rules as $field => $fieldRules) {

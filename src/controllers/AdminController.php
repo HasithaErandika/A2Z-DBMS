@@ -10,10 +10,6 @@ require_once __DIR__ . '/../models/TableManager.php';
 require_once __DIR__ . '/../models/ReportManager.php';
 require_once __DIR__ . '/../core/Database.php';
 
-<<<<<<< HEAD
-=======
-// Define FULL_BASE_URL if not already defined in index.php
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 if (!defined('FULL_BASE_URL')) {
     define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
@@ -334,14 +330,9 @@ class AdminController extends Controller {
             $total_employee_costs += $epf_costs;
             $expenses_by_category['EPF'] = $epf_costs;
 
-<<<<<<< HEAD
             // Note: getInvoicesSummary returns an array of rows, so access the first row
             $total_invoices = floatval($invoices_data[0]['total_invoices'] ?? 0);
             $total_invoices_count = intval($invoices_data[0]['invoice_count'] ?? 0);
-=======
-            $total_invoices = floatval($invoices_data['total_invoices'] ?? 0);
-            $total_invoices_count = intval($invoices_data['invoice_count'] ?? 0);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
             $total_jobs = intval($jobs_data['job_count'] ?? 0);
             $total_job_capacity = floatval($jobs_data['total_capacity'] ?? 0);
 
@@ -473,30 +464,12 @@ class AdminController extends Controller {
                             'days' => []
                         ];
                     }
-<<<<<<< HEAD
 
                     $presence = floatval($cost['presence'] ?? 0);
                     $payment = floatval($cost['actual_cost'] ?? 0);
 
                     if ($presence > 0 && ($cost['total_rate'] ?? 0) == 0) {
                         error_log("Warning: No rate or increment found for job_id {$row['job_id']}, employee: $empName, date: {$cost['attendance_date']}, presence: $presence");
-=======
-                    $presence = floatval($cost['presence'] ?? 0);
-                    $rate = floatval($cost['effective_rate'] ?? 0);
-                    $payment = $presence * $rate;
-
-                    if ($payment > 0) {
-                        $totalEmployeeCosts += $payment;
-                        $employeeBreakdown[$empName]['total_payment'] += $payment;
-                        $employeeBreakdown[$empName]['days'][] = [
-                            'date' => $cost['attendance_date'],
-                            'presence' => $presence,
-                            'payment' => $payment,
-                            'rate' => $rate
-                        ];
-                    } else {
-                        error_log("Zero payment calculated for job_id {$row['job_id']}, employee: $empName, presence: $presence, rate: $rate");
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     }
 
                     $employeeBreakdown[$empName]['payment'] += $payment;
@@ -540,11 +513,7 @@ class AdminController extends Controller {
 
             $dueBalance = $totalInvoiceAmount - $totalPaidAmount;
             $profitMargin = $totalInvoiceAmount > 0 ? ($totalNetProfit / $totalInvoiceAmount) * 100 : 0;
-<<<<<<< HEAD
             $overallDueBalance = floatval($overallSummary['total_invoices'] ?? 0) - floatval($overallSummary['total_paid'] ?? 0);
-=======
-            $overallDueBalance = $overallSummary['total_invoices'] - $overallSummary['total_paid'];
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 
             $data = [
                 'username' => $_SESSION['db_username'] ?? 'Admin',

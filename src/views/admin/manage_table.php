@@ -14,14 +14,8 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
     <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/manage_table.css">
     <style>
-<<<<<<< HEAD
         .search-bar { margin-bottom: 20px; }
         .search-input { width: 100%; padding: 8px; font-size: 16px; }
-=======
-        .column-search { margin-bottom: 10px; }
-        .column-search input, .column-search select { width: 100%; padding: 5px; margin-top: 5px; }
-        .global-search { margin-bottom: 20px; }
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
     </style>
 </head>
 <body>
@@ -49,40 +43,12 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
             </form>
         </div>
 
-<<<<<<< HEAD
         <div class="search-bar">
             <form id="searchForm" method="POST" action="">
                 <input class="search-input" id="searchInput" name="search" type="text" 
                        value="<?php echo htmlspecialchars($searchQuery); ?>" 
                        placeholder="Search table..." aria-label="Search table data">
             </form>
-=======
-        <!-- Global Search Bar -->
-        <div class="global-search">
-            <input type="text" id="global-search" placeholder="Search all columns (e.g., name:John status:completed)" style="width: 100%; padding: 8px;">
-        </div>
-
-        <!-- Column-Specific Search Inputs -->
-        <div class="column-search">
-            <?php foreach ($data['columns'] as $column): ?>
-                <div style="display: inline-block; width: <?php echo 100 / count($data['columns']); ?>%; padding: 5px;">
-                    <label for="search-<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
-                    <?php if ($column === 'completion' && $data['table'] === 'jobs'): ?>
-                        <select id="search-<?php echo $column; ?>" class="column-filter">
-                            <option value="">All</option>
-                            <option value="0.0">Not Started</option>
-                            <option value="0.2">Started</option>
-                            <option value="0.5">Ongoing</option>
-                            <option value="1.0">Completed</option>
-                        </select>
-                    <?php elseif (in_array($column, ['date_started', 'date_completed', 'date', 'attendance_date', 'invoice_date'])): ?>
-                        <input type="date" id="search-<?php echo $column; ?>" class="column-filter">
-                    <?php else: ?>
-                        <input type="text" id="search-<?php echo $column; ?>" class="column-filter" placeholder="Filter <?php echo $column; ?>">
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
         </div>
 
         <div class="table-container">
@@ -99,36 +65,14 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     </tr>
                 </thead>
                 <tbody>
-<<<<<<< HEAD
                     <!-- Initial data will be loaded via AJAX -->
-=======
-                    <?php if (!empty($data['records'])): ?>
-                        <?php foreach ($data['records'] as $record): ?>
-                            <tr>
-                                <?php foreach ($data['columns'] as $column): ?>
-                                    <td><?php echo htmlspecialchars($record[$column] ?? '-'); ?></td>
-                                <?php endforeach; ?>
-                                <?php if ($data['table'] === 'jobs'): ?>
-                                    <td><?php echo $record['completion'] ?? '-'; ?></td>
-                                <?php endif; ?>
-                                <td>-</td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr><td colspan="<?php echo count($data['columns']) + ($data['table'] === 'jobs' ? 2 : 1); ?>">Loading data...</td></tr>
-                    <?php endif; ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                 </tbody>
             </table>
             <div class="spinner" id="loading-spinner"><i class="fas fa-spinner"></i></div>
         </div>
     </div>
 
-<<<<<<< HEAD
     <!-- CRUD Modal -->
-=======
-    <!-- CRUD Modal (unchanged) -->
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
     <div class="modal" id="crud-modal">
         <div class="modal-content">
             <h2 id="modal-title" aria-live="polite"></h2>
@@ -149,22 +93,14 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     'jobs' => 'job_id'
                 ];
                 $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
-<<<<<<< HEAD
                 $dateColumns = ['date_started', 'date_completed', 'date','attendance_date', 'date_of_joined', 'date_of_resigned','date_of_birth','effective_date','end_date','expensed_date','invoice_date','payment_date','increment_date','txn_date'];
-=======
-                $dateColumns = ['date_started', 'date_completed', 'date','attendance_date', 'date_of_joined', 'date_of_resigned','date_of_birth','effective_date','end_date','expensed_date','invoice_date','payment_date','increment_date'];
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                 $timeColumns = ['start_time', 'end_time'];
                 foreach ($data['columns'] as $column): ?>
                     <div class="form-group">
                         <label for="<?php echo $column; ?>"><?php echo htmlspecialchars($column); ?></label>
                         <?php if ($column === $primaryKey): ?>
                             <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>">
-<<<<<<< HEAD
                         <?php elseif (($column === 'emp_id' && $data['table'] !== 'employees') || ($data['table'] === 'cash_hand' && in_array($column, ['given_by', 'received_by']))): ?>
-=======
-                        <?php elseif ($column === 'emp_id' && $data['table'] !== 'employees'): ?>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Employee">
                                 <?php echo $data['tableManager']->getEmployeeOptions(); ?>
                             </select>
@@ -204,11 +140,7 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                                 <option value="Other">Other</option>
                             </select>
                         <?php elseif (($column === 'rate_type' && $data['table'] === 'employee_payment_rates') || ($column === 'payment_type' && $data['table'] === 'employees')): ?>
-<<<<<<< HEAD
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria Ordem-label="<?php echo htmlspecialchars($column); ?>">
-=======
-                            <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 <option value="Fixed">Fixed</option>
                                 <option value="Daily">Daily</option>
                             </select>
@@ -219,14 +151,11 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                                 <option value="Advance">Advance</option>
                                 <option value="Other">Other</option>
                             </select>
-<<<<<<< HEAD
                         <?php elseif ($column === 'transaction_type' && $data['table'] === 'cash_hand'): ?>
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Transaction Type">
                                 <option value="In">In (Receiving from Accountant)</option>
                                 <option value="Out">Out (Giving to Technician)</option>
                             </select>
-=======
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                         <?php elseif ($column === 'increment_type' && $data['table'] === 'salary_increments'): ?>
                             <select name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Increment Type">
                                 <option value="Promotion">Promotion</option>
@@ -253,11 +182,7 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
         </div>
     </div>
 
-<<<<<<< HEAD
     <!-- Invoice Modal -->
-=======
-    <!-- Invoice Modal (unchanged) -->
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
     <div class="modal" id="invoice-modal">
         <div class="modal-content">
             <h2><i class="fas fa-file-invoice"></i> Invoice Details</h2>
@@ -303,21 +228,8 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     type: 'POST',
                     data: function(d) {
                         d.action = 'get_records';
-<<<<<<< HEAD
                         d.search = { value: $('#searchInput').val() || '<?php echo htmlspecialchars($searchQuery); ?>' };
                         d.sortColumn = window.appConfig.columns[d.order[0]?.column] || window.appConfig.columns[0];
-=======
-                        d.globalSearch = $('#global-search').val() || '';
-                        d.columnFilters = {};
-                        $('.column-filter').each(function() {
-                            const column = $(this).attr('id').replace('search-', '');
-                            const value = $(this).val();
-                            if (value !== '') { // Only include non-empty filters
-                                d.columnFilters[column] = value;
-                            }
-                        });
-                        d.sortColumn = window.appConfig.columns[d.order[0]?.column] || '';
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                         d.sortOrder = d.order[0]?.dir || 'desc';
                         return d;
                     },
@@ -336,10 +248,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                         $('#loading-spinner').hide();
                     },
                     error: function(xhr, status, error) {
-<<<<<<< HEAD
-=======
-                        console.error('AJAX Error:', status, error, xhr.responseText);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                         alert('Error loading data: ' + (xhr.responseText || error));
                         $('#loading-spinner').hide();
                     }
@@ -366,11 +274,7 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                                     break;
                                 case 0.2:
                                     statusClass = 'started';
-<<<<<<< HEAD
                                     statusText = 'Ongoing';
-=======
-                                    statusText = 'Mark as Ongoing';
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                     break;
                                 case 0.5:
                                     statusClass = 'ongoing';
@@ -381,7 +285,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                                     statusText = 'Completed';
                                     disabled = 'disabled';
                                     break;
-<<<<<<< HEAD
                                 case 0.1:
                                     statusClass = 'cancelled';
                                     statusText = 'Cancelled';
@@ -391,11 +294,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                                     statusClass = 'unknown';
                                     statusText = 'Unknown';
                                     disabled = 'disabled';
-=======
-                                default:
-                                    statusClass = 'unknown';
-                                    statusText = 'Unknown Status';
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             }
                             return `<button class="btn status-btn ${statusClass}" data-job-id="${row.job_id}" data-completion="${completion}" ${disabled}>${statusText}</button>`;
                         },
@@ -407,27 +305,16 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                         data: null,
                         render: function(data, type, row) {
                             if (type !== 'display') return '';
-<<<<<<< HEAD
                             const rowData = JSON.stringify(row).replace(/"/g, '&quot;');
-=======
-                            const rowData = JSON.stringify(row).replace(/"/g, '"');
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                             let buttons = `
                                 <div class="action-buttons" style="display: flex; gap: 10px;">
                                     <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
                                     <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.primaryKey]}" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
-<<<<<<< HEAD
                                     <button class="btn btn-info tooltip view-invoice-btn" data-job-id="${row.job_id}" data-tooltip="View invoice"><i class="fas fa-file-invoice"></i></button>
                             `;
                             if (window.appConfig.tableName === 'jobs' && completion !== 1.0 && completion !== 0.1) {
                                 buttons += `
                                     <button class="btn btn-warning tooltip cancel-job-btn" data-job-id="${row.job_id}" data-tooltip="Cancel job"><i class="fas fa-ban"></i></button>
-=======
-                            `;
-                            if (window.appConfig.tableName === 'jobs') {
-                                buttons += `
-                                    <button class="btn btn-info tooltip view-invoice-btn" data-job-id="${row.job_id}" data-tooltip="View invoice"><i class="fas fa-file-invoice"></i></button>
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                                 `;
                             }
                             buttons += `</div>`;
@@ -435,11 +322,7 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                         },
                         orderable: false,
                         searchable: false,
-<<<<<<< HEAD
                         width: '200px'
-=======
-                        width: '150px'
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     }
                 ],
                 columnDefs: [
@@ -450,10 +333,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 order: [[0, 'desc']],
                 language: {
                     processing: 'Loading data...',
-<<<<<<< HEAD
-=======
-                    search: 'Global Search:',
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     lengthMenu: 'Show _MENU_ entries',
                     info: 'Showing _START_ to _END_ of _TOTAL_ entries',
                     infoEmpty: 'Showing 0 to 0 of 0 entries',
@@ -467,12 +346,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 },
                 dom: 'lfrtip',
                 initComplete: function() {
-<<<<<<< HEAD
-=======
-                    console.log('DataTable initialized');
-
-                    // Debounce function to prevent excessive AJAX calls
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     function debounce(func, wait) {
                         let timeout;
                         return function(...args) {
@@ -481,7 +354,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                         };
                     }
 
-<<<<<<< HEAD
                     $('#searchInput').on('keyup', debounce(function() {
                         table.ajax.reload(null, false);
                     }, 300));
@@ -500,38 +372,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     });
                     $('#data-table').on('click', '.view-invoice-btn', function() {
                         openInvoiceModal($(this).data('job-id'));
-=======
-                    // Global search event with debounce
-                    $('#global-search').on('keyup', debounce(function() {
-                        table.ajax.reload();
-                    }, 300));
-
-                    // Column-specific search events with debounce
-                    $('.column-filter').on('keyup change', debounce(function() {
-                        table.ajax.reload();
-                    }, 300));
-
-                    $('#data-table').off('click', '.edit-btn').on('click', '.edit-btn', function() {
-                        const rowData = $(this).data('row');
-                        console.log('Edit button clicked, row data:', rowData);
-                        openModal('edit', rowData);
-                    });
-                    $('#data-table').off('click', '.delete-btn').on('click', '.delete-btn', function() {
-                        const id = $(this).data('id');
-                        console.log('Delete button clicked, ID:', id);
-                        deleteRecord(id);
-                    });
-                    $('#data-table').off('click', '.status-btn').on('click', '.status-btn', function() {
-                        const jobId = $(this).data('job-id');
-                        const completion = parseFloat($(this).data('completion'));
-                        console.log('Status button clicked, Job ID:', jobId, 'Completion:', completion);
-                        updateStatus(jobId, this, completion);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
-                    });
-                    $('#data-table').off('click', '.view-invoice-btn').on('click', '.view-invoice-btn', function() {
-                        const jobId = $(this).data('job-id');
-                        console.log('View invoice button clicked, Job ID:', jobId);
-                        openInvoiceModal(jobId);
                     });
                 }
             });
@@ -539,7 +379,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
             $('<style>')
                 .text(`
                     .status-btn { padding: 8px 16px; color: #fff; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
-<<<<<<< HEAD
                     .not-started { background: #EF4444; }
                     .started { background: #3B82F6; }
                     .ongoing { background: #F59E0B; }
@@ -551,16 +390,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     .action-buttons { display: flex; justify-content: center; align-items: center; }
                     .cancel-job-btn { background: #FBBF24; color: #fff; }
                     .cancel-job-btn:hover { background: #F59E0B; }
-=======
-                    .not-started { background: #EF4444; } /* Red */
-                    .started { background: #3B82F6; } /* Blue */
-                    .ongoing { background: #F59E0B; } /* Orange */
-                    .completed { background: #10B981; } /* Green */
-                    .unknown { background: #6B7280; } /* Gray */
-                    .status-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-                    .status-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-                    .action-buttons { display: flex; justify-content: center; align-items: center; }
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     input[readonly] { background-color: #f0f0f0; cursor: not-allowed; }
                 `)
                 .appendTo('head');
@@ -571,10 +400,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
             const spinner = $('#invoice-spinner');
             const details = $('#invoice-details');
 
-<<<<<<< HEAD
-=======
-            console.log('Opening invoice modal for jobId:', jobId);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
             $('#invoice-no, #invoice-date, #invoice-value, #invoice-emp, #invoice-job, #invoice-receiving, #invoice-received, #invoice-payment-date, #invoice-remarks').text('-');
             spinner.show();
             details.hide();
@@ -587,25 +412,12 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 data: { action: 'get_invoice_details', job_id: jobId },
                 dataType: 'json',
                 success: function(response) {
-<<<<<<< HEAD
                     spinner.hide();
                     details.show();
                     if (!response || response.error || !response.data) {
                         alert('No invoice found for this job or error occurred: ' + (response.error || 'Unknown error'));
                         return;
                     }
-=======
-                    console.log('Invoice AJAX Success Response:', response);
-                    spinner.hide();
-                    details.show();
-
-                    if (!response || response.error || !response.data) {
-                        console.warn('Invalid invoice response:', response);
-                        alert('No invoice found for this job or error occurred: ' + (response.error || 'Unknown error'));
-                        return;
-                    }
-
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     const invoice = response.data;
                     $('#invoice-no').text(invoice.invoice_no || '-');
                     $('#invoice-date').text(invoice.invoice_date || '-');
@@ -620,10 +432,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 error: function(xhr, status, error) {
                     spinner.hide();
                     details.show();
-<<<<<<< HEAD
-=======
-                    console.error('Invoice AJAX Error:', status, error, xhr.responseText);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     alert('Failed to fetch invoice details: ' + (xhr.responseText || error));
                 }
             });
@@ -687,10 +495,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 type: 'POST',
                 data: { action: 'delete', id: id },
                 success: function(response) {
-<<<<<<< HEAD
-=======
-                    console.log('Delete Response:', response);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     $('#data-table').DataTable().ajax.reload(null, false);
                 },
                 error: function(xhr, status, error) {
@@ -699,7 +503,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
             });
         }
 
-<<<<<<< HEAD
         function cancelJob(jobId, button) {
             if (!confirm('Are you sure you want to cancel this job? This action cannot be undone.')) return;
 
@@ -746,36 +549,12 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                 return;
             }
 
-=======
-        function updateStatus(jobId, button, currentCompletion) {
-            if (currentCompletion === 1.0) return;
-
-            let nextCompletion;
-            switch (currentCompletion) {
-                case 0.0:
-                    nextCompletion = 0.2;
-                    break;
-                case 0.2:
-                    nextCompletion = 0.5;
-                    break;
-                case 0.5:
-                    nextCompletion = 1.0;
-                    break;
-                default:
-                    console.error('Invalid current completion value:', currentCompletion);
-                    return;
-            }
-
-            console.log('Updating status for Job ID:', jobId, 'from', currentCompletion, 'to', nextCompletion);
-
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
             $.ajax({
                 url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
                 type: 'POST',
                 data: { 
                     action: 'update_status', 
                     job_id: jobId, 
-<<<<<<< HEAD
                     completion: nextStatus.next 
                 },
                 dataType: 'json',
@@ -796,44 +575,6 @@ $searchQuery = isset($_POST['search']) ? $_POST['search'] : ''; // Capture searc
                     $('#data-table').DataTable().ajax.reload(null, false);
                 },
                 error: function(xhr, status, error) {
-=======
-                    completion: nextCompletion 
-                },
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Status Update Response:', response);
-                    if (!response || !response.success) {
-                        console.error('Status update failed:', response?.error || 'No success flag');
-                        alert('Failed to update status: ' + (response?.error || 'Unknown error'));
-                        return;
-                    }
-
-                    const completion = parseFloat(response.completion);
-                    console.log('Server confirmed completion:', completion);
-
-                    const statusMap = {
-                        0.0: { class: 'not-started', text: 'Start', color: '#EF4444' },
-                        0.2: { class: 'started', text: 'Mark as Ongoing', color: '#3B82F6' },
-                        0.5: { class: 'ongoing', text: 'Complete', color: '#F59E0B' },
-                        1.0: { class: 'completed', text: 'Completed', color: '#10B981' }
-                    };
-
-                    const statusInfo = statusMap[completion] || { class: 'unknown', text: 'Unknown Status', color: '#6B7280' };
-                    $(button)
-                        .removeClass('not-started started ongoing completed unknown')
-                        .addClass(statusInfo.class)
-                        .text(statusInfo.text)
-                        .data('completion', completion)
-                        .css('background-color', statusInfo.color);
-                    if (completion === 1.0) {
-                        $(button).prop('disabled', true);
-                    }
-
-                    $('#data-table').DataTable().ajax.reload(null, false);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Status Update Error:', status, error, xhr.responseText);
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
                     alert('Failed to update status: ' + (xhr.responseText || error));
                 }
             });

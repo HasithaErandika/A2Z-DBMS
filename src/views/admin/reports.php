@@ -29,11 +29,7 @@ if (!isset($data) || !is_array($data)) {
     <title>A2Z Engineering - Reports</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<<<<<<< HEAD
     <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/css/reports.css', ENT_QUOTES, 'UTF-8'); ?>">
-=======
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/css/records.css', ENT_QUOTES, 'UTF-8'); ?>">
->>>>>>> 831347f461fd7d1dc9e7048f870560e4e0803279
 </head>
 <body>
     <div class="sidebar" id="sidebar">
