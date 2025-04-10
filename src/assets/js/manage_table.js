@@ -1,3 +1,82 @@
+function updateStatus(jobId, $button) {
+    const currentCompletion = parseFloat($button.data('completion')) || 0.0;
+
+    if (currentCompletion === 1.0 || currentCompletion === 0.1) return;
+
+    const statusMap = {
+        0.0: 0.2, // Not Started → Started
+        0.2: 0.5, // Started → Ongoing
+        0.5: 1.0  // Ongoing → Completed
+    };
+
+    const nextCompletion = statusMap[currentCompletion];
+    if (!nextCompletion) {
+        alert('Invalid status transition from ' + currentCompletion);
+        return;
+    }
+
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
+        type: 'POST',
+        data: { action: 'update_status', job_id: jobId, completion: nextCompletion },
+        dataType: 'json',
+        success: function(response) {
+            if (!response || !response.success) {
+                alert('Failed to update status: ' + (response?.error || 'Unknown error'));
+                return;
+            }
+
+            const newCompletion = parseFloat(response.completion);
+            $button.data('completion', newCompletion); // Update button data attribute
+            $button.attr('data-completion', newCompletion); // Ensure DOM attribute updates
+
+            // Update button text and state
+            if (newCompletion === 1.0) {
+                $button.text('Completed');
+                $button.prop('disabled', true);
+                $button.closest('td').siblings('.action-buttons').find('.cancel-job-btn').remove();
+            }
+
+            // Update DataTable row data
+            const $row = $button.closest('tr');
+            const rowData = $('#data-table').DataTable().row($row).data();
+            rowData.completion = newCompletion;
+            $('#data-table').DataTable().row($row).data(rowData).draw(false); // Redraw row without full reload
+
+            // Optional: Full table reload if needed
+            // $('#data-table').DataTable().ajax.reload(null, false);
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to update status: ' + (xhr.responseText || error));
+        }
+    });
+}
+
+function renderStatusButton(data, type, row) {
+    if (type !== 'display') return data;
+    const completion = parseFloat(row.completion) || 0.0;
+
+    let buttonText = 'Change Status';
+    let disabled = '';
+
+    if (completion === 1.0) {
+        buttonText = 'Completed';
+        disabled = 'disabled';
+    } else if (completion === 0.1) {
+        buttonText = 'Cancelled';
+        disabled = 'disabled';
+    }
+
+    return `
+        <button class="btn status-btn" 
+                data-job-id="${row.job_id}" 
+                data-completion="${completion}" 
+                ${disabled}>
+            ${buttonText}
+        </button>
+    `;
+}
+
 $(document).ready(function() {
     const table = $('#data-table').DataTable({
         processing: true,
@@ -39,25 +118,16 @@ $(document).ready(function() {
                 name: column,
                 render: function(data, type, row) {
                     if (data === null || data === undefined || data === '') return '-';
-                    return type === 'display' ? String(data) : data;
+                    if (type !== 'display') return data;
+                    if (column === 'job_id' && typeof data === 'object' && data.job_id) {
+                        return `${data.job_id} - ${data.project_description} - ${data.engineer}`;
+                    }
+                    return String(data);
                 }
             })),
             ...(window.appConfig.tableName === 'jobs' ? [{
                 data: 'completion',
-                render: function(data, type, row) {
-                    if (type !== 'display') return data;
-                    const completion = parseFloat(row.completion) || 0;
-                    let statusClass, statusText, disabled = '';
-                    switch (completion) {
-                        case 0.0: statusClass = 'not-started'; statusText = 'Start'; break;
-                        case 0.2: statusClass = 'started'; statusText = 'Ongoing'; break;
-                        case 0.5: statusClass = 'ongoing'; statusText = 'Complete'; break;
-                        case 1.0: statusClass = 'completed'; statusText = 'Completed'; disabled = 'disabled'; break;
-                        case 0.1: statusClass = 'cancelled'; statusText = 'Cancelled'; disabled = 'disabled'; break;
-                        default: statusClass = 'unknown'; statusText = 'Unknown'; disabled = 'disabled';
-                    }
-                    return `<button class="btn status-btn ${statusClass}" data-job-id="${row.job_id}" data-completion="${completion}" ${disabled}>${statusText}</button>`;
-                },
+                render: renderStatusButton,
                 orderable: false,
                 searchable: false,
                 width: '150px'
@@ -129,7 +199,7 @@ $(document).ready(function() {
                 deleteRecord($(this).data('id'));
             });
             $('#data-table').on('click', '.status-btn', function() {
-                updateStatus($(this).data('job-id'), this, parseFloat($(this).data('completion')));
+                updateStatus($(this).data('job-id'), $(this));
             });
             $('#data-table').on('click', '.cancel-job-btn', function() {
                 cancelJob($(this).data('job-id'), this);
@@ -139,26 +209,6 @@ $(document).ready(function() {
             });
         }
     });
-
-    $('<style>')
-        .text(`
-            .status-btn { padding: 8px 16px; color: #fff; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
-            .not-started { background: #EF4444; }
-            .started { background: #3B82F6; }
-            .ongoing { background: #F59E0B; }
-            .completed { background: #10B981; }
-            .cancelled { background: #D1D5DB; color: #374151; }
-            .unknown { background: #6B7280; }
-            .status-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-            .status-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-            .action-buttons { display: flex; justify-content: center; align-items: center; }
-            .cancel-job-btn { background: #FBBF24; color: #fff; }
-            .cancel-job-btn:hover { background: #F59E0B; }
-            .input[readonly] { background-color: #f0f0f0; cursor: not-allowed; }
-            .view-invoice-btn { padding: 8px; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
-            .view-invoice-btn:hover { opacity: 0.9; }
-        `)
-        .appendTo('head');
 });
 
 function getCompletionStatus(value) {
@@ -171,6 +221,7 @@ function getCompletionStatus(value) {
         default: return value;
     }
 }
+
 
 function openInvoiceModal(jobId) {
     $.ajax({
@@ -239,7 +290,14 @@ function openModal(action, record = null) {
             idInput.val(data[window.appConfig.primaryKey] || '');
             window.appConfig.columns.forEach(column => {
                 const element = document.getElementById(column);
-                if (element) element.value = data[column] || '';
+                if (element) {
+                    // Handle job_id object in edit modal
+                    if (column === 'job_id' && typeof data[column] === 'object' && data[column].job_id) {
+                        element.value = data[column].job_id; // Use job_id for select input
+                    } else {
+                        element.value = data[column] || '';
+                    }
+                }
             });
             document.getElementById(window.appConfig.primaryKey).style.display = 'block';
             document.querySelector(`label[for="${window.appConfig.primaryKey}"]`).style.display = 'block';
@@ -302,47 +360,6 @@ function cancelJob(jobId, button) {
     });
 }
 
-function updateStatus(jobId, button, currentCompletion) {
-    if (currentCompletion === 1.0 || currentCompletion === 0.1) return;
-
-    const statusMap = {
-        0.0: { next: 0.2, class: 'started', text: 'Ongoing' },
-        0.2: { next: 0.5, class: 'ongoing', text: 'Complete' },
-        0.5: { next: 1.0, class: 'completed', text: 'Completed' }
-    };
-
-    const nextStatus = statusMap[currentCompletion];
-    if (!nextStatus) {
-        alert('Invalid current status');
-        return;
-    }
-
-    $.ajax({
-        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
-        type: 'POST',
-        data: { action: 'update_status', job_id: jobId, completion: nextStatus.next },
-        dataType: 'json',
-        success: function(response) {
-            if (!response || !response.success) {
-                alert('Failed to update status: ' + (response?.error || 'Unknown error'));
-                return;
-            }
-            $(button).removeClass('not-started started ongoing completed')
-                .addClass(nextStatus.class)
-                .text(nextStatus.text)
-                .data('completion', nextStatus.next);
-            
-            if (nextStatus.next === 1.0) {
-                $(button).prop('disabled', true);
-                $(button).closest('td').siblings('.action-buttons').find('.cancel-job-btn').remove();
-            }
-            $('#data-table').DataTable().ajax.reload(null, false);
-        },
-        error: function(xhr, status, error) {
-            alert('Failed to update status: ' + (xhr.responseText || error));
-        }
-    });
-}
 
 $('#crud-modal').on('click', function(e) {
     if (e.target === this) closeModal();

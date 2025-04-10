@@ -128,156 +128,148 @@ class AdminController extends Controller {
     }
 
     public function manageTable($table) {
-        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
-            header("Location: " . FULL_BASE_URL . "/login");
+    if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+        header("Location: " . FULL_BASE_URL . "/login");
+        exit;
+    }
+
+    try {
+        $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+    } catch (Exception $e) {
+        error_log("DB connection failed in manageTable: " . $e->getMessage());
+        header("Location: " . FULL_BASE_URL . "/login");
+        exit;
+    }
+
+    if (!in_array($table, $this->tableManager->getAllowedTables())) {
+        header("Location: " . FULL_BASE_URL . "/admin");
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $action = $_POST['action'] ?? '';
+        $columns = $this->tableManager->getColumns($table);
+        $idColumn = $columns[0];
+
+        if ($action === 'get_records') {
+            $searchTerm = $_POST['search']['value'] ?? '';
+            $sortColumn = $_POST['sortColumn'] ?? '';
+            $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
+
+            try {
+                $result = $this->tableManager->getAllRecords($table, $searchTerm, $sortColumn, $sortOrder);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'draw' => (int)($_POST['draw'] ?? 1),
+                    'recordsTotal' => $result['recordsTotal'],
+                    'recordsFiltered' => $result['recordsFiltered'],
+                    'data' => $result['data']
+                ]);
+            } catch (Exception $e) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => $e->getMessage()]);
+            }
             exit;
-        }
-
-        try {
-            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
-        } catch (Exception $e) {
-            error_log("DB connection failed in manageTable: " . $e->getMessage());
-            header("Location: " . FULL_BASE_URL . "/login");
-            exit;
-        }
-
-        if (!in_array($table, $this->tableManager->getAllowedTables())) {
-            header("Location: " . FULL_BASE_URL . "/admin");
-            exit;
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $action = $_POST['action'] ?? '';
-            $columns = $this->tableManager->getColumns($table);
-            $idColumn = $columns[0];
-            $page = $_GET['page'] ?? 1;
-
-            if ($action === 'get_records') {
-                $draw = (int)($_POST['draw'] ?? 1);
-                $start = (int)($_POST['start'] ?? 0);
-                $length = (int)($_POST['length'] ?? 10);
-                $page = ($start / $length) + 1;
-                $searchTerm = $_POST['search']['value'] ?? '';
-                $sortColumn = $_POST['sortColumn'] ?? '';
-                $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
-
-                try {
-                    $result = $this->tableManager->getPaginatedRecords($table, $page, $length, $searchTerm, $sortColumn, $sortOrder);
-                    header('Content-Type: application/json');
-                    echo json_encode([
-                        'draw' => $draw,
-                        'recordsTotal' => $result['recordsTotal'],
-                        'recordsFiltered' => $result['recordsFiltered'],
-                        'data' => $result['data']
-                    ]);
-                } catch (Exception $e) {
-                    header('Content-Type: application/json');
-                    echo json_encode(['error' => $e->getMessage()]);
-                }
-                exit;
-            } elseif ($action === 'create') {
-                $data = [];
-                foreach ($columns as $column) {
-                    if ($column !== $idColumn || !empty($_POST[$column])) {
-                        $data[$column] = $_POST[$column] ?? '';
-                    }
-                }
-                try {
-                    $this->tableManager->create($table, $data);
-                    $message = "Record created successfully!";
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
-                } catch (Exception $e) {
-                    $error = "Error creating record: " . $e->getMessage();
-                    error_log($error);
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
-                }
-                exit;
-            } elseif ($action === 'update') {
-                $id = $_POST['id'] ?? '';
-                $data = [];
-                foreach ($columns as $column) {
+        } elseif ($action === 'create') {
+            $data = [];
+            foreach ($columns as $column) {
+                if ($column !== $idColumn || !empty($_POST[$column])) {
                     $data[$column] = $_POST[$column] ?? '';
                 }
-                try {
-                    $this->tableManager->update($table, $data, $idColumn, $id);
-                    $message = "Record updated successfully!";
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
-                } catch (Exception $e) {
-                    $error = "Error updating record: " . $e->getMessage();
-                    error_log($error);
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
-                }
-                exit;
-            } elseif ($action === 'delete') {
-                $id = $_POST['id'] ?? '';
-                try {
-                    $this->tableManager->delete($table, $idColumn, $id);
-                    $message = "Record deleted successfully!";
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&message=" . urlencode($message));
-                } catch (Exception $e) {
-                    $error = "Error deleting record: " . $e->getMessage();
-                    error_log($error);
-                    header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?page=$page&error=" . urlencode($error));
-                }
-                exit;
-            } elseif ($action === 'export_csv') {
-                $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
-                exit;
-            } elseif ($action === 'update_status' && $table === 'jobs') {
-                try {
-                    $jobId = $_POST['job_id'] ?? '';
-                    $newCompletion = $_POST['completion'] ?? null;
-                    $result = $this->tableManager->updateJobStatus($jobId, $newCompletion);
-                    header('Content-Type: application/json');
-                    echo json_encode($result);
-                } catch (Exception $e) {
-                    header('Content-Type: application/json');
-                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-                }
-                exit;
-            } elseif ($action === 'get_invoice_details' && $table === 'jobs') {
-                try {
-                    $jobId = $_POST['job_id'] ?? '';
-                    if (empty($jobId)) {
-                        throw new Exception("Job ID is required");
-                    }
-                    $invoiceData = $this->tableManager->getInvoiceDetailsByJobId($jobId);
-                    header('Content-Type: application/json');
-                    echo json_encode($invoiceData ?? []);
-                } catch (Exception $e) {
-                    header('Content-Type: application/json');
-                    echo json_encode(['error' => $e->getMessage()]);
-                }
-                exit;
             }
+            try {
+                $this->tableManager->create($table, $data);
+                $message = "Record created successfully!";
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?message=" . urlencode($message));
+            } catch (Exception $e) {
+                $error = "Error creating record: " . $e->getMessage();
+                error_log($error);
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?error=" . urlencode($error));
+            }
+            exit;
+        } elseif ($action === 'update') {
+            $id = $_POST['id'] ?? '';
+            $data = [];
+            foreach ($columns as $column) {
+                $data[$column] = $_POST[$column] ?? '';
+            }
+            try {
+                $this->tableManager->update($table, $data, $idColumn, $id);
+                $message = "Record updated successfully!";
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?message=" . urlencode($message));
+            } catch (Exception $e) {
+                $error = "Error updating record: " . $e->getMessage();
+                error_log($error);
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?error=" . urlencode($error));
+            }
+            exit;
+        } elseif ($action === 'delete') {
+            $id = $_POST['id'] ?? '';
+            try {
+                $this->tableManager->delete($table, $idColumn, $id);
+                $message = "Record deleted successfully!";
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?message=" . urlencode($message));
+            } catch (Exception $e) {
+                $error = "Error deleting record: " . $e->getMessage();
+                error_log($error);
+                header("Location: " . FULL_BASE_URL . "/admin/manageTable/" . urlencode($table) . "?error=" . urlencode($error));
+            }
+            exit;
+        } elseif ($action === 'export_csv') {
+            $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
+            exit;
+        } elseif ($action === 'update_status' && $table === 'jobs') {
+            try {
+                $jobId = $_POST['job_id'] ?? '';
+                $newCompletion = $_POST['completion'] ?? null;
+                $result = $this->tableManager->updateJobStatus($jobId, $newCompletion);
+                header('Content-Type: application/json');
+                echo json_encode($result);
+            } catch (Exception $e) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
+            exit;
+        } elseif ($action === 'get_invoice_details' && $table === 'jobs') {
+            try {
+                $jobId = $_POST['job_id'] ?? '';
+                if (empty($jobId)) {
+                    throw new Exception("Job ID is required");
+                }
+                $invoiceData = $this->tableManager->getInvoiceDetailsByJobId($jobId);
+                header('Content-Type: application/json');
+                echo json_encode($invoiceData ?? []);
+            } catch (Exception $e) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => $e->getMessage()]);
+            }
+            exit;
         }
-
-        $page = (int)($_GET['page'] ?? 1);
-        $perPage = 10;
-        $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage);
-
-        $data = [
-            'table' => $table,
-            'columns' => $this->tableManager->getColumns($table),
-            'records' => $result['data'],
-            'totalRecords' => $result['recordsTotal'],
-            'totalPages' => ceil($result['recordsTotal'] / $perPage),
-            'config' => $this->tableManager->getConfig($table),
-            'username' => $_SESSION['db_username'] ?? 'Admin',
-            'dbname' => 'suramalr_a2zOperationalDB',
-            'page' => $page,
-            'perPage' => $perPage,
-            'tableManager' => $this->tableManager,
-            'message' => $_GET['message'] ?? '',
-            'error' => $_GET['error'] ?? ''
-        ];
-
-        if ($table === 'jobs') {
-            $data['totalCapacity'] = $this->tableManager->calculateTotalJobCapacity();
-        }
-
-        $this->render('admin/manage_table', $data);
     }
+
+    // Fetch all records without pagination
+    $searchTerm = $_GET['search'] ?? ''; // Optional: Add manual search via GET for initial load
+    $result = $this->tableManager->getAllRecords($table, $searchTerm);
+
+    $data = [
+        'table' => $table,
+        'columns' => $this->tableManager->getColumns($table),
+        'records' => $result['data'],
+        'totalRecords' => $result['recordsTotal'],
+        'config' => $this->tableManager->getConfig($table),
+        'username' => $_SESSION['db_username'] ?? 'Admin',
+        'dbname' => 'suramalr_a2zOperationalDB',
+        'tableManager' => $this->tableManager,
+        'message' => $_GET['message'] ?? '',
+        'error' => $_GET['error'] ?? ''
+    ];
+
+    if ($table === 'jobs') {
+        $data['totalCapacity'] = $this->tableManager->calculateTotalJobCapacity();
+    }
+
+    $this->render('admin/manage_table', $data);
+}
 
     public function wagesReport() {
         if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
