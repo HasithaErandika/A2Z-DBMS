@@ -503,6 +503,28 @@ body {
 }
 
 /* Invoice Details */
+.invoice-btn {
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.invoice-btn.has-invoice {
+    background-color: #EF4444; /* Red for jobs with an invoice */
+    color: white;
+}
+
+.invoice-btn.no-invoice {
+    background-color: #3B82F6; /* Blue for jobs without an invoice */
+    color: white;
+}
+
+.invoice-btn:hover {
+    opacity: 0.9;
+}
+
 .invoice-details {
     padding: 24px;
     background: #F9FAFB;

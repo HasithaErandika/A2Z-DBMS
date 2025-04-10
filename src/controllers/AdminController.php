@@ -157,7 +157,7 @@ class AdminController extends Controller {
                 $start = (int)($_POST['start'] ?? 0);
                 $length = (int)($_POST['length'] ?? 10);
                 $page = ($start / $length) + 1;
-                $searchTerm = $_POST['search']['value'] ?? ''; // Adjusted to match DataTables search object
+                $searchTerm = $_POST['search']['value'] ?? '';
                 $sortColumn = $_POST['sortColumn'] ?? '';
                 $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
 
@@ -226,9 +226,10 @@ class AdminController extends Controller {
             } elseif ($action === 'update_status' && $table === 'jobs') {
                 try {
                     $jobId = $_POST['job_id'] ?? '';
-                    $newCompletion = $this->tableManager->updateJobStatus($jobId);
+                    $newCompletion = $_POST['completion'] ?? null;
+                    $result = $this->tableManager->updateJobStatus($jobId, $newCompletion);
                     header('Content-Type: application/json');
-                    echo json_encode(['success' => true, 'completion' => $newCompletion]);
+                    echo json_encode($result);
                 } catch (Exception $e) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -240,12 +241,12 @@ class AdminController extends Controller {
                     if (empty($jobId)) {
                         throw new Exception("Job ID is required");
                     }
-                    $invoiceData = $this->tableManager->getInvoiceDetails($jobId);
+                    $invoiceData = $this->tableManager->getInvoiceDetailsByJobId($jobId);
                     header('Content-Type: application/json');
-                    echo json_encode(['success' => true, 'data' => $invoiceData]);
+                    echo json_encode($invoiceData ?? []);
                 } catch (Exception $e) {
                     header('Content-Type: application/json');
-                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                    echo json_encode(['error' => $e->getMessage()]);
                 }
                 exit;
             }

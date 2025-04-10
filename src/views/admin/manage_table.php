@@ -1,6 +1,5 @@
 <?php
 if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app's actual base path
-// $searchQuery removed as it's no longer needed with DataTables handling search via AJAX
 ?>
 
 <!DOCTYPE html>
@@ -44,7 +43,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         </div>
 
         <div class="search-bar">
-            <!-- Removed form submission; search is now handled by DataTables -->
             <input class="search-input" id="searchInput" type="text" 
                    placeholder="Search table..." aria-label="Search table data">
         </div>
@@ -66,7 +64,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     <!-- Initial data loaded via AJAX -->
                 </tbody>
             </table>
-            <div class="spinner" id="loading-spinner"><i class="fas fa-spinner"></i></div>
+            <div class="spinner" id="loading-spinne
+r"><i class="fas fa-spinner"></i></div>
         </div>
     </div>
 

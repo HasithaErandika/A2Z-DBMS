@@ -90,13 +90,12 @@ class TableManager extends Model {
             'dateField' => 'expensed_date'
         ],
         'invoice_data' => [
-            'editableFields' => ['emp_id', 'job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
+            'editableFields' => ['job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
             'validation' => [
                 'invoice_value' => ['required'],
-                'emp_id' => ['required']
+                'job_id' => ['required']
             ],
             'formatters' => [
-                'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
             'searchFields' => ['invoice_no', 'invoice_date', 'job_id'],
@@ -294,7 +293,11 @@ class TableManager extends Model {
             $config = $this->getConfig($table);
             $idColumn = $allColumns[0];
 
-            $sql = "SELECT " . implode(',', array_map(fn($col) => "`$col`", $allColumns)) . " FROM `$table`";
+            $sql = "SELECT " . implode(',', array_map(fn($col) => "`$table`.`$col`", $allColumns));
+            if ($table === 'jobs') {
+                $sql .= ", (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = `$table`.job_id) > 0 AS has_invoice";
+            }
+            $sql .= " FROM `$table`";
             $countSql = "SELECT COUNT(*) FROM `$table`";
             $params = [];
 
@@ -337,6 +340,9 @@ class TableManager extends Model {
                         $record[$column] = $this->{$config['formatters'][$column]}($record[$column]);
                     }
                 }
+                if ($table === 'jobs' && isset($record['has_invoice'])) {
+                    $record['has_invoice'] = (bool)$record['has_invoice'];
+                }
             }
             unset($record);
 
@@ -353,74 +359,21 @@ class TableManager extends Model {
         }
     }
 
-    public function getInvoiceDetailsForJob($jobId) {
+    public function getInvoiceDetailsByJobId($jobId) {
         if (empty($jobId)) {
-            error_log("Empty jobId passed to getInvoiceDetailsForJob");
+            error_log("Empty jobId passed to getInvoiceDetailsByJobId");
             return null;
         }
 
         try {
             $stmt = $this->db->prepare("
                 SELECT 
+                    invoice_id,
+                    job_id,
                     invoice_no,
                     invoice_date,
                     invoice_value,
                     invoice,
-                    receiving_payment,
-                    received_amount,
-                    payment_received_date,
-                    remarks,
-                    job_id,
-                    emp_id
-                FROM invoice_data 
-                WHERE job_id = ?
-            ");
-            $stmt->execute([$jobId]);
-            $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if ($invoice) {
-                if (isset($invoice['job_id'])) {
-                    $jobDetails = $this->getJobDetails($invoice['job_id']);
-                    if (is_array($jobDetails)) {
-                        $invoice['job_id'] = $jobDetails;
-                    } else {
-                        $invoice['job_id'] = ['job_id' => $invoice['job_id'], 'details' => $jobDetails];
-                    }
-                }
-                if (isset($invoice['emp_id'])) {
-                    $invoice['emp_id'] = $this->fetchEmployeeName($invoice['emp_id']);
-                }
-                if (isset($invoice['invoice_value'])) {
-                    $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2, '.', '');
-                }
-                if (isset($invoice['received_amount'])) {
-                    $invoice['received_amount'] = number_format((float)$invoice['received_amount'], 2, '.', '');
-                }
-                error_log("Fetched invoice details for job_id $jobId: " . json_encode($invoice));
-            } else {
-                error_log("No invoice found for job_id $jobId");
-            }
-
-            return $invoice ?: null;
-        } catch (PDOException $e) {
-            error_log("Error in getInvoiceDetailsForJob for job_id $jobId: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    // New method for get_invoice_details action
-    public function getInvoiceDetails($jobId) {
-        if (empty($jobId)) {
-            throw new Exception("Job ID is required");
-        }
-
-        try {
-            $stmt = $this->db->prepare("
-                SELECT 
-                    invoice_no,
-                    invoice_date,
-                    invoice_value,
-                    job_id,
                     receiving_payment,
                     received_amount,
                     payment_received_date,
@@ -433,27 +386,33 @@ class TableManager extends Model {
             $invoice = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$invoice) {
-                error_log("No invoice found for job_id $jobId in getInvoiceDetails");
-                return []; // Return empty array if no invoice exists
+                error_log("No invoice found for job_id $jobId in getInvoiceDetailsByJobId");
+                return null;
             }
 
-            // Ensure all expected fields are present, even if null
-            $invoice = array_merge([
-                'invoice_no' => null,
-                'invoice_date' => null,
-                'invoice_value' => null,
-                'job_id' => null,
-                'receiving_payment' => null,
-                'received_amount' => null,
-                'payment_received_date' => null,
-                'remarks' => null
-            ], $invoice);
+            if (isset($invoice['invoice_value'])) {
+                $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2, '.', '');
+            }
 
-            error_log("Fetched invoice details for job_id $jobId in getInvoiceDetails: " . json_encode($invoice));
+            if (isset($invoice['receiving_payment'])) {
+                $invoice['receiving_payment'] = number_format((float)$invoice['receiving_payment'], 2, '.', '');
+            }
+
+            if (isset($invoice['received_amount'])) {
+                $invoice['received_amount'] = number_format((float)$invoice['received_amount'], 2, '.', '');
+            }
+
+            if (isset($invoice['job_id'])) {
+                $jobDetails = $this->getJobDetails($invoice['job_id']);
+                $invoice['job_details'] = is_array($jobDetails) ? $jobDetails : ['details' => $jobDetails];
+            }
+
+            error_log("Fetched invoice details for job_id $jobId: " . json_encode($invoice));
             return $invoice;
+
         } catch (PDOException $e) {
-            error_log("Error in getInvoiceDetails for job_id $jobId: " . $e->getMessage());
-            throw new Exception("Failed to fetch invoice details: " . $e->getMessage());
+            error_log("Error in getInvoiceDetailsByJobId for job_id $jobId: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -641,35 +600,6 @@ class TableManager extends Model {
             return '<span style="color: #EF4444;">Disbursed</span>';
         }
         return htmlspecialchars($value);
-    }
-
-    public function getInvoiceByJobId($jobId) {
-        if (empty($jobId)) return null;
-        try {
-            $stmt = $this->db->prepare("SELECT * FROM invoice_data WHERE job_id = ?");
-            $stmt->execute([$jobId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($result) {
-                if (isset($result['emp_id'])) {
-                    $result['emp_id'] = $this->fetchEmployeeName($result['emp_id']);
-                }
-                if (isset($result['job_id'])) {
-                    $result['job_id'] = $this->getJobDetails($result['job_id']);
-                }
-                if (isset($result['invoice_value'])) {
-                    $result['invoice_value'] = number_format((float)$result['invoice_value'], 2, '.', '');
-                }
-                if (isset($result['received_amount'])) {
-                    $result['received_amount'] = number_format((float)$result['received_amount'], 2, '.', '');
-                }
-            }
-            
-            return $result ?: null;
-        } catch (PDOException $e) {
-            error_log("Error in getInvoiceByJobId: " . $e->getMessage());
-            return null;
-        }
     }
 
     public function getCustomerReferenceForJobId($jobId) {
