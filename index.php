@@ -2,22 +2,27 @@
 // A2Z-DBMS/index.php
 
 session_start();
-define('BASE_PATH', '/A2Z-DBMS');
 
+// Define BASE_PATH for routing (relative to domain root)
+define('BASE_PATH', '/A2Z-DBMS'); // Adjust to '' if app is at root (e.g., records.a2zengineering.net/)
+
+// Optionally define full base URL for absolute links if needed
+define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+
+// Clean the request URI
 $request = $_SERVER['REQUEST_URI'];
-$request = str_replace(BASE_PATH, '', $request);
-$request = parse_url($request, PHP_URL_PATH);
-$request = rtrim($request, '/');
+$request = str_replace(BASE_PATH, '', $request); // Remove BASE_PATH prefix
+$request = parse_url($request, PHP_URL_PATH); // Get path only
+$request = rtrim($request, '/'); // Remove trailing slashes
 if (empty($request)) {
     $request = '/';
 }
 
-// Check if the request is for a static file
+// Handle static files
 $staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf'];
 $fileExtension = pathinfo($request, PATHINFO_EXTENSION);
 if (in_array($fileExtension, $staticExtensions)) {
-    // Serve the file directly from src/assets/
-    $filePath = __DIR__ . '/src/assets' . $request; // Updated to src/assets/
+    $filePath = __DIR__ . '/src/assets' . $request;
     if (file_exists($filePath)) {
         $mimeTypes = [
             'css' => 'text/css',
@@ -32,11 +37,10 @@ if (in_array($fileExtension, $staticExtensions)) {
         header('Content-Type: ' . ($mimeTypes[$fileExtension] ?? 'application/octet-stream'));
         readfile($filePath);
         exit;
-    } else {
-        // File not found, proceed to 404
     }
 }
 
+// Define routes
 $routes = [
     '/' => ['HomeController', 'index'],
     '/login' => ['AuthController', 'login'],
@@ -44,15 +48,19 @@ $routes = [
     '/admin' => ['AdminController', 'dashboard'],
     '/admin/dashboard' => ['AdminController', 'dashboard'],
     '/admin/tables' => ['AdminController', 'tables'],
-    '/admin/records' => ['AdminController', 'records'], // Note: Should this be /admin/reports?
+    '/admin/reports' => ['AdminController', 'records'], // Matches https://records.a2zengineering.net/A2Z-DBMS/admin/reports
     '/admin/employees' => ['AdminController', 'employees'],
     '/admin/jobs' => ['AdminController', 'jobs'],
     '/admin/attendance' => ['AdminController', 'attendance'],
     '/admin/expenses' => ['AdminController', 'expenses'],
     '/admin/users' => ['AdminController', 'users'],
     '/admin/sql' => ['AdminController', 'sql'],
-    '/reports/cost_calculation' => ['AdminController', 'costCalculation'], 
-    '/reports/expenses_report' => ['AdminController', 'expensesReport'],
+    '/reports/cost_calculation' => ['AdminController', 'costCalculation'],
+    '/reports/expenses_report' => ['AdminController', 'expenseReport'], // Fixed typo from previous
+    '/reports/wages_report' => ['AdminController', 'wagesReport'], // Added for consistency with reports.php
+    '/reports/material_find' => ['AdminController', 'materialFind'], // Added from reports.php
+    '/reports/a2z_engineering_jobs' => ['AdminController', 'a2zEngineeringJobs'], // Added from reports.php
+    '/user/dashboard' => ['UserController', 'dashboard'],
 ];
 
 // Handle defined routes
@@ -66,10 +74,14 @@ if (isset($routes[$request])) {
             $controllerInstance = new $controllerName();
             $controllerInstance->$methodName();
             exit;
+        } else {
+            error_log("Controller $controllerName or method $methodName not found for route $request");
         }
+    } else {
+        error_log("Controller file $controllerFile not found for route $request");
     }
 } else {
-    // Handle dynamic routes
+    // Handle dynamic routes (e.g., /admin/manageTable/{table})
     $parts = explode('/', $request);
     if (count($parts) >= 3 && $parts[1] === 'admin') {
         $controllerName = 'AdminController';
@@ -78,24 +90,18 @@ if (isset($routes[$request])) {
             require_once $controllerFile;
             $controllerInstance = new $controllerName();
 
-            // Handle /admin/manageTable/{table}
             if ($parts[2] === 'manageTable' && !empty($parts[3])) {
                 $methodName = 'manageTable';
                 $table = $parts[3];
                 if (method_exists($controllerInstance, $methodName)) {
                     $controllerInstance->$methodName($table);
                     exit;
+                } else {
+                    error_log("Method $methodName not found in $controllerName for route $request");
                 }
             }
-            // Handle /admin/costCalculation/{table} (kept for backward compatibility, optional)
-            elseif ($parts[2] === 'costCalculation' && !empty($parts[3])) {
-                $methodName = 'costCalculation';
-                $table = $parts[3];
-                if (method_exists($controllerInstance, $methodName)) {
-                    $controllerInstance->$methodName($table);
-                    exit;
-                }
-            }
+        } else {
+            error_log("Controller file $controllerFile not found for dynamic route $request");
         }
     }
 }

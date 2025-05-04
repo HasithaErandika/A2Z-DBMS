@@ -46,46 +46,27 @@ if (!defined('BASE_PATH')) {
                 <p>Powering Solar, AC, and Electrical Solutions</p>
             </div>
 
-            <?php if (!isset($_POST['user_type'])): ?>
-                <form action="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" method="POST" aria-label="Select User Type">
-                    <button type="submit" name="user_type" value="user" class="btn btn-select-user">
-                        <i class="fas fa-user" aria-hidden="true"></i> Login as User
-                    </button>
-                    <button type="submit" name="user_type" value="admin" class="btn btn-select-admin">
-                        <i class="fas fa-user-shield" aria-hidden="true"></i> Login as Admin
-                    </button>
-                </form>
-            <?php else: ?>
-                <div class="role-display <?php echo htmlspecialchars($_POST['user_type'], ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php echo ucfirst(htmlspecialchars($_POST['user_type'], ENT_QUOTES, 'UTF-8')); ?> Login
+            <?php if (isset($error)): ?>
+                <div class="alert" role="alert">
+                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+                    <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
                 </div>
-
-                <?php if (isset($error)): ?>
-                    <div class="alert" role="alert">
-                        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
-                    </div>
-                <?php endif; ?>
-
-                <form action="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" method="POST" aria-label="Login Form">
-                    <input type="hidden" name="user_type" value="<?php echo htmlspecialchars($_POST['user_type'], ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
-                    <div class="mb-4">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required aria-required="true" placeholder="Enter username">
-                    </div>
-                    <div class="mb-4">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required aria-required="true" placeholder="Enter password">
-                    </div>
-                    <button type="submit" class="btn <?php echo $_POST['user_type'] === 'admin' ? 'btn-login-admin' : 'btn-login-user'; ?>">
-                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
-                    </button>
-                </form>
-                <a href="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" class="back-link">
-                    <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Role Selection
-                </a>
             <?php endif; ?>
+
+            <form action="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" method="POST" aria-label="Login Form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="mb-4">
+                    <label for="db_username" class="form-label">Database Username</label>
+                    <input type="text" class="form-control" id="db_username" name="db_username" required aria-required="true" placeholder="Enter database username">
+                </div>
+                <div class="mb-4">
+                    <label for="db_password" class="form-label">Database Password</label>
+                    <input type="password" class="form-control" id="db_password" name="db_password" required aria-required="true" placeholder="Enter database password">
+                </div>
+                <button type="submit" class="btn btn-login-user">
+                    <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Login
+                </button>
+            </form>
 
             <a href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>" class="back-link">
                 <i class="fas fa-home" aria-hidden="true"></i> Return to Home
