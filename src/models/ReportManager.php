@@ -1,5 +1,6 @@
 <?php
 require_once 'src/core/Model.php';
+<<<<<<< HEAD
 error_log("ReportManager.php loaded at " . date('Y-m-d H:i:s'));
 
 class ReportManager extends Model {
@@ -12,7 +13,10 @@ class ReportManager extends Model {
             return [];
         }
     }
+=======
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
 
+class ReportManager extends Model {
     public function getCustomerRefs() {
         try {
             $stmt = $this->db->query("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL");
@@ -120,6 +124,7 @@ class ReportManager extends Model {
         }
     }
 
+<<<<<<< HEAD
     public function getEmployeeCosts($jobId) {
         try {
             $stmt = $this->db->prepare("
@@ -168,12 +173,22 @@ class ReportManager extends Model {
 
     public function getAttendanceCosts($start_date = null, $end_date = null) {
         $query = "
+=======
+
+public function getEmployeeCosts($jobId) {
+    try {
+        $stmt = $this->db->prepare("
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
             SELECT 
                 e.emp_id,
                 e.emp_name,
                 a.attendance_date,
+<<<<<<< HEAD
                 a.job_id,
                 a.presence,
+=======
+                a.presence,  -- 1 for full day, 0.5 for half day, 0 for absent
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
                 COALESCE(
                     (SELECT si.increment_amount 
                      FROM salary_increments si 
@@ -182,6 +197,7 @@ class ReportManager extends Model {
                      ORDER BY si.increment_date DESC 
                      LIMIT 1),
                     epr.rate_amount,
+<<<<<<< HEAD
                     0
                 ) AS rate_amount
             FROM attendance a
@@ -349,10 +365,53 @@ class ReportManager extends Model {
         return array_values($employee_wages);
     } catch (PDOException $e) {
         error_log("Error in getWageData: " . $e->getMessage());
+=======
+                    0  -- Default to 0 if no rate exists
+                ) AS rate_amount,
+                epr.rate_amount AS base_rate,  -- For debugging
+                (SELECT si.increment_amount 
+                 FROM salary_increments si 
+                 WHERE si.emp_id = e.emp_id 
+                 AND si.increment_date <= a.attendance_date
+                 ORDER BY si.increment_date DESC 
+                 LIMIT 1) AS increment_rate  -- For debugging
+            FROM attendance a
+            JOIN employees e ON a.emp_id = e.emp_id
+            LEFT JOIN employee_payment_rates epr ON e.emp_id = epr.emp_id  -- Simplified join
+            WHERE a.job_id = :job_id
+            ORDER BY e.emp_name, a.attendance_date
+        ");
+        $stmt->bindValue(':job_id', $jobId, PDO::PARAM_INT);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculate the actual cost (rate_amount * presence)
+        foreach ($results as &$result) {
+            $result['actual_cost'] = $result['rate_amount'] * $result['presence'];
+        }
+
+        // Enhanced logging for debugging
+        foreach ($results as $result) {
+            $rate = $result['rate_amount'] ?? 'NULL';
+            $baseRate = $result['base_rate'] ?? 'NULL';
+            $incrementRate = $result['increment_rate'] ?? 'NULL';
+            $actualCost = $result['actual_cost'] ?? 'NULL';
+            error_log("getEmployeeCosts for job_id $jobId - Employee: {$result['emp_name']}, Date: {$result['attendance_date']}, Presence: {$result['presence']}, Base Rate: $baseRate, Increment Rate: $incrementRate, Final Rate: $rate, Actual Cost: $actualCost");
+        }
+
+        if (empty($results)) {
+            error_log("No attendance records found for job_id $jobId");
+        }
+
+        return $results;
+    } catch (PDOException $e) {
+        error_log("Error in getEmployeeCosts for job_id $jobId: " . $e->getMessage());
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
         return [];
     }
 }
 
+<<<<<<< HEAD
     public function getLaborWagesData($start_date = null, $end_date = null) {
         $query = "
             SELECT 
@@ -416,6 +475,62 @@ class ReportManager extends Model {
             return ['details' => [], 'summations' => []];
         }
     }
+=======
+public function getAttendanceCosts($start_date = null, $end_date = null) {
+    // SQL query to fetch attendance costs
+    $query = "
+        SELECT 
+            COALESCE(
+                (SELECT si.increment_amount 
+                 FROM salary_increments si 
+                 WHERE si.emp_id = e.emp_id 
+                 AND si.increment_date <= a.attendance_date
+                 ORDER BY si.increment_date DESC 
+                 LIMIT 1),
+                epr.rate_amount,
+                0  -- Default to 0 if no rate exists
+            ) AS rate_amount,
+            a.presence  -- 1 for full day, 0.5 for half day, 0 for absent
+        FROM attendance a
+        JOIN employees e ON a.emp_id = e.emp_id
+        LEFT JOIN employee_payment_rates epr ON e.emp_id = epr.emp_id
+            AND epr.rate_type = 'Daily'
+            AND (epr.end_date IS NULL OR epr.end_date >= a.attendance_date)
+            AND epr.effective_date <= a.attendance_date
+        " . ($start_date ? "WHERE a.attendance_date BETWEEN :start_date AND :end_date" : "") . ";
+    ";
+
+    try {
+        // Prepare the SQL query
+        $stmt = $this->db->prepare($query);
+
+        // Bind the date parameters if provided
+        if ($start_date) {
+            $stmt->bindParam(':start_date', $start_date);
+            $stmt->bindParam(':end_date', $end_date);
+        }
+
+        // Execute the query
+        $stmt->execute();
+
+        // Fetch all results as an associative array
+        $attendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculate actual attendance costs by multiplying rate_amount with presence
+        foreach ($attendanceRecords as &$record) {
+            $record['actual_cost'] = $record['rate_amount'] * $record['presence'];
+        }
+
+        return $attendanceRecords;
+        
+    } catch (PDOException $e) {
+        // Log any exceptions that occur and return an empty array
+        error_log("Error in getAttendanceCosts: " . $e->getMessage());
+        return [];
+    }
+}
+
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
 
     public function getExpensesByCategory($start_date = null, $end_date = null) {
         $query = "SELECT expenses_category, SUM(expense_amount) AS total_expenses 
@@ -437,6 +552,7 @@ class ReportManager extends Model {
     }
 
     public function getInvoicesSummary($start_date = null, $end_date = null) {
+<<<<<<< HEAD
         try {
             $query = "SELECT 
                         SUM(invoice_value) AS total_invoices, 
@@ -471,6 +587,22 @@ class ReportManager extends Model {
                 'total_paid' => 0,
                 'invoice_count' => 0
             ];
+=======
+        $query = "SELECT SUM(invoice_value) AS total_invoices, COUNT(invoice_no) AS invoice_count 
+                  FROM invoice_data 
+                  " . ($start_date ? "WHERE invoice_date BETWEEN :start_date AND :end_date" : "") . "";
+        try {
+            $stmt = $this->db->prepare($query);
+            if ($start_date) {
+                $stmt->bindParam(':start_date', $start_date);
+                $stmt->bindParam(':end_date', $end_date);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getInvoicesSummary: " . $e->getMessage());
+            return ['total_invoices' => 0, 'invoice_count' => 0];
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
         }
     }
 
@@ -491,6 +623,12 @@ class ReportManager extends Model {
             return ['job_count' => 0, 'total_capacity' => 0];
         }
     }
+<<<<<<< HEAD
+=======
+
+    
+
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
 
     public function getEPFCosts($start_date = null) {
         $query = "SELECT basic_salary, date_of_resigned FROM employees";

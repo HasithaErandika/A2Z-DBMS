@@ -101,7 +101,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     'employees' => 'emp_id', 'employee_payment_rates' => 'rate_id', 'attendance' => 'attendance_id',
                     'salary_increments' => 'increment_id', 'employee_payments' => 'payment_id', 'invoice_data' => 'invoice_id',
                     'operational_expenses' => 'expense_id', 'projects' => 'project_id', 'employee_bank_details' => 'id',
+<<<<<<< HEAD
                     'jobs' => 'job_id', 'cash_hand' => 'cash_id'
+=======
+                    'jobs' => 'job_id', 'cash_hand' => 'txn_id'
+>>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
                 ];
                 $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
                 $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date'];
