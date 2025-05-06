@@ -393,10 +393,16 @@ class TableManager extends Model {
             if (!empty($searchTerm)) {
                 $searchFields = $config['searchFields'] ?? $allColumns;
                 $searchTerm = "%" . trim($searchTerm) . "%";
-                $conditions = array_map(fn($col) => "`$col` LIKE ?", $searchFields);
+                $conditions = [];
+                $searchParams = [];
+                foreach ($searchFields as $index => $col) {
+                    $paramName = ":search$index";
+                    $conditions[] = "`$col` LIKE $paramName";
+                    $searchParams[$paramName] = $searchTerm;
+                }
                 $sql .= " WHERE " . implode(' OR ', $conditions);
                 $countSql .= " WHERE " . implode(' OR ', $conditions);
-                $params = array_fill(0, count($searchFields), $searchTerm);
+                $params = $searchParams;
             }
 
             // Sorting
@@ -407,6 +413,8 @@ class TableManager extends Model {
             }
 
             $sql .= " LIMIT :offset, :perPage";
+            $params[':offset'] = $offset;
+            $params[':perPage'] = $perPage;
 
             // Total records (unfiltered)
             $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
@@ -414,15 +422,19 @@ class TableManager extends Model {
 
             // Filtered records count
             $countStmt = $this->db->prepare($countSql);
-            $countStmt->execute($params);
+            foreach ($params as $paramName => $paramValue) {
+                if (strpos($paramName, ':search') === 0) {
+                    $countStmt->bindValue($paramName, $paramValue, PDO::PARAM_STR);
+                }
+            }
+            $countStmt->execute();
             $recordsFiltered = $countStmt->fetchColumn();
 
             // Fetch paginated data
             $stmt = $this->db->prepare($sql);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
-            foreach ($params as $index => $param) {
-                $stmt->bindValue($index + 1, $param);
+            foreach ($params as $paramName => $paramValue) {
+                $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
+                $stmt->bindValue($paramName, $paramValue, $paramType);
             }
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -440,7 +452,7 @@ class TableManager extends Model {
             }
             unset($record);
 
-            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage, searchTerm: $searchTerm");
+            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage, searchTerm: $searchTerm, params: " . json_encode($params));
             return [
                 'draw' => isset($_POST['draw']) ? (int)$_POST['draw'] : 1,
                 'recordsTotal' => (int)$recordsTotal,
@@ -568,9 +580,14 @@ class TableManager extends Model {
         }
 
         try {
+            // Start a transaction to avoid race conditions
+            $this->db->beginTransaction();
+
+            // Get configuration and validate data
             $config = $this->getConfig($table);
             $this->validate($table, $data, $config['validation'] ?? []);
 
+            // Get editable fields and filter data
             $editableFields = $config['editableFields'] ?? $this->getColumns($table);
             $filteredData = array_intersect_key($data, array_flip($editableFields));
 
@@ -578,26 +595,69 @@ class TableManager extends Model {
                 throw new Exception("No valid fields provided for insertion in $table");
             }
 
+            // Get the primary key for the table
+            $primaryKey = $this->getPrimaryKey($table);
+            if (!$primaryKey) {
+                $primaryKey = $this->getColumns($table)[0]; // Fallback to first column
+            }
+
+            // Find the highest existing ID
+            $stmt = $this->db->prepare("SELECT MAX(`$primaryKey`) as max_id FROM `$table`");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $nextId = ($result['max_id'] !== null) ? (int)$result['max_id'] + 1 : 1;
+
+            // Add the primary key to the data
+            $filteredData[$primaryKey] = $nextId;
             $columns = array_keys($filteredData);
-            $placeholders = array_fill(0, count($columns), '?');
+
+            // Prepare the INSERT query with named parameters
+            $placeholders = array_map(function($col) { return ":$col"; }, $columns);
             $sql = "INSERT INTO `$table` (" . implode(',', array_map(fn($col) => "`$col`", $columns)) . ") 
                     VALUES (" . implode(',', $placeholders) . ")";
             
             $stmt = $this->db->prepare($sql);
-            $values = array_values($filteredData);
-            $stmt->execute($values);
+            foreach ($filteredData as $key => $value) {
+                $stmt->bindValue(":$key", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
 
-            $lastId = $this->db->lastInsertId();
-            
-            error_log("Successfully created record in $table with ID: $lastId");
-            return $lastId;
+            // Execute the INSERT
+            $stmt->execute();
+
+            // Commit the transaction
+            $this->db->commit();
+
+            error_log("Successfully created record in $table with $primaryKey: $nextId");
+            return $nextId;
         } catch (PDOException $e) {
+            // Roll back the transaction on error
+            $this->db->rollBack();
             error_log("PDO Error in create for $table: " . $e->getMessage());
             throw new Exception("Failed to create record in $table: " . $e->getMessage());
         } catch (Exception $e) {
+            // Roll back the transaction on validation or other errors
+            $this->db->rollBack();
             error_log("Validation Error in create for $table: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    // Helper method to get primary key
+    private function getPrimaryKey($table) {
+        $primaryKeys = [
+            'employees' => 'emp_id',
+            'employee_payment_rates' => 'rate_id',
+            'attendance' => 'attendance_id',
+            'salary_increments' => 'increment_id',
+            'employee_payments' => 'payment_id',
+            'invoice_data' => 'invoice_id',
+            'operational_expenses' => 'expense_id',
+            'projects' => 'project_id',
+            'employee_bank_details' => 'id',
+            'jobs' => 'job_id',
+            'cash_hand' => 'cash_id'
+        ];
+        return $primaryKeys[$table] ?? null;
     }
 
     public function update($table, $data, $idColumn, $id) {

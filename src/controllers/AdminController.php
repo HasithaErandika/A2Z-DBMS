@@ -152,24 +152,25 @@ class AdminController extends Controller {
         $idColumn = $columns[0];
 
         if ($action === 'get_records') {
-            $searchTerm = $_POST['search']['value'] ?? '';
-            $sortColumn = $_POST['sortColumn'] ?? '';
-            $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
+    $searchTerm = $_POST['search']['value'] ?? '';
+    $sortColumn = $_POST['sortColumn'] ?? '';
+    $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
+    $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
+    $perPage = isset($_POST['perPage']) ? (int)$_POST['perPage'] : 10;
 
-            try {
-                $result = $this->tableManager->getAllRecords($table, $searchTerm, $sortColumn, $sortOrder);
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'draw' => (int)($_POST['draw'] ?? 1),
-                    'recordsTotal' => $result['recordsTotal'],
-                    'recordsFiltered' => $result['recordsFiltered'],
-                    'data' => $result['data']
-                ]);
-            } catch (Exception $e) {
-                header('Content-Type: application/json');
-                echo json_encode(['error' => $e->getMessage()]);
-            }
-            exit;
+    try {
+        $result = $this->tableManager->getPaginatedRecords($table, $page, $perPage, $searchTerm, $sortColumn, $sortOrder);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'draw' => (int)($_POST['draw'] ?? 1),
+            'recordsTotal' => $result['recordsTotal'],
+            'recordsFiltered' => $result['recordsFiltered'],
+            'data' => $result['data']
+        ]);
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => $e->getMessage()]);
+    } exit;
         } elseif ($action === 'create') {
             $data = [];
             foreach ($columns as $column) {
@@ -276,10 +277,6 @@ class AdminController extends Controller {
             header("Location: " . FULL_BASE_URL . "/login");
             exit;
         }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
 
         try {
             $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
@@ -425,12 +422,6 @@ class AdminController extends Controller {
                 'error' => "Error generating report: " . $e->getMessage()
             ]);
         }
-<<<<<<< HEAD
-=======
-=======
-        echo "Monthly Wages Report";
->>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
     }
 
     public function expenseReport() {
@@ -556,10 +547,6 @@ class AdminController extends Controller {
     }
 
     public function costCalculation() {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
     if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
         header("Location: " . FULL_BASE_URL . "/login");
         exit;
@@ -600,7 +587,6 @@ class AdminController extends Controller {
                         $hiringLaborCost += floatval($amount);
                     } else {
                         $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
-<<<<<<< HEAD
                     }
                 }
             }
@@ -662,177 +648,6 @@ class AdminController extends Controller {
                     error_log("Skipping duplicate attendance for job_id {$row['job_id']}, employee: $empName, date: $attendanceDate");
                 }
             }
-=======
-                    }
-                }
-            }
-            $row['operational_expenses'] = array_sum($operationalExpenses);
-            $row['expense_details'] = $operationalExpenses;
-
-            $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
-            $totalEmployeeCosts = $hiringLaborCost;
-            $row['employee_details'] = [];
-
-            if ($hiringLaborCost > 0) {
-                $row['employee_details'][] = [
-                    'emp_name' => 'Hiring of Labor',
-                    'payment' => $hiringLaborCost,
-                    'days' => []
-                ];
-            }
-
-            $employeeBreakdown = [];
-            foreach ($employeeCosts as $cost) {
-                $empName = $cost['emp_name'];
-                $attendanceDate = $cost['attendance_date'];
-                $key = "$empName-$attendanceDate"; // Unique key for attendance record
-
-                if (!isset($employeeBreakdown[$empName])) {
-                    $employeeBreakdown[$empName] = [
-                        'emp_name' => $empName,
-                        'payment' => 0,
-                        'days' => [],
-                        'days_by_date' => [] // Temporary tracking for deduplication
-                    ];
-                }
-
-                $presence = floatval($cost['presence'] ?? 0);
-                // Cap presence at 1.0 per day to prevent invalid values like 2.0
-                if ($presence > 1.0) {
-                    error_log("Warning: Invalid presence value {$presence} for job_id {$row['job_id']}, employee: $empName, date: $attendanceDate. Capping at 1.0");
-                    $presence = 1.0;
-                }
-                $payment = floatval($cost['actual_cost'] ?? 0);
-
-                if ($presence > 0 && ($cost['rate_amount'] ?? 0) == 0) {
-                    error_log("Warning: No rate or increment found for job_id {$row['job_id']}, employee: $empName, date: $attendanceDate, presence: $presence");
-                }
-
-                // Only add if not already processed for this date
-                if (!isset($employeeBreakdown[$empName]['days_by_date'][$attendanceDate])) {
-                    $employeeBreakdown[$empName]['payment'] += $payment;
-                    $employeeBreakdown[$empName]['days'][] = [
-                        'date' => $cost['attendance_date'],
-                        'presence' => $presence,
-                        'rate_amount' => $cost['rate_amount'] ?? 0,
-                        'increment_amount' => $cost['increment_amount'] ?? 0,
-                        'total_rate' => $cost['rate_amount'] ?? 0
-                    ];
-                    $employeeBreakdown[$empName]['days_by_date'][$attendanceDate] = true;
-                    $totalEmployeeCosts += $payment;
-                } else {
-                    error_log("Skipping duplicate attendance for job_id {$row['job_id']}, employee: $empName, date: $attendanceDate");
-=======
-        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
-            header("Location: " . FULL_BASE_URL . "/login");
-            exit;
-        }
-
-        try {
-            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
-            $filters = [
-                'invoice_no' => $_GET['invoice_id'] ?? '',
-                'customer_reference' => $_GET['customer_name'] ?? '',
-                'company_reference' => $_GET['client_ref'] ?? '',
-                'status' => $_GET['status'] ?? '',
-                'from_date' => $_GET['from_date'] ?? '',
-                'to_date' => $_GET['to_date'] ?? ''
-            ];
-
-            $customerRefs = $this->reportManager->getCustomerRefs();
-            $companyRefs = $this->reportManager->getCompanyRefs();
-            $jobData = $this->reportManager->getJobCostData($filters, PHP_INT_MAX, 0);
-            $overallSummary = $this->reportManager->getOverallSummary();
-
-            $totalInvoiceAmount = array_sum(array_column($jobData, 'invoice_value'));
-            $totalPaidAmount = array_sum(array_column($jobData, 'received_amount'));
-            $totalUnpaidAmount = 0;
-            $unpaidInvoiceCount = 0;
-            $totalExpenses = 0;
-            $totalEmployeeCostsSum = 0;
-            $totalCapacity = 0;
-            $totalNetProfit = 0;
-
-            foreach ($jobData as &$row) {
-                $operationalExpenses = [];
-                $hiringLaborCost = 0;
-                if ($row['expense_summary'] !== 'No expenses') {
-                    foreach (explode(', ', $row['expense_summary']) as $expense) {
-                        [$category, $amount] = explode(': ', $expense);
-                        if (strcasecmp($category, 'Hiring of Labor') === 0) {
-                            $hiringLaborCost += floatval($amount);
-                        } else {
-                            $operationalExpenses[$category] = ($operationalExpenses[$category] ?? 0) + floatval($amount);
-                        }
-                    }
-                }
-                $row['operational_expenses'] = array_sum($operationalExpenses);
-                $row['expense_details'] = $operationalExpenses;
-
-                $employeeCosts = $this->reportManager->getEmployeeCosts($row['job_id']);
-                $totalEmployeeCosts = $hiringLaborCost;
-                $row['employee_details'] = [];
-
-                if ($hiringLaborCost > 0) {
-                    $row['employee_details'][] = [
-                        'emp_name' => 'Hiring of Labor',
-                        'payment' => $hiringLaborCost,
-                        'days' => []
-                    ];
-                }
-
-                $employeeBreakdown = [];
-                foreach ($employeeCosts as $cost) {
-                    $empName = $cost['emp_name'];
-                    if (!isset($employeeBreakdown[$empName])) {
-                        $employeeBreakdown[$empName] = [
-                            'emp_name' => $empName,
-                            'payment' => 0,
-                            'days' => []
-                        ];
-                    }
-
-                    $presence = floatval($cost['presence'] ?? 0);
-                    $payment = floatval($cost['actual_cost'] ?? 0);
-
-                    if ($presence > 0 && ($cost['total_rate'] ?? 0) == 0) {
-                        error_log("Warning: No rate or increment found for job_id {$row['job_id']}, employee: $empName, date: {$cost['attendance_date']}, presence: $presence");
-                    }
-
-                    $employeeBreakdown[$empName]['payment'] += $payment;
-                    $employeeBreakdown[$empName]['days'][] = [
-                        'date' => $cost['attendance_date'],
-                        'presence' => $presence,
-                        'rate_amount' => $cost['rate_amount'] ?? 0,
-                        'increment_amount' => $cost['increment_amount'] ?? 0,
-                        'total_rate' => $cost['total_rate'] ?? 0
-                    ];
-                    $totalEmployeeCosts += $payment;
-                }
-
-                foreach ($employeeBreakdown as $emp) {
-                    $row['employee_details'][] = [
-                        'emp_name' => $emp['emp_name'],
-                        'payment' => $emp['payment'],
-                        'days' => $emp['days']
-                    ];
-                }
-                $row['total_employee_costs'] = $totalEmployeeCosts;
-
-                if (empty($row['employee_details']) && $totalEmployeeCosts == 0) {
-                    error_log("No employee costs calculated for job_id {$row['job_id']} - check attendance or rate data");
-                } else {
-                    error_log("Employee costs for job_id {$row['job_id']}: " . json_encode($row['employee_details']));
-                }
-
-                if (floatval($row['received_amount']) == 0) {
-                    $totalUnpaidAmount += floatval($row['invoice_value']);
-                    $unpaidInvoiceCount++;
->>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
-                }
-            }
-<<<<<<< HEAD
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
 
             foreach ($employeeBreakdown as $emp) {
                 unset($emp['days_by_date']); // Clean up temporary tracking array
@@ -841,7 +656,6 @@ class AdminController extends Controller {
                     'payment' => $emp['payment'],
                     'days' => $emp['days']
                 ];
-<<<<<<< HEAD
             }
             $row['total_employee_costs'] = $totalEmployeeCosts;
 
@@ -861,87 +675,6 @@ class AdminController extends Controller {
             $netProfit = floatval($row['invoice_value']) - ($totalEmployeeCosts + $row['operational_expenses']);
             $row['net_profit'] = $netProfit;
             $totalNetProfit += $netProfit;
-=======
-            }
-            $row['total_employee_costs'] = $totalEmployeeCosts;
-
-            if (empty($row['employee_details']) && $totalEmployeeCosts == 0) {
-                error_log("No employee costs calculated for job_id {$row['job_id']} - check attendance or rate data");
-            } else {
-                error_log("Employee costs for job_id {$row['job_id']}: " . json_encode($row['employee_details']));
-            }
-
-            if (floatval($row['received_amount']) == 0) {
-                $totalUnpaidAmount += floatval($row['invoice_value']);
-                $unpaidInvoiceCount++;
-            }
-            $totalExpenses += $row['operational_expenses'];
-            $totalEmployeeCostsSum += $totalEmployeeCosts;
-            $totalCapacity += floatval($row['job_capacity'] ?? 0);
-            $netProfit = floatval($row['invoice_value']) - ($totalEmployeeCosts + $row['operational_expenses']);
-            $row['net_profit'] = $netProfit;
-            $totalNetProfit += $netProfit;
-=======
-            unset($row);
-
-            $dueBalance = $totalInvoiceAmount - $totalPaidAmount;
-            $profitMargin = $totalInvoiceAmount > 0 ? ($totalNetProfit / $totalInvoiceAmount) * 100 : 0;
-            $overallDueBalance = floatval($overallSummary['total_invoices'] ?? 0) - floatval($overallSummary['total_paid'] ?? 0);
-
-            $data = [
-                'username' => $_SESSION['db_username'] ?? 'Admin',
-                'dbname' => 'suramalr_a2zOperationalDB',
-                'customer_refs' => $customerRefs,
-                'company_refs' => $companyRefs,
-                'job_data' => $jobData,
-                'total_invoice_amount' => $totalInvoiceAmount,
-                'total_paid_amount' => $totalPaidAmount,
-                'total_unpaid_amount' => $totalUnpaidAmount,
-                'unpaid_invoice_count' => $unpaidInvoiceCount,
-                'due_balance' => $dueBalance,
-                'total_expenses' => $totalExpenses,
-                'total_employee_costs_sum' => $totalEmployeeCostsSum,
-                'total_capacity' => $totalCapacity,
-                'total_net_profit' => $totalNetProfit,
-                'profit_margin' => $profitMargin,
-                'overall_invoice_amount' => floatval($overallSummary['total_invoices'] ?? 0),
-                'overall_paid_amount' => floatval($overallSummary['total_paid'] ?? 0),
-                'overall_unpaid_amount' => $overallDueBalance,
-                'overall_due_balance' => $overallDueBalance,
-                'filters' => $filters
-            ];
-
-            if (isset($_GET['download_csv'])) {
-                header('Content-Type: text/csv');
-                header('Content-Disposition: attachment; filename="cost_calculation_' . date('Y-m-d') . '.csv"');
-                $output = fopen('php://output', 'w');
-                fputcsv($output, [
-                    'Job ID', 'Date', 'Customer', 'Location', 'Company Ref', 'Engineer', 'Capacity',
-                    'Invoice No', 'Invoice Value', 'Received', 'Date Paid', 'Expenses', 'Employee Costs', 'Outstanding', 'Net Profit'
-                ]);
-                foreach ($jobData as $row) {
-                    $outstanding = floatval($row['invoice_value']) - floatval($row['received_amount']);
-                    fputcsv($output, [
-                        $row['job_id'], $row['date_completed'], $row['customer_reference'], $row['location'],
-                        $row['company_reference'] ?? 'N/A', $row['engineer'] ?? 'N/A', $row['job_capacity'],
-                        $row['invoice_no'], $row['invoice_value'], $row['received_amount'], $row['payment_received_date'],
-                        $row['operational_expenses'], $row['total_employee_costs'], $outstanding, $row['net_profit']
-                    ]);
-                }
-                fclose($output);
-                exit;
-            }
-
-            $this->render('reports/cost_calculation', $data);
-        } catch (Exception $e) {
-            error_log("Error in costCalculation: " . $e->getMessage());
-            $this->render('reports/cost_calculation', [
-                'username' => $_SESSION['db_username'] ?? 'Admin',
-                'dbname' => 'suramalr_a2zOperationalDB',
-                'error' => "Error generating report: " . $e->getMessage()
-            ]);
->>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
         }
         unset($row);
 
@@ -1011,20 +744,6 @@ class AdminController extends Controller {
         echo "Material Cost Calculation";
     }
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-    public function materialFind() {
-        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
-            header("Location: " . FULL_BASE_URL . "/login");
-            exit;
-        }
-        echo "Material Cost Calculation";
-    }
-
->>>>>>> 9b5516868da7f72121bd4e3861d1314a853078ae
->>>>>>> 7a153c37f2d74607ef0387d89ab0da9b78248a3f
     public function a2zEngineeringJobs() {
         if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
             header("Location: " . FULL_BASE_URL . "/login");
