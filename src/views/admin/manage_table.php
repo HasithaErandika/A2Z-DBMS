@@ -28,7 +28,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
                     <span class="stat-box tooltip" data-tooltip="Total capacity across all jobs"><i class="fas fa-weight-hanging"></i> Total Capacity: <?php echo number_format($data['totalCapacity'], 2); ?></span>
                 <?php endif; ?>
-                <span class="stat-box tooltip" id="record-count" data-tooltip="Total records in the table"><i class="fas fa-database"></i> <?php echo $data['totalRecords']; ?> Records</span>
+                <span class="stat-box tooltip" id="record-count" data-tooltip="Total and filtered records in the table"><i class="fas fa-database"></i> <?php echo $data['totalRecords']; ?> Records</span>
             </div>
             <form class="export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                 <input type="hidden" name="action" value="export_csv">
@@ -120,7 +120,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         <?php elseif ($column === 'presence'): ?>
                             <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
                             <div class="button-group">
-                                <button type="button" class="btn-option btn-green" data-value="1.0" onclick="selectOption('<?php echo $column; ?>', '1.0')">Full Day</button>
+                                <button type="button" class="btn-option btn-green" data-value="1.0" onclick="selectOption('<?php echo $column; ?>', '1.HLF Day</button>
                                 <button type="button" class="btn-option btn-yellow" data-value="0.5" onclick="selectOption('<?php echo $column; ?>', '0.5')">Half Day</button>
                                 <button type="button" class="btn-option btn-red" data-value="0.0" onclick="selectOption('<?php echo $column; ?>', '0.0')">Not Attended</button>
                             </div>
@@ -224,6 +224,53 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             $('#loading-spinner').show();
             $('#data-table').hide();
 
+            // Ensure modals are hidden on page load
+            $('#crud-modal').hide();
+            $('#invoice-modal').hide();
+            $('#confirm-modal').hide();
+
+            // Define column definitions for DataTables
+            var columnDefs = [
+                <?php foreach ($data['columns'] as $column): ?>
+                    { 
+                        data: "<?php echo htmlspecialchars($column); ?>",
+                        title: "<?php echo htmlspecialchars($column); ?>",
+                        name: "<?php echo htmlspecialchars($column); ?>"
+                    },
+                <?php endforeach; ?>
+                <?php if ($data['table'] === 'jobs'): ?>
+                    {
+                        data: "completion",
+                        title: "Status",
+                        name: "completion",
+                        render: function(data, type, row) {
+                            return '<select class="status-select" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '">' +
+                                '<option value="0.0" ' + (data == '0.0' ? 'selected' : '') + '>Not Started</option>' +
+                                '<option value="0.1" ' + (data == '0.1' ? 'selected' : '') + '>Cancelled</option>' +
+                                '<option value="0.2" ' + (data == '0.2' ? 'selected' : '') + '>Started</option>' +
+                                '<option value="0.5" ' + (data == '0.5' ? 'selected' : '') + '>Ongoing</option>' +
+                                '<option value="1.0" ' + (data == '1.0' ? 'selected' : '') + '>Completed</option>' +
+                                '</select>';
+                        }
+                    },
+                <?php endif; ?>
+                {
+                    data: null,
+                    title: "Actions",
+                    name: "actions",
+                    render: function(data, type, row) {
+                        var buttons = '<button class="btn btn-primary btn-sm edit-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i></button>' +
+                                      '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i></button>';
+                        <?php if ($data['table'] === 'jobs'): ?>
+                            if (row.has_invoice) {
+                                buttons += '<button class="btn btn-info btn-sm invoice-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i></button>';
+                            }
+                        <?php endif; ?>
+                        return buttons;
+                    }
+                }
+            ];
+
             table = $('#data-table').DataTable({
                 paging: true,
                 pageLength: 10,
@@ -246,7 +293,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                             value: searchValue,
                             isDate: isDate
                         };
-                        d.sortColumn = d.columns[d.order[0].column].data;
+                        d.sortColumn = d.columns[d.order[0].column].name || d.columns[d.order[0].column].data;
                         d.sortOrder = d.order[0].dir;
                         d.page = Math.floor(d.start / d.length) + 1;
                         d.perPage = d.length;
@@ -258,7 +305,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     complete: function() {
                         $('#loading-spinner').hide();
                         $('#data-table').show();
-                        $('#record-count').text(table.rows().count() + ' Records');
+                        updateRecordCount();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTable AJAX error:', error, thrown);
@@ -267,42 +314,25 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         $('#record-count').text('Error loading data');
                     }
                 },
-                columns: [
-                    <?php foreach ($data['columns'] as $column): ?>
-                        { data: "<?php echo htmlspecialchars($column); ?>" },
-                    <?php endforeach; ?>
-                    <?php if ($data['table'] === 'jobs'): ?>
-                        {
-                            data: "completion",
-                            render: function(data, type, row) {
-                                return '<select class="status-select" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '">' +
-                                    '<option value="0.0" ' + (data == '0.0' ? 'selected' : '') + '>Not Started</option>' +
-                                    '<option value="0.1" ' + (data == '0.1' ? 'selected' : '') + '>Cancelled</option>' +
-                                    '<option value="0.2" ' + (data == '0.2' ? 'selected' : '') + '>Started</option>' +
-                                    '<option value="0.5" ' + (data == '0.5' ? 'selected' : '') + '>Ongoing</option>' +
-                                    '<option value="1.0" ' + (data == '1.0' ? 'selected' : '') + '>Completed</option>' +
-                                    '</select>';
-                            }
-                        },
-                    <?php endif; ?>
-                    {
-                        data: null,
-                        render: function(data, type, row) {
-                            var buttons = '<button class="btn btn-primary btn-sm edit-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i></button>' +
-                                          '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i></button>';
-                            <?php if ($data['table'] === 'jobs'): ?>
-                                if (row.has_invoice) {
-                                    buttons += '<button class="btn btn-info btn-sm invoice-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i></button>';
-                                }
-                            <?php endif; ?>
-                            return buttons;
-                        }
-                    }
-                ],
+                columns: columnDefs,
                 drawCallback: function() {
                     table.columns.adjust();
+                    updateRecordCount();
                 }
             });
+
+            // Function to update record count display
+            function updateRecordCount() {
+                var info = table.ajax.json() || {};
+                var totalRecords = info.recordsTotal || 0;
+                var filteredRecords = info.recordsFiltered !== undefined ? info.recordsFiltered : totalRecords;
+                var searchValue = $('#searchInput').val();
+                var displayText = totalRecords + ' Records';
+                if (searchValue && filteredRecords !== totalRecords) {
+                    displayText += ' (' + filteredRecords + ' Filtered)';
+                }
+                $('#record-count').text(displayText);
+            }
 
             // Custom search bar functionality
             $('#searchInput').on('keyup', function() {
@@ -315,7 +345,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     }
                 }
                 table.ajax.reload(function() {
-                    $('#record-count').text(table.rows().count() + ' Records');
+                    updateRecordCount();
                 }, false);
             });
 
@@ -393,13 +423,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         }
                         $('#<?php echo $column; ?>').val(dateValue || '');
                     } else {
-                        $('#<?php echo $column; ?>').val(data.<?php echo htmlspecialchars($column); ?> || '');
+                        let value = data.<?php echo htmlspecialchars($column); ?> || '';
+                        $('#<?php echo $column; ?>').val(value);
                         // Update dropdowns and button groups
                         var select = document.querySelector(`#crud-form select.nice-dropdown[onchange*="document.getElementById('<?php echo $column; ?>')"]`);
                         if (select) {
-                            select.value = data.<?php echo htmlspecialchars($column); ?> || '';
+                            select.value = value;
                         }
-                        var button = document.querySelector(`#crud-form .form-group button[data-value="${data.<?php echo htmlspecialchars($column); ?>}"][onclick*="selectOption('<?php echo $column; ?>')"]`);
+                        var button = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('<?php echo $column; ?>')"]`);
                         if (button) {
                             document.querySelectorAll(`#crud-form .form-group button[onclick*="selectOption('<?php echo $column; ?>')"]`).forEach(btn => btn.classList.remove('active'));
                             button.classList.add('active');
@@ -452,7 +483,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 $('#invoice-received').text(data.received_amount || '-');
                 $('#invoice-payment-date').text(formatDate(data.payment_received_date));
                 $('#invoice-remarks').text(data.remarks || '-');
-            }, 'json');
+            }, 'json').fail(function(xhr, error) {
+                $('#invoice-spinner').hide();
+                $('#invoice-details').show();
+                alert('Error loading invoice details: ' + error);
+            });
         }
 
         function closeInvoiceModal() {
@@ -461,22 +496,42 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
 
         function openConfirmModal(action, id = null) {
             $('#confirm-modal').show();
-            $('#confirm-title').text(action === 'update' ? 'Confirm Update' : 'Confirm Delete');
-            $('#confirm-message').text(action === 'update' ? 
-                'Are you sure you want to save changes to this record?' : 
-                'Are you sure you want to delete this record? This action cannot be undone.');
+            $('#confirm-title').text(
+                action === 'create' ? 'Confirm Add' :
+                action === 'update' ? 'Confirm Update' :
+                'Confirm Delete'
+            );
+            $('#confirm-message').text(
+                action === 'create' ? 'Are you sure you want to add this new record?' :
+                action === 'update' ? 'Are you sure you want to save changes to this record?' :
+                'Are you sure you want to delete this record? This action cannot be undone.'
+            );
             
             $('#confirm-action-btn').off('click').on('click', function() {
-                if (action === 'update') {
-                    // Submit the edit form via AJAX
-                    var formData = $('#crud-form').serialize();
-                    $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", formData, function(response) {
-                        closeConfirmModal();
-                        closeModal();
-                        table.ajax.reload();
-                    }).fail(function(xhr, error) {
-                        console.error('Update error:', error);
-                        alert('Error updating record');
+                var formData = $('#crud-form').serialize();
+                if (action === 'create' || action === 'update') {
+                    // Submit create or update via AJAX
+                    $.ajax({
+                        url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
+                        type: 'POST',
+                        data: formData,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                closeConfirmModal();
+                                closeModal();
+                                table.ajax.reload(function() {
+                                    updateRecordCount();
+                                }, false);
+                                alert(action === 'create' ? 'Record added successfully!' : 'Record updated successfully!');
+                            } else {
+                                alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (response.error || 'Unknown error'));
+                            }
+                        },
+                        error: function(xhr, error) {
+                            console.error((action === 'create' ? 'Create' : 'Update') + ' error:', error);
+                            alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (xhr.responseJSON?.error || 'Server error'));
+                        }
                     });
                 } else if (action === 'delete') {
                     // Perform the delete action
@@ -484,11 +539,18 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         action: 'delete',
                         id: id
                     }, function(response) {
-                        closeConfirmModal();
-                        table.ajax.reload();
-                    }).fail(function(xhr, error) {
+                        if (response.success) {
+                            closeConfirmModal();
+                            table.ajax.reload(function() {
+                                updateRecordCount();
+                            }, false);
+                            alert('Record deleted successfully!');
+                        } else {
+                            alert('Error deleting record: ' + (response.error || 'Unknown error'));
+                        }
+                    }, 'json').fail(function(xhr, error) {
                         console.error('Delete error:', error);
-                        alert('Error deleting record');
+                        alert('Error deleting record: ' + (xhr.responseJSON?.error || 'Server error'));
                     });
                 }
             });
