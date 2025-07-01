@@ -99,22 +99,30 @@ body {
 }
 
 .sidebar-logo {
-    width: 200px;
-    max-width: 100%;
-    height: 40px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
+    width: 100%;
+    max-width: 220px;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0;
+    overflow: visible;
 }
 
 .sidebar-logo img {
     width: 100%;
-    height: 100%;
+    height: auto;
+    max-width: 220px;
     object-fit: contain;
     transition: transform var(--transition-base);
+    background: transparent !important;
+    box-shadow: none !important;
+    display: block;
+    margin: 0 auto;
 }
 
 .sidebar-logo img:hover {
@@ -124,10 +132,14 @@ body {
 .sidebar.collapsed .sidebar-logo {
     width: 40px;
     height: 40px;
+    max-width: 40px;
 }
 
 .sidebar.collapsed .sidebar-logo img {
+    width: 40px;
+    height: 40px;
     object-fit: cover;
+    max-width: 40px;
 }
 
 .sidebar-header h2 {
@@ -187,7 +199,15 @@ body {
 }
 
 .sidebar-menu a i {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+    color: var(--color-primary);
+    transition: all var(--transition-base);
+}
+
+.sidebar-menu a:hover i,
+.sidebar-menu a.active i {
+    color: var(--color-surface);
+    transform: scale(1.1);
 }
 
 /* Container */
@@ -293,6 +313,11 @@ body {
 
 .user-info:hover {
     background: var(--gradient-hover);
+}
+
+.user-info i {
+    font-size: 1.3rem;
+    color: var(--color-surface);
 }
 
 /* Main Content */
@@ -429,9 +454,9 @@ body {
 
 /* Summary Card Icons */
 .summary-icon {
-    font-size: 2.5rem;
+    font-size: 3rem;
     color: var(--color-primary);
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     display: block;
     filter: drop-shadow(0 2px 6px rgba(30, 58, 138, 0.10));
     transition: color 0.25s, transform 0.25s, filter 0.25s;
@@ -492,9 +517,9 @@ body {
 
 /* System Info Card Icons */
 .system-info-icon {
-    font-size: 2rem;
+    font-size: 2.5rem;
     color: var(--color-secondary);
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     display: block;
     filter: drop-shadow(0 1px 4px rgba(245, 158, 11, 0.10));
     transition: color 0.25s, transform 0.25s, filter 0.25s;
@@ -554,10 +579,14 @@ body {
     .sidebar-logo {
         width: 40px;
         height: 40px;
+        max-width: 40px;
     }
 
     .sidebar-logo img {
+        width: 40px;
+        height: 40px;
         object-fit: cover;
+        max-width: 40px;
     }
 }
 
@@ -583,11 +612,15 @@ body {
     }
 
     .sidebar.active .sidebar-logo {
-        width: 200px;
-        height: 40px;
+        width: 100%;
+        max-width: 220px;
+        height: auto;
     }
 
     .sidebar.active .sidebar-logo img {
+        width: 100%;
+        height: auto;
+        max-width: 220px;
         object-fit: contain;
     }
 
@@ -622,5 +655,13 @@ body {
 
     .system-info-card p {
         font-size: 1.375rem;
+    }
+
+    .summary-icon {
+        font-size: 2.5rem;
+    }
+
+    .system-info-icon {
+        font-size: 2rem;
     }
 }

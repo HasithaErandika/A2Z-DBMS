@@ -6,7 +6,10 @@ if (!defined('BASE_PATH')) {
 
 // Define FULL_BASE_URL for absolute links
 if (!defined('FULL_BASE_URL')) {
-    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    define('FULL_BASE_URL', $protocol . $host . $path);
 }
 
 // Validate $data to prevent undefined index errors
@@ -53,6 +56,7 @@ if (!isset($data) || !is_array($data)) {
                      alt="A2Z Engineering Logo" 
                      onerror="this.src='<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/fallback-logo.png', ENT_QUOTES, 'UTF-8'); ?>'">
             </div>
+            <h2>A2Z DBMS</h2>
         </div>
         <ul class="sidebar-menu">
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
@@ -68,7 +72,7 @@ if (!isset($data) || !is_array($data)) {
                 <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                Operational Data Tables
+                A2Z Engineering Operational Data Tables
                 <span id="datetime"><?php echo htmlspecialchars(date('l, F j, Y - H:i:s'), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
             <div class="user-info">
@@ -78,14 +82,10 @@ if (!isset($data) || !is_array($data)) {
         </div>
 
         <?php if (!empty($data['message'])): ?>
-            <div class="message" style="color: green; padding: 10px; text-align: center;">
-                <?php echo htmlspecialchars($data['message']); ?>
-            </div>
+            <div class="message"><?php echo htmlspecialchars($data['message'], ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         <?php if (!empty($data['error'])): ?>
-            <div class="error" style="color: red; padding: 10px; text-align: center;">
-                <?php echo htmlspecialchars($data['error']); ?>
-            </div>
+            <div class="error"><?php echo htmlspecialchars($data['error'], ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 
         <div class="main-content">
@@ -155,18 +155,6 @@ if (!isset($data) || !is_array($data)) {
             }
             setInterval(updateDateTime, 1000);
             updateDateTime();
-            document.querySelectorAll('.card').forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.transform = 'translateY(-5px)';
-                    card.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.transform = 'translateY(0)';
-                    card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
-                });
-            });
         });
     </script>
 </body>

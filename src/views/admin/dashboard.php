@@ -48,8 +48,8 @@ if (!isset($data) || !is_array($data)) {
 <body>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo" style="background: none; box-shadow: none; padding: 0;">
-                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/LongLogoB.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Long Logo" style="width: 180px; height: auto; display: block; margin: 0 auto; background: none; box-shadow: none;">
+            <div class="sidebar-logo">
+                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/LongLogoB.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Long Logo">
             </div>
         </div>
         <ul class="sidebar-menu">

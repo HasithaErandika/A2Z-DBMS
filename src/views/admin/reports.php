@@ -1,12 +1,15 @@
 <?php
-// Ensure BASE_PATH is defined for relative paths (though we'll use FULL_BASE_URL)
+// Ensure BASE_PATH is defined for relative paths
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', '/A2Z-DBMS');
 }
 
 // Define FULL_BASE_URL for absolute links
 if (!defined('FULL_BASE_URL')) {
-    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    define('FULL_BASE_URL', $protocol . $host . $path);
 }
 
 // Validate $data to prevent undefined index errors
@@ -53,6 +56,7 @@ if (!isset($data) || !is_array($data)) {
                      alt="A2Z Engineering Logo" 
                      onerror="this.src='<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/fallback-logo.png', ENT_QUOTES, 'UTF-8'); ?>'">
             </div>
+            <h2>A2Z DBMS</h2>
         </div>
         <ul class="sidebar-menu">
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
@@ -68,7 +72,7 @@ if (!isset($data) || !is_array($data)) {
                 <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                Report Records
+                A2Z Engineering Report Records
                 <span id="datetime"><?php echo htmlspecialchars(date('l, F j, Y - H:i:s'), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
             <div class="user-info">
