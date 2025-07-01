@@ -1,10 +1,4 @@
 <?php
-<<<<<<< HEAD
-// Ensure BASE_PATH is defined for relative paths
-if (!defined('BASE_PATH')) {
-    define('BASE_PATH', '/A2Z-DBMS');
-}
-=======
 // Ensure BASE_PATH is defined for relative paths (though we'll use FULL_BASE_URL)
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', '/A2Z-DBMS');
@@ -13,26 +7,6 @@ if (!defined('BASE_PATH')) {
 // Define FULL_BASE_URL for absolute links
 if (!defined('FULL_BASE_URL')) {
     define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
-}
-
-// Check if $data is available (passed from AdminController::records)
-if (!isset($data) || !is_array($data)) {
-    $data = [
-        'username' => 'Unknown',
-        'dbname' => 'Unknown',
-        'reportCards' => []
-    ];
-    error_log("Warning: \$data not provided to reports.php. Using fallback values.");
-}
-?>
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
-
-// Define FULL_BASE_URL for absolute links
-if (!defined('FULL_BASE_URL')) {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'];
-    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    define('FULL_BASE_URL', $protocol . $host . $path);
 }
 
 // Validate $data to prevent undefined index errors
@@ -64,40 +38,26 @@ if (!isset($data) || !is_array($data)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A2Z Engineering Report Records for Solar, AC, and Electrical Power Management">
-<<<<<<< HEAD
     <meta name="author" content="A2Z Engineering">
     <title>A2Z Engineering - Reports</title>
     <link rel="icon" type="image/png" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/favicon.png', ENT_QUOTES, 'UTF-8'); ?>">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-=======
-    <title>A2Z Engineering - Reports</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
     <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/css/reports.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body>
     <div class="sidebar" id="sidebar" aria-label="Navigation Sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-<<<<<<< HEAD
                 <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/LongLogoB.png', ENT_QUOTES, 'UTF-8'); ?>" 
                      alt="A2Z Engineering Logo" 
                      onerror="this.src='<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/fallback-logo.png', ENT_QUOTES, 'UTF-8'); ?>'">
-=======
-                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/logo.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Logo">
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
             </div>
         </div>
         <ul class="sidebar-menu">
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-<<<<<<< HEAD
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="active" aria-current="page"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
-=======
-            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="active"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
@@ -131,7 +91,6 @@ if (!isset($data) || !is_array($data)) {
             </div>
             <div class="card-grid" id="reports-grid">
                 <?php if (empty($data['reportCards'])): ?>
-<<<<<<< HEAD
                     <p class="no-reports">No reports available.</p>
                 <?php else: ?>
                     <?php foreach ($data['reportCards'] as $card): ?>
@@ -140,16 +99,6 @@ if (!isset($data) || !is_array($data)) {
                                 <i class="fas <?php echo htmlspecialchars($card['icon'] ?? 'fa-file-alt', ENT_QUOTES, 'UTF-8'); ?>"></i>
                                 <div class="card-title"><?php echo htmlspecialchars($card['title'] ?? 'Untitled Report', ENT_QUOTES, 'UTF-8'); ?></div>
                                 <div class="card-desc"><?php echo htmlspecialchars($card['desc'] ?? 'No description', ENT_QUOTES, 'UTF-8'); ?></div>
-=======
-                    <p>No reports available.</p>
-                <?php else: ?>
-                    <?php foreach ($data['reportCards'] as $card): ?>
-                        <div class="card">
-                            <a href="<?php echo htmlspecialchars($card['link'], ENT_QUOTES, 'UTF-8'); ?>">
-                                <i class="fas <?php echo htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
-                                <div class="card-title"><?php echo htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                <div class="card-desc"><?php echo htmlspecialchars($card['desc'], ENT_QUOTES, 'UTF-8'); ?></div>
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
                             </a>
                         </div>
                     <?php endforeach; ?>
@@ -198,7 +147,6 @@ if (!isset($data) || !is_array($data)) {
             }
         }
 
-<<<<<<< HEAD
         document.addEventListener('DOMContentLoaded', () => {
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (isCollapsed) {
@@ -207,14 +155,6 @@ if (!isset($data) || !is_array($data)) {
             }
             setInterval(updateDateTime, 1000);
             updateDateTime();
-=======
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
-
-        document.querySelectorAll('.card').forEach(card => {
-            card.addEventListener('mouseenter', () => card.style.transition = 'all 0.3s ease');
-            card.addEventListener('mouseleave', () => card.style.transition = 'all 0.3s ease');
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
         });
     </script>
 </body>

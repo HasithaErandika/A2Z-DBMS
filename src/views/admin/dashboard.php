@@ -6,10 +6,7 @@ if (!defined('BASE_PATH')) {
 
 // Define FULL_BASE_URL for absolute links, matching index.php
 if (!defined('FULL_BASE_URL')) {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'];
-    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    define('FULL_BASE_URL', $protocol . $host . $path);
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
 
 // Check if $data is available (passed from AdminController::dashboard)

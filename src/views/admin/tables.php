@@ -6,10 +6,7 @@ if (!defined('BASE_PATH')) {
 
 // Define FULL_BASE_URL for absolute links
 if (!defined('FULL_BASE_URL')) {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'];
-    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    define('FULL_BASE_URL', $protocol . $host . $path);
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
 
 // Validate $data to prevent undefined index errors
@@ -58,17 +55,10 @@ if (!isset($data) || !is_array($data)) {
             </div>
         </div>
         <ul class="sidebar-menu">
-<<<<<<< HEAD
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>" class="active" aria-current="page"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
-=======
-            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/tables" class="active"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/reports"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
         </ul>
     </div>
 
@@ -88,12 +78,6 @@ if (!isset($data) || !is_array($data)) {
         </div>
 
         <?php if (!empty($data['message'])): ?>
-<<<<<<< HEAD
-            <div class="message"><?php echo htmlspecialchars($data['message'], ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php endif; ?>
-        <?php if (!empty($data['error'])): ?>
-            <div class="error"><?php echo htmlspecialchars($data['error'], ENT_QUOTES, 'UTF-8'); ?></div>
-=======
             <div class="message" style="color: green; padding: 10px; text-align: center;">
                 <?php echo htmlspecialchars($data['message']); ?>
             </div>
@@ -102,7 +86,6 @@ if (!isset($data) || !is_array($data)) {
             <div class="error" style="color: red; padding: 10px; text-align: center;">
                 <?php echo htmlspecialchars($data['error']); ?>
             </div>
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
         <?php endif; ?>
 
         <div class="main-content">
@@ -172,8 +155,6 @@ if (!isset($data) || !is_array($data)) {
             }
             setInterval(updateDateTime, 1000);
             updateDateTime();
-<<<<<<< HEAD
-=======
             document.querySelectorAll('.card').forEach(card => {
                 card.addEventListener('mouseenter', () => {
                     card.style.transition = 'all 0.3s ease';
@@ -186,7 +167,6 @@ if (!isset($data) || !is_array($data)) {
                     card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.05)';
                 });
             });
->>>>>>> 5a7273a9e1ee1e01797dc78b99079aa6f518c1d9
         });
     </script>
 </body>

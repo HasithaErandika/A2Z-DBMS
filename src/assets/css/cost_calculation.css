@@ -418,7 +418,7 @@ body {
     font-weight: 600;
     font-size: 14px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .table td {
@@ -486,6 +486,12 @@ body {
     font-weight: 600;
 }
 
+.profit-negative {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+/* Chart */
 .chart-container {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
