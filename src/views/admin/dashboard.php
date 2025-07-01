@@ -49,8 +49,9 @@ if (!isset($data) || !is_array($data)) {
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/LongLogoB.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Long Logo">
+                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/logo.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Logo">
             </div>
+            <h2>A2Z Engineering</h2>
         </div>
         <ul class="sidebar-menu">
             <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
@@ -66,7 +67,7 @@ if (!isset($data) || !is_array($data)) {
                 <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                Dashboard
+                A2Z Engineering DBMS Dashboard
                 <span id="datetime"><?php echo date('l, F j, Y - H:i:s'); ?></span>
             </div>
             <div class="user-info">
@@ -81,37 +82,30 @@ if (!isset($data) || !is_array($data)) {
             </div>
             <div class="summary-grid">
                 <div class="summary-card">
-                    <i class="fas fa-users summary-icon"></i>
                     <h3>Total Employees</h3>
                     <p><?php echo htmlspecialchars($data['summary']['total_employees'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-briefcase summary-icon"></i>
                     <h3>Active Jobs</h3>
                     <p><?php echo htmlspecialchars($data['summary']['active_jobs'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-diagram-project summary-icon"></i>
                     <h3>Total Projects</h3>
                     <p><?php echo htmlspecialchars($data['summary']['total_projects'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-money-bill-wave summary-icon"></i>
                     <h3>Total Expenses</h3>
                     <p><?php echo number_format($data['summary']['total_expenses'], 2); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-credit-card summary-icon"></i>
                     <h3>Total Payments</h3>
                     <p><?php echo number_format($data['summary']['total_payments'], 2); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-calendar-check summary-icon"></i>
                     <h3>Today's Jobs</h3>
                     <p><?php echo htmlspecialchars($data['summary']['todays_jobs'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
-                    <i class="fas fa-wallet summary-icon"></i>
                     <h3>Today's Expenses</h3>
                     <p><?php echo number_format($data['summary']['todays_expenses'], 2); ?></p>
                 </div>
@@ -124,22 +118,18 @@ if (!isset($data) || !is_array($data)) {
             </div>
             <div class="system-info-grid">
                 <div class="system-info-card">
-                    <i class="fas fa-code system-info-icon"></i>
                     <h3>PHP Version</h3>
                     <p><?php echo htmlspecialchars($data['system_info']['php_version'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
-                    <i class="fas fa-database system-info-icon"></i>
                     <h3>MySQL Version</h3>
                     <p><?php echo htmlspecialchars($data['system_info']['mysql_version'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
-                    <i class="fas fa-server system-info-icon"></i>
                     <h3>Server Software</h3>
                     <p><?php echo htmlspecialchars($data['system_info']['server_software'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
-                    <i class="fas fa-folder system-info-icon"></i>
                     <h3>Database Name</h3>
                     <p><?php echo htmlspecialchars($data['system_info']['db_name'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>

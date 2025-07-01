@@ -1,7 +1,7 @@
 <?php
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-error_log('TableManager.php loaded with error reporting enabled');
+error_log('Error reporting enabled in TableManager.php');
 error_reporting(E_ALL);
 
 require_once 'src/core/Model.php';
@@ -18,8 +18,8 @@ class TableManager extends Model {
             'editableFields' => ['emp_id', 'job_id', 'presence', 'start_time', 'end_time', 'remarks', 'attendance_date'],
             'validation' => [
                 'presence' => ['required', 'in:0.0,0.5,1.0'],
-                'attendance_date' => ['required', 'date'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'attendance_date' => ['required'],
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'presence' => 'getPresenceDisplay',
@@ -41,7 +41,7 @@ class TableManager extends Model {
             'editableFields' => ['emp_id', 'job_id', 'emp_name', 'acc_no', 'bank', 'branch'],
             'validation' => [
                 'acc_no' => ['required'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'emp_id' => 'fetchEmployeeName',
@@ -53,7 +53,7 @@ class TableManager extends Model {
             'editableFields' => ['emp_id', 'job_id', 'project_description', 'company_reference', 'remarks'],
             'validation' => [
                 'project_description' => ['required'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'emp_id' => 'fetchEmployeeName',
@@ -65,8 +65,7 @@ class TableManager extends Model {
             'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
             'validation' => [
                 'engineer' => ['required'],
-                'date_started' => ['required', 'date'],
-                'project_id' => ['required', 'exists:projects,project_id']
+                'date_started' => ['required']
             ],
             'formatters' => [
                 'project_id' => 'getProjectDetailsForJobs',
@@ -79,8 +78,8 @@ class TableManager extends Model {
         'operational_expenses' => [
             'editableFields' => ['emp_id', 'job_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
             'validation' => [
-                'expense_amount' => ['required', 'numeric'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'expense_amount' => ['required'],
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'paid' => 'getBooleanIcon',
@@ -105,8 +104,8 @@ class TableManager extends Model {
         'employee_payments' => [
             'editableFields' => ['emp_id', 'job_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
             'validation' => [
-                'paid_amount' => ['required', 'numeric'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'paid_amount' => ['required'],
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'emp_id' => 'fetchEmployeeName',
@@ -118,8 +117,8 @@ class TableManager extends Model {
         'salary_increments' => [
             'editableFields' => ['emp_id', 'job_id', 'increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
             'validation' => [
-                'increment_amount' => ['required', 'numeric'],
-                'emp_id' => ['required', 'exists:employees,emp_id']
+                'increment_amount' => ['required'],
+                'emp_id' => ['required']
             ],
             'formatters' => [
                 'emp_id' => 'fetchEmployeeName',
@@ -131,10 +130,10 @@ class TableManager extends Model {
         'employee_payment_rates' => [
             'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
             'validation' => [
-                'emp_id' => ['required', 'exists:employees,emp_id'],
+                'emp_id' => ['required'],
                 'rate_type' => ['required', 'in:Fixed,Daily'],
-                'rate_amount' => ['required', 'numeric'],
-                'effective_date' => ['required', 'date']
+                'rate_amount' => ['required'],
+                'effective_date' => ['required']
             ],
             'formatters' => [
                 'emp_id' => 'fetchEmployeeName',
@@ -162,32 +161,14 @@ class TableManager extends Model {
         ],
     ];
 
-    /**
-     * Get the list of allowed tables.
-     *
-     * @return array List of allowed table names.
-     */
     public function getAllowedTables() {
         return $this->allowedTables;
     }
 
-    /**
-     * Get configuration for a specific table.
-     *
-     * @param string $table Table name.
-     * @return array Table configuration.
-     */
     public function getConfig($table) {
         return $this->tableConfigs[$table] ?? [];
     }
 
-    /**
-     * Get columns for a specific table.
-     *
-     * @param string $table Table name.
-     * @return array List of column names.
-     * @throws Exception If table is invalid or columns cannot be retrieved.
-     */
     public function getColumns($table) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -203,12 +184,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Get the primary key for a specific table.
-     *
-     * @param string $table Table name.
-     * @return string Primary key column name.
-     */
     public function getPrimaryKey($table) {
         $primaryKeys = [
             'employees' => 'emp_id',
@@ -226,144 +201,90 @@ class TableManager extends Model {
         return $primaryKeys[$table] ?? $this->getColumns($table)[0];
     }
 
-    /**
-     * Get the total number of employees.
-     *
-     * @return int Total number of employees.
-     */
     public function getTotalEmployees() {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM employees");
-            return (int)$stmt->fetchColumn();
+            return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getTotalEmployees: " . $e->getMessage());
             return 0;
         }
     }
 
-    /**
-     * Get the number of active jobs.
-     *
-     * @return int Number of active jobs.
-     */
     public function getActiveJobs() {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM jobs WHERE date_completed IS NULL");
-            return (int)$stmt->fetchColumn();
+            return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getActiveJobs: " . $e->getMessage());
             return 0;
         }
     }
 
-    /**
-     * Get the total number of projects.
-     *
-     * @return int Total number of projects.
-     */
     public function getTotalProjects() {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM projects");
-            return (int)$stmt->fetchColumn();
+            return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getTotalProjects: " . $e->getMessage());
             return 0;
         }
     }
 
-    /**
-     * Get the total expenses amount.
-     *
-     * @return float Total expenses.
-     */
     public function getTotalExpenses() {
         try {
             $stmt = $this->db->query("SELECT SUM(expense_amount) FROM operational_expenses");
-            return (float)($stmt->fetchColumn() ?: 0.0);
+            return $stmt->fetchColumn() ?: 0.0;
         } catch (PDOException $e) {
             error_log("Error in getTotalExpenses: " . $e->getMessage());
             return 0.0;
         }
     }
 
-    /**
-     * Get the total payments amount.
-     *
-     * @return float Total payments.
-     */
     public function getTotalPayments() {
         try {
             $stmt = $this->db->query("SELECT SUM(paid_amount) FROM employee_payments");
-            return (float)($stmt->fetchColumn() ?: 0.0);
+            return $stmt->fetchColumn() ?: 0.0;
         } catch (PDOException $e) {
             error_log("Error in getTotalPayments: " . $e->getMessage());
             return 0.0;
         }
     }
 
-    /**
-     * Get the number of jobs started today.
-     *
-     * @return int Number of jobs started today.
-     */
     public function getTodaysJobs() {
         try {
             $today = date('Y-m-d');
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM jobs WHERE date_started = ? AND date_completed IS NULL");
             $stmt->execute([$today]);
-            return (int)$stmt->fetchColumn();
+            return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getTodaysJobs: " . $e->getMessage());
             return 0;
         }
     }
 
-    /**
-     * Get the total expenses for today.
-     *
-     * @return float Today's expenses.
-     */
     public function getTodaysExpenses() {
         try {
             $today = date('Y-m-d');
             $stmt = $this->db->prepare("SELECT SUM(expense_amount) FROM operational_expenses WHERE expensed_date = ?");
             $stmt->execute([$today]);
-            return (float)($stmt->fetchColumn() ?: 0.0);
+            return $stmt->fetchColumn() ?: 0.0;
         } catch (PDOException $e) {
             error_log("Error in getTodaysExpenses: " . $e->getMessage());
             return 0.0;
         }
     }
 
-    /**
-     * Get the MySQL server version.
-     *
-     * @return string MySQL version.
-     */
     public function getMySQLVersion() {
         try {
             $stmt = $this->db->query("SELECT VERSION()");
-            return $stmt->fetchColumn() ?: 'Unknown';
+            return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getMySQLVersion: " . $e->getMessage());
             return 'Unknown';
         }
     }
 
-    /**
-     * Fetch records from a table with pagination, sorting, and search.
-     *
-     * @param string $table Table name.
-     * @param int $page Page number.
-     * @param int $perPage Records per page.
-     * @param string $searchTerm Search term.
-     * @param string $sortColumn Column to sort by.
-     * @param string $sortOrder Sort order (ASC/DESC).
-     * @param bool $dataTablesFormat Return in DataTables format.
-     * @param bool $dataOnly Return only data array.
-     * @return array Records and metadata.
-     * @throws Exception If query fails or table is invalid.
-     */
     public function fetchRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC', $dataTablesFormat = true, $dataOnly = false) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -418,7 +339,7 @@ class TableManager extends Model {
             }
 
             $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
-            $recordsTotal = (int)$totalStmt->fetchColumn();
+            $recordsTotal = $totalStmt->fetchColumn();
 
             $countStmt = $this->db->prepare($countSql);
             foreach ($params as $paramName => $paramValue) {
@@ -427,7 +348,7 @@ class TableManager extends Model {
                 }
             }
             $countStmt->execute();
-            $recordsFiltered = (int)$countStmt->fetchColumn();
+            $recordsFiltered = $countStmt->fetchColumn();
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $paramName => $paramValue) {
@@ -462,14 +383,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Apply formatters to records based on table configuration.
-     *
-     * @param array $records Records to format.
-     * @param string $table Table name.
-     * @param array $columns Column names.
-     * @return array Formatted records.
-     */
     private function applyFormatters($records, $table, $columns) {
         $config = $this->getConfig($table);
         foreach ($records as &$record) {
@@ -486,12 +399,6 @@ class TableManager extends Model {
         return $records;
     }
 
-    /**
-     * Get invoice details by job ID.
-     *
-     * @param string $jobId Job ID.
-     * @return array|null Invoice details or null if not found.
-     */
     public function getInvoiceDetailsByJobId($jobId) {
         if (empty($jobId)) {
             error_log("Empty jobId passed to getInvoiceDetailsByJobId");
@@ -548,13 +455,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Update job status.
-     *
-     * @param string $jobId Job ID.
-     * @param float $newCompletion New completion status.
-     * @return array Result of the update operation.
-     */
     public function updateJobStatus($jobId, $newCompletion) {
         try {
             if (empty($jobId)) {
@@ -589,14 +489,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Create a new record in the specified table.
-     *
-     * @param string $table Table name.
-     * @param array $data Data to insert.
-     * @return int Inserted record ID.
-     * @throws Exception If insertion fails.
-     */
     public function create($table, $data) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -615,7 +507,7 @@ class TableManager extends Model {
             }
 
             $columns = array_keys($filteredData);
-            $placeholders = array_map(fn($col) => ":$col", $columns);
+            $placeholders = array_map(function($col) { return ":$col"; }, $columns);
             $sql = "INSERT INTO `$table` (" . implode(',', array_map(fn($col) => "`$col`", $columns)) . ") 
                     VALUES (" . implode(',', $placeholders) . ")";
             
@@ -641,16 +533,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Update a record in the specified table.
-     *
-     * @param string $table Table name.
-     * @param array $data Data to update.
-     * @param string $idColumn Primary key column.
-     * @param mixed $id Record ID.
-     * @return bool Whether update was successful.
-     * @throws Exception If update fails.
-     */
     public function update($table, $data, $idColumn, $id) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -696,15 +578,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Delete a record from the specified table.
-     *
-     * @param string $table Table name.
-     * @param string $idColumn Primary key column.
-     * @param mixed $id Record ID.
-     * @return bool Whether deletion was successful.
-     * @throws Exception If deletion fails.
-     */
     public function delete($table, $idColumn, $id) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -733,18 +606,12 @@ class TableManager extends Model {
         } catch (PDOException $e) {
             error_log("PDO Error in delete for $table with $idColumn = $id: " . $e->getMessage());
             if (strpos($e->getMessage(), 'a foreign key constraint fails') !== false) {
-                throw new Exception("Cannot delete record from $table because it is referenced by other records.");
+                throw new Exception("Cannot delete record from $table because it is referenced by other records (e.g., attendance, payments, or jobs).");
             }
             throw new Exception("Failed to delete record from $table: " . $e->getMessage());
         }
     }
 
-    /**
-     * Fetch employee name by ID.
-     *
-     * @param string $empId Employee ID.
-     * @return string Employee name or fallback.
-     */
     public function fetchEmployeeName($empId) {
         if (empty($empId)) return 'No Employee';
         try {
@@ -758,34 +625,14 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Alias for fetchEmployeeName.
-     *
-     * @param string $empId Employee ID.
-     * @return string Employee name.
-     */
     public function getEmployeeName($empId) {
         return $this->fetchEmployeeName($empId);
     }
 
-    /**
-     * Format boolean value as an icon.
-     *
-     * @param mixed $value Value to format.
-     * @return string HTML icon.
-     */
     public function getBooleanIcon($value) {
-        return in_array($value, ['Yes', true, 1], true) 
-            ? '<i class="fas fa-check" style="color: #10B981;" aria-hidden="true"></i>' 
-            : '<i class="fas fa-times" style="color: #EF4444;" aria-hidden="true"></i>';
+        return $value === 'Yes' || $value === true || $value === 1 ? '<i class="fas fa-check" style="color: #10B981;"></i>' : '<i class="fas fa-times" style="color: #EF4444;"></i>';
     }
 
-    /**
-     * Format presence value for display.
-     *
-     * @param float $value Presence value.
-     * @return string Formatted presence.
-     */
     public function getPresenceDisplay($value) {
         $value = (float)$value;
         if ($value == 1.0) return '<span style="color: #10B981;">Full Day</span>';
@@ -794,12 +641,6 @@ class TableManager extends Model {
         return htmlspecialchars($value);
     }
 
-    /**
-     * Format transaction type for display.
-     *
-     * @param string $value Transaction type.
-     * @return string Formatted transaction type.
-     */
     public function getTransactionTypeDisplay($value) {
         if ($value === 'In') {
             return '<span style="color: #10B981;">Received</span>';
@@ -809,12 +650,6 @@ class TableManager extends Model {
         return htmlspecialchars($value);
     }
 
-    /**
-     * Format completion status for display.
-     *
-     * @param float $value Completion status.
-     * @return string Formatted status.
-     */
     public function getCompletionStatus($value) {
         $value = (float)$value;
         switch ($value) {
@@ -827,12 +662,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Get customer reference for a job ID.
-     *
-     * @param string $jobId Job ID.
-     * @return string Customer reference or fallback.
-     */
     public function getCustomerReferenceForJobId($jobId) {
         if (empty($jobId)) return 'No Job ID';
         try {
@@ -846,12 +675,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Get project details for a job or dropdown options.
-     *
-     * @param string|null $projectId Project ID or null for options.
-     * @return string Project details or HTML options.
-     */
     public function getProjectDetailsForJobs($projectId = null) {
         if (!empty($projectId)) {
             try {
@@ -901,21 +724,33 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Get project options for CRUD forms.
-     *
-     * @return string HTML options for projects.
-     */
     public function getProjectOptionsCRUD() {
-        return $this->getProjectDetailsForJobs();
+        try {
+            $stmt = $this->db->query("
+                SELECT project_id, company_reference, project_description 
+                FROM projects 
+                ORDER BY project_id DESC
+            ");
+            $options = '<option value="">Select Project</option>';
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $projectId = htmlspecialchars($row['project_id']);
+                $companyRef = htmlspecialchars($row['company_reference']);
+                $projectDesc = htmlspecialchars($row['project_description']);
+                $options .= sprintf(
+                    '<option value="%s">(%s - %s - %s)</option>',
+                    $projectId,
+                    $projectId,
+                    $companyRef,
+                    $projectDesc
+                );
+            }
+            return $options;
+        } catch (PDOException $e) {
+            error_log("Error in getProjectOptionsCRUD: " . $e->getMessage());
+            return '<option value="">Error loading projects</option>';
+        }
     }
 
-    /**
-     * Get job details for a job ID or dropdown options.
-     *
-     * @param string|null $jobId Job ID or null for options.
-     * @return string Job details or HTML options.
-     */
     public function getJobDetails($jobId = null) {
         if (!empty($jobId)) {
             try {
@@ -983,11 +818,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Get employee options for dropdowns.
-     *
-     * @return string HTML options for employees.
-     */
     public function getEmployeeOptions() {
         try {
             $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees ORDER BY emp_id DESC");
@@ -1010,12 +840,6 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Check if an invoice exists for a job.
-     *
-     * @param string $jobId Job ID.
-     * @return bool Whether an invoice exists.
-     */
     public function checkInvoiceExists($jobId) {
         try {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM invoice_data WHERE job_id = ?");
@@ -1027,29 +851,23 @@ class TableManager extends Model {
         }
     }
 
-    /**
-     * Calculate total job capacity.
-     *
-     * @return float Total job capacity.
-     */
     public function calculateTotalJobCapacity() {
         try {
-            $stmt = $this->db->query("SELECT SUM(CAST(job_capacity AS DECIMAL(10,2))) AS total_capacity FROM jobs");
-            return (float)($stmt->fetchColumn() ?: 0.0);
+            $stmt = $this->db->query("SELECT job_capacity FROM jobs");
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $totalCapacity = 0.0;
+            foreach ($results as $row) {
+                if (preg_match('/\d+(\.\d+)?/', $row['job_capacity'] ?? '', $matches)) {
+                    $totalCapacity += (float)$matches[0];
+                }
+            }
+            return $totalCapacity;
         } catch (PDOException $e) {
             error_log("Error in calculateTotalJobCapacity: " . $e->getMessage());
             return 0.0;
         }
     }
 
-    /**
-     * Export records to CSV.
-     *
-     * @param string $table Table name.
-     * @param string $startDate Start date (YYYY-MM-DD).
-     * @param string $endDate End date (YYYY-MM-DD).
-     * @throws Exception If export fails.
-     */
     public function exportRecordsToCSV($table, $startDate, $endDate) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -1073,17 +891,17 @@ class TableManager extends Model {
             }, $allColumns);
 
             $sql = "SELECT " . implode(',', $selectColumns) . " FROM `$table`";
-            $params = [];
             if ($dateField && $startDate && $endDate) {
                 $sql .= " WHERE `$dateField` BETWEEN ? AND ?";
-                $params = [$startDate, $endDate];
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([$startDate, $endDate]);
+            } else {
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute();
             }
-
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute($params);
             $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Type: text/csv');
             header('Content-Disposition: attachment;filename="' . $table . '_records_' . date('Ymd') . '.csv"');
             $output = fopen('php://output', 'w');
             fputcsv($output, $allColumns);
@@ -1094,28 +912,14 @@ class TableManager extends Model {
             exit;
         } catch (PDOException $e) {
             error_log("Error in exportRecordsToCSV for $table: " . $e->getMessage());
-            throw new Exception("Failed to export records from $table: " . $e->getMessage());
+            throw new Exception("Failed to export records from $table");
         }
     }
 
-    /**
-     * Format a value as currency.
-     *
-     * @param float $value Value to format.
-     * @return string Formatted currency.
-     */
     public function formatCurrency($value) {
         return number_format((float)$value, 2, '.', '');
     }
 
-    /**
-     * Validate data against rules.
-     *
-     * @param string $table Table name.
-     * @param array $data Data to validate.
-     * @param array $rules Validation rules.
-     * @throws Exception If validation fails.
-     */
     private function validate($table, $data, $rules) {
         $errors = [];
         foreach ($rules as $field => $fieldRules) {
@@ -1126,17 +930,6 @@ class TableManager extends Model {
                     $allowed = explode(',', substr($rule, 3));
                     if (!in_array($data[$field], $allowed)) {
                         $errors[] = "Field $field must be one of: " . implode(', ', $allowed);
-                    }
-                } elseif ($rule === 'numeric' && isset($data[$field]) && !is_numeric($data[$field])) {
-                    $errors[] = "Field $field must be numeric";
-                } elseif ($rule === 'date' && isset($data[$field]) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $data[$field])) {
-                    $errors[] = "Field $field must be a valid date (YYYY-MM-DD)";
-                } elseif (strpos($rule, 'exists:') === 0 && isset($data[$field]) && $data[$field] !== '') {
-                    [$targetTable, $targetColumn] = explode(',', substr($rule, 7));
-                    $stmt = $this->db->prepare("SELECT COUNT(*) FROM `$targetTable` WHERE `$targetColumn` = ?");
-                    $stmt->execute([$data[$field]]);
-                    if ($stmt->fetchColumn() == 0) {
-                        $errors[] = "Field $field does not exist in $targetTable.$targetColumn";
                     }
                 }
             }

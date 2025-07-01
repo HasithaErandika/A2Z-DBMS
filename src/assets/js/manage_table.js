@@ -1,59 +1,83 @@
-// Utility function to debounce input events
-const debounce = (func, wait) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
+function updateStatus(jobId, $button) {
+    const currentCompletion = parseFloat($button.data('completion')) || 0.0;
+
+    if (currentCompletion === 1.0 || currentCompletion === 0.1) return;
+
+    const statusMap = {
+        0.0: 0.2, // Not Started → Started
+        0.2: 0.5, // Started → Ongoing
+        0.5: 1.0  // Ongoing → Completed
     };
-};
 
-// Format completion status for display
-const getCompletionStatus = (value) => {
-    switch (parseFloat(value)) {
-        case 0.0: return '<span style="color: #EF4444;">Not Started</span>';
-        case 0.1: return '<span style="color: #D1D5DB;">Cancelled</span>';
-        case 0.2: return '<span style="color: #3B82F6;">Started</span>';
-        case 0.5: return '<span style="color: #F59E0B;">Ongoing</span>';
-        case 1.0: return '<span style="color: #10B981;">Completed</span>';
-        default: return String(value);
+    const nextCompletion = statusMap[currentCompletion];
+    if (!nextCompletion) {
+        alert('Invalid status transition from ' + currentCompletion);
+        return;
     }
-};
 
-// Render status select dropdown for jobs table
-const renderStatusButton = (data, type, row) => {
-    if (type !== 'display') return data;
-    return `
-        <select class="status-select" data-id="${row[window.appConfig.primaryKey]}" aria-label="Job status">
-            <option value="0.0" ${data == '0.0' ? 'selected' : ''}>Not Started</option>
-            <option value="0.1" ${data == '0.1' ? 'selected' : ''}>Cancelled</option>
-            <option value="0.2" ${data == '0.2' ? 'selected' : ''}>Started</option>
-            <option value="0.5" ${data == '0.5' ? 'selected' : ''}>Ongoing</option>
-            <option value="1.0" ${data == '1.0' ? 'selected' : ''}>Completed</option>
-        </select>
-    `;
-};
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
+        type: 'POST',
+        data: { action: 'update_status', job_id: jobId, completion: nextCompletion },
+        dataType: 'json',
+        success: function(response) {
+            if (!response || !response.success) {
+                alert('Failed to update status: ' + (response?.error || 'Unknown error'));
+                return;
+            }
 
-// Format date for form inputs
-const formatDateForInput = (dateStr) => {
-    if (!dateStr) return '';
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        try {
-            const date = new Date(dateStr);
-            return date.toISOString().split('T')[0];
-        } catch (e) {
-            return '';
+            const newCompletion = parseFloat(response.completion);
+            $button.data('completion', newCompletion); // Update button data attribute
+            $button.attr('data-completion', newCompletion); // Ensure DOM attribute updates
+
+            // Update button text and state
+            if (newCompletion === 1.0) {
+                $button.text('Completed');
+                $button.prop('disabled', true);
+                $button.closest('td').siblings('.action-buttons').find('.cancel-job-btn').remove();
+            }
+
+            // Update DataTable row data
+            const $row = $button.closest('tr');
+            const rowData = $('#data-table').DataTable().row($row).data();
+            rowData.completion = newCompletion;
+            $('#data-table').DataTable().row($row).data(rowData).draw(false); // Redraw row without full reload
+
+            // Optional: Full table reload if needed
+            // $('#data-table').DataTable().ajax.reload(null, false);
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to update status: ' + (xhr.responseText || error));
         }
+    });
+}
+
+function renderStatusButton(data, type, row) {
+    if (type !== 'display') return data;
+    const completion = parseFloat(row.completion) || 0.0;
+
+    let buttonText = 'Change Status';
+    let disabled = '';
+
+    if (completion === 1.0) {
+        buttonText = 'Completed';
+        disabled = 'disabled';
+    } else if (completion === 0.1) {
+        buttonText = 'Cancelled';
+        disabled = 'disabled';
     }
-    return dateStr;
-};
 
-// Initialize DataTable and event handlers
-$(document).ready(function () {
-    // Ensure modals are hidden on page load
-    $('#crud-modal').hide().attr('aria-hidden', 'true');
-    $('#invoice-modal').hide().attr('aria-hidden', 'true');
-    $('#confirm-modal').hide().attr('aria-hidden', 'true');
+    return `
+        <button class="btn status-btn" 
+                data-job-id="${row.job_id}" 
+                data-completion="${completion}" 
+                ${disabled}>
+            ${buttonText}
+        </button>
+    `;
+}
 
+$(document).ready(function() {
     const table = $('#data-table').DataTable({
         processing: true,
         serverSide: true,
@@ -62,65 +86,47 @@ $(document).ready(function () {
         ajax: {
             url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
             type: 'POST',
-            data: function (d) {
-                return {
-                    action: 'get_records',
-                    search: { value: $('#searchInput').val() || '' },
-                    sortColumn: window.appConfig.columns[d.order[0]?.column] || window.appConfig.columns[0],
-                    sortOrder: d.order[0]?.dir || 'desc',
-                    page: Math.floor(d.start / d.length) + 1,
-                    perPage: d.length,
-                    draw: d.draw
-                };
+            data: function(d) {
+                d.action = 'get_records';
+                d.search = { value: $('#searchInput').val() || '' };
+                d.sortColumn = window.appConfig.columns[d.order[0]?.column] || window.appConfig.columns[0];
+                d.sortOrder = d.order[0]?.dir || 'desc';
+                return d;
             },
-            dataSrc: function (json) {
+            dataSrc: function(json) {
                 if (!json || json.error) {
-                    alert(`Failed to load table data: ${json?.error || 'Unknown error'}`);
-                    console.error('DataTable error:', json?.error || 'Unknown error');
+                    alert('Failed to load table data: ' + (json?.error || 'Unknown error'));
                     return [];
                 }
-                const recordCountText = `${json.recordsTotal} Records` +
-                    (json.recordsFiltered !== json.recordsTotal ? ` (${json.recordsFiltered} Filtered)` : '');
-                $('#record-count').html(`<i class="fas fa-database" aria-hidden="true"></i> ${recordCountText}`);
+                $('#record-count').html(`<i class="fas fa-database"></i> ${json.recordsTotal} Records`);
                 return json.data;
             },
-            beforeSend: function () {
+            beforeSend: function() {
                 $('#loading-spinner').show();
-                $('#data-table').hide();
             },
-            complete: function () {
+            complete: function() {
                 $('#loading-spinner').hide();
-                $('#data-table').show();
             },
-            error: function (xhr, status, error) {
-                let message = '';
-                // Try to show the raw response if not valid JSON
-                if (xhr.responseJSON) {
-                    message = xhr.responseJSON.error || error || 'Server error';
-                } else if (xhr.responseText && xhr.responseText.trim().charAt(0) === '<') {
-                    // Looks like HTML (probably a PHP warning or error)
-                    message = 'Server returned HTML instead of JSON.\n\n' + xhr.responseText;
-                } else {
-                    message = xhr.responseText || error || 'Server error';
-                }
-                alert(`Error loading data: ${message}`);
-                console.error('DataTable AJAX error:', status, error, xhr.responseText);
+            error: function(xhr, status, error) {
+                alert('Error loading data: ' + (xhr.responseText || error));
                 $('#loading-spinner').hide();
-                $('#data-table').show();
             }
         },
         columns: [
             ...window.appConfig.columns.map(column => ({
                 data: column,
                 name: column,
-                render: (data, type) => {
+                render: function(data, type, row) {
+                    if (data === null || data === undefined || data === '') return '-';
                     if (type !== 'display') return data;
-                    return data === null || data === undefined || data === '' ? '-' : String(data);
+                    if (column === 'job_id' && typeof data === 'object' && data.job_id) {
+                        return `${data.job_id} - ${data.project_description} - ${data.engineer}`;
+                    }
+                    return String(data);
                 }
             })),
             ...(window.appConfig.tableName === 'jobs' ? [{
                 data: 'completion',
-                name: 'completion',
                 render: renderStatusButton,
                 orderable: false,
                 searchable: false,
@@ -128,37 +134,31 @@ $(document).ready(function () {
             }] : []),
             {
                 data: null,
-                render: (data, type, row) => {
+                render: function(data, type, row) {
                     if (type !== 'display') return '';
                     const rowData = JSON.stringify(row).replace(/"/g, '"');
                     let buttons = `
                         <div class="action-buttons" style="display: flex; gap: 10px;">
-                            <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' aria-label="Edit record" data-tooltip="Edit record"><i class="fas fa-edit" aria-hidden="true"></i></button>
-                            <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.primaryKey]}" aria-label="Delete record" data-tooltip="Delete record"><i class="fas fa-trash" aria-hidden="true"></i></button>
+                            <button class="btn btn-primary tooltip edit-btn" data-row='${rowData}' data-tooltip="Edit record"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger tooltip delete-btn" data-id="${row[window.appConfig.primaryKey]}" data-tooltip="Delete record"><i class="fas fa-trash"></i></button>
                     `;
                     if (window.appConfig.tableName === 'jobs') {
-                        const hasInvoice = row.has_invoice === true || row.has_invoice === '1';
+                        const hasInvoice = row.has_invoice === true || row.has_invoice === 1;
                         buttons += `
                             <button class="btn view-invoice-btn tooltip" 
                                     data-job-id="${row.job_id}" 
-                                    aria-label="${hasInvoice ? 'View invoice' : 'No invoice available'}" 
-                                    data-tooltip="${hasInvoice ? 'View invoice' : 'No invoice available'}"
+                                    data-tooltip="View invoice" 
                                     style="background-color: ${hasInvoice ? '#17A2B8' : '#DC3545'}; color: white;">
-                                <i class="fas fa-file-invoice" aria-hidden="true"></i>
+                                <i class="fas fa-file-invoice"></i>
                             </button>
                         `;
-                        if (parseFloat(row.completion) !== 1.0 && parseFloat(row.completion) !== 0.1) {
-                            buttons += `
-                                <button class="btn btn-warning tooltip cancel-job-btn" 
-                                        data-job-id="${row.job_id}" 
-                                        aria-label="Cancel job" 
-                                        data-tooltip="Cancel job">
-                                    <i class="fas fa-ban" aria-hidden="true"></i>
-                                </button>
-                            `;
-                        }
                     }
-                    buttons += '</div>';
+                    if (window.appConfig.tableName === 'jobs' && parseFloat(row.completion) !== 1.0 && parseFloat(row.completion) !== 0.1) {
+                        buttons += `
+                            <button class="btn btn-warning tooltip cancel-job-btn" data-job-id="${row.job_id}" data-tooltip="Cancel job"><i class="fas fa-ban"></i></button>
+                        `;
+                    }
+                    buttons += `</div>`;
                     return buttons;
                 },
                 orderable: false,
@@ -179,250 +179,192 @@ $(document).ready(function () {
             paginate: { first: 'First', last: 'Last', next: 'Next', previous: 'Previous' }
         },
         dom: 'lfrtip',
-        initComplete: function () {
-            // Debounced search
-            $('#searchInput').on('keyup', debounce(() => {
+        initComplete: function() {
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
+
+            $('#searchInput').on('keyup', debounce(function() {
                 table.ajax.reload(null, false);
             }, 300));
 
-            // Event delegation for buttons
-            $('#data-table').on('click', '.edit-btn', function () {
+            $('#data-table').on('click', '.edit-btn', function() {
                 openModal('edit', $(this).data('row'));
             });
-
-            $('#data-table').on('click', '.delete-btn', function () {
+            $('#data-table').on('click', '.delete-btn', function() {
                 deleteRecord($(this).data('id'));
             });
-
-            $('#data-table').on('click', '.view-invoice-btn', function () {
+            $('#data-table').on('click', '.status-btn', function() {
+                updateStatus($(this).data('job-id'), $(this));
+            });
+            $('#data-table').on('click', '.cancel-job-btn', function() {
+                cancelJob($(this).data('job-id'), this);
+            });
+            $('#data-table').on('click', '.view-invoice-btn', function() {
                 openInvoiceModal($(this).data('job-id'));
             });
-
-            $('#data-table').on('click', '.cancel-job-btn', function () {
-                cancelJob($(this).data('job-id'));
-            });
-
-            $('#data-table').on('change', '.status-select', function () {
-                updateStatus($(this).data('id'), $(this).val());
-            });
-
-            // Keyboard navigation for modals
-            $(document).on('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    closeModal();
-                    closeInvoiceModal();
-                    closeConfirmModal();
-                }
-            });
         }
     });
+});
 
-    // Open CRUD modal
-    window.openModal = (action, rowData = null) => {
-        const isCreate = action === 'create';
-        $('#crud-modal').show().attr('aria-hidden', 'false');
-        $('#form-action').val(isCreate ? 'create' : 'update');
-        $('#modal-title').text(isCreate ? 'Add New Record' : 'Edit Record');
-        $('#crud-form')[0].reset();
-        $('.btn-option').removeClass('active');
-        $('.nice-dropdown').val('');
-        $('.primary-key-field').closest('.form-group').toggle(isCreate ? false : true);
+function getCompletionStatus(value) {
+    switch (parseFloat(value)) {
+        case 0.0: return '<span style="color: #EF4444;">Not Started</span>';
+        case 0.1: return '<span style="color: #D1D5DB;">Cancelled</span>';
+        case 0.2: return '<span style="color: #3B82F6;">Started</span>';
+        case 0.5: return '<span style="color: #F59E0B;">Ongoing</span>';
+        case 1.0: return '<span style="color: #10B981;">Completed</span>';
+        default: return value;
+    }
+}
 
-        if (!isCreate && rowData) {
-            $('#form-id').val(rowData[window.appConfig.primaryKey]);
+
+function openInvoiceModal(jobId) {
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
+        type: 'POST',
+        data: { action: 'get_invoice_details', job_id: jobId },
+        dataType: 'json',
+        success: function(response) {
+            if (!response || Object.keys(response).length === 0) {
+                window.location.href = `${window.appConfig.basePath}/admin/manageTable/invoice_data`;
+                return;
+            }
+            const modal = $('#invoice-modal');
+            const spinner = $('#invoice-spinner');
+            const details = $('#invoice-details');
+
+            $('#invoice-no, #invoice-date, #invoice-value, #invoice-job, #invoice-receiving, #invoice-received, #invoice-payment-date, #invoice-remarks').text('-');
+            spinner.show();
+            details.hide();
+            modal.css('display', 'flex');
+            setTimeout(() => modal.addClass('active'), 10);
+
+            spinner.hide();
+            details.show();
+            $('#invoice-no').text(response.invoice_no || '-');
+            $('#invoice-date').text(response.invoice_date || '-');
+            $('#invoice-value').text(response.invoice_value ? `$${response.invoice_value}` : '-');
+            $('#invoice-job').text(response.job_details ? `${response.job_details.job_id} - ${response.job_details.customer_reference}` : response.job_id || '-');
+            $('#invoice-receiving').text(response.receiving_payment ? `$${response.receiving_payment}` : '-');
+            $('#invoice-received').text(response.received_amount ? `$${response.received_amount}` : '-');
+            $('#invoice-payment-date').text(response.payment_received_date || '-');
+            $('#invoice-remarks').text(response.remarks || '-');
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching invoice details:', xhr.responseText || error);
+            window.location.href = `${window.appConfig.basePath}/admin/manageTable/invoice_data`;
+        }
+    });
+}
+
+function closeInvoiceModal() {
+    const modal = $('#invoice-modal');
+    modal.removeClass('active');
+    setTimeout(() => modal.css('display', 'none'), 300);
+}
+
+function openModal(action, record = null) {
+    const modal = $('#crud-modal');
+    const title = $('#modal-title');
+    const form = $('#crud-form');
+    const actionInput = $('#form-action');
+    const idInput = $('#form-id');
+
+    form[0].reset();
+    if (action === 'create') {
+        title.text(`Add New ${window.appConfig.tableName} Record`);
+        actionInput.val('create');
+        idInput.val('');
+        document.getElementById(window.appConfig.primaryKey).style.display = 'none';
+        document.querySelector(`label[for="${window.appConfig.primaryKey}"]`).style.display = 'none';
+    } else if (action === 'edit' && record) {
+        title.text(`Edit ${window.appConfig.tableName} Record`);
+        actionInput.val('update');
+        try {
+            const data = typeof record === 'string' ? JSON.parse(record) : record;
+            idInput.val(data[window.appConfig.primaryKey] || '');
             window.appConfig.columns.forEach(column => {
-                const input = $(`#${column}`);
-                if (input.length) {
-                    let value = rowData[column] || '';
-                    if (window.appConfig.dateColumns.includes(column)) {
-                        value = formatDateForInput(value);
-                    }
-                    input.val(value);
-                    // Update dropdowns
-                    const select = $(`#crud-form select.nice-dropdown[onchange*="document.getElementById('${column}')"]`);
-                    if (select.length) {
-                        select.val(value);
-                    }
-                    // Update button groups
-                    const button = $(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('${column}')"]`);
-                    if (button.length) {
-                        $(`#crud-form .form-group button[onclick*="selectOption('${column}')"]`).removeClass('active');
-                        button.addClass('active');
-                    }
-                }
-            });
-        } else {
-            $('#form-id').val('');
-        }
-        $('#crud-form input:visible:first').focus();
-    };
-
-    // Close CRUD modal
-    window.closeModal = () => {
-        $('#crud-modal').hide().attr('aria-hidden', 'true');
-    };
-
-    // Select option for button groups
-    window.selectOption = (fieldId, value) => {
-        $(`#${fieldId}`).val(value);
-        const buttons = $(`#crud-form .form-group button[onclick*="selectOption('${fieldId}')"]`);
-        buttons.removeClass('active');
-        $(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('${fieldId}')"]`).addClass('active');
-    };
-
-    // Open invoice modal
-    window.openInvoiceModal = (jobId) => {
-        $('#invoice-modal').show().attr('aria-hidden', 'false');
-        $('#invoice-spinner').show();
-        $('#invoice-details').hide();
-        $.post(`${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`, {
-            action: 'get_invoice_details',
-            job_id: jobId
-        }, (data) => {
-            $('#invoice-spinner').hide();
-            $('#invoice-details').show();
-            $('#invoice-no').text(data.invoice_no || '-');
-            $('#invoice-date').text(formatDateForInput(data.invoice_date) || '-');
-            $('#invoice-value').text(data.invoice_value || '-');
-            $('#invoice-job').text(data.job_details || '-');
-            $('#invoice-receiving').text(data.receiving_payment || '-');
-            $('#invoice-received').text(data.received_amount || '-');
-            $('#invoice-payment-date').text(formatDateForInput(data.payment_received_date) || '-');
-            $('#invoice-remarks').text(data.remarks || '-');
-            $('#invoice-details').find('span:visible:first').focus();
-        }, 'json').fail((xhr, error) => {
-            $('#invoice-spinner').hide();
-            $('#invoice-details').show();
-            alert(`Error loading invoice details: ${xhr.responseJSON?.error || error || 'Server error'}`);
-            console.error('Invoice modal error:', error, xhr.responseText);
-        });
-    };
-
-    // Close invoice modal
-    window.closeInvoiceModal = () => {
-        $('#invoice-modal').hide().attr('aria-hidden', 'true');
-    };
-
-    // Open confirmation modal
-    window.openConfirmModal = (action, id = null) => {
-        $('#confirm-modal').show().attr('aria-hidden', 'false');
-        const isCreate = action === 'create';
-        const isUpdate = action === 'update';
-        $('#confirm-title').text(
-            isCreate ? 'Confirm Add' :
-            isUpdate ? 'Confirm Update' :
-            'Confirm Delete'
-        );
-        $('#confirm-message').text(
-            isCreate ? 'Are you sure you want to add this new record?' :
-            isUpdate ? 'Are you sure you want to save changes to this record?' :
-            'Are you sure you want to delete this record? This action cannot be undone.'
-        );
-
-        $('#confirm-action-btn').off('click').on('click', () => {
-            if (isCreate || isUpdate) {
-                const formData = $('#crud-form').serialize();
-                $.ajax({
-                    url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
-                    type: 'POST',
-                    data: formData,
-                    dataType: 'json',
-                    success: (response) => {
-                        if (response.success) {
-                            closeConfirmModal();
-                            closeModal();
-                            table.ajax.reload(null, false);
-                            alert(isCreate ? 'Record added successfully!' : 'Record updated successfully!');
-                        } else {
-                            alert(`Error ${isCreate ? 'adding' : 'updating'} record: ${response.error || 'Unknown error'}`);
-                            console.error('CRUD error:', response.error);
-                        }
-                    },
-                    error: (xhr, error) => {
-                        alert(`Error ${isCreate ? 'adding' : 'updating'} record: ${xhr.responseJSON?.error || error || 'Server error'}`);
-                        console.error('CRUD AJAX error:', error, xhr.responseText);
-                    }
-                });
-            } else if (action === 'delete') {
-                $.post(`${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`, {
-                    action: 'delete',
-                    id: id
-                }, (response) => {
-                    if (response.success) {
-                        closeConfirmModal();
-                        table.ajax.reload(null, false);
-                        alert('Record deleted successfully!');
+                const element = document.getElementById(column);
+                if (element) {
+                    // Handle job_id object in edit modal
+                    if (column === 'job_id' && typeof data[column] === 'object' && data[column].job_id) {
+                        element.value = data[column].job_id; // Use job_id for select input
                     } else {
-                        alert(`Error deleting record: ${response.error || 'Unknown error'}`);
-                        console.error('Delete error:', response.error);
+                        element.value = data[column] || '';
                     }
-                }, 'json').fail((xhr, error) => {
-                    alert(`Error deleting record: ${xhr.responseJSON?.error || error || 'Server error'}`);
-                    console.error('Delete AJAX error:', error, xhr.responseText);
-                });
-            }
-        });
-        $('#confirm-action-btn').focus();
-    };
-
-    // Close confirmation modal
-    window.closeConfirmModal = () => {
-        $('#confirm-modal').hide().attr('aria-hidden', 'true');
-    };
-
-    // Update job status
-    const updateStatus = (jobId, newStatus) => {
-        $.post(`${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`, {
-            action: 'update_status',
-            job_id: jobId,
-            completion: newStatus
-        }, (response) => {
-            if (response.success) {
-                table.ajax.reload(null, false);
-                alert('Status updated successfully!');
-            } else {
-                alert(`Error updating status: ${response.error || 'Unknown error'}`);
-                console.error('Status update error:', response.error);
-            }
-        }, 'json').fail((xhr, error) => {
-            alert(`Error updating status: ${xhr.responseJSON?.error || error || 'Server error'}`);
-            console.error('Status update AJAX error:', error, xhr.responseText);
-        });
-    };
-
-    // Cancel job
-    const cancelJob = (jobId) => {
-        openConfirmModal('cancel_job', jobId);
-        $('#confirm-title').text('Confirm Cancel Job');
-        $('#confirm-message').text('Are you sure you want to cancel this job? This action cannot be undone.');
-        $('#confirm-action-btn').off('click').on('click', () => {
-            $.post(`${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`, {
-                action: 'update_status',
-                job_id: jobId,
-                completion: '0.1'
-            }, (response) => {
-                if (response.success) {
-                    closeConfirmModal();
-                    table.ajax.reload(null, false);
-                    alert('Job cancelled successfully!');
-                } else {
-                    alert(`Error cancelling job: ${response.error || 'Unknown error'}`);
-                    console.error('Cancel job error:', response.error);
                 }
-            }, 'json').fail((xhr, error) => {
-                alert(`Error cancelling job: ${xhr.responseJSON?.error || error || 'Server error'}`);
-                console.error('Cancel job AJAX error:', error, xhr.responseText);
             });
-        });
-    };
+            document.getElementById(window.appConfig.primaryKey).style.display = 'block';
+            document.querySelector(`label[for="${window.appConfig.primaryKey}"]`).style.display = 'block';
+        } catch (e) {
+            alert('Failed to load record for editing.');
+            return;
+        }
+    }
+    modal.css('display', 'flex');
+    setTimeout(() => modal.addClass('active'), 10);
+}
 
-    // Delete record
-    const deleteRecord = (id) => {
-        openConfirmModal('delete', id);
-    };
+function closeModal() {
+    const modal = $('#crud-modal');
+    modal.removeClass('active');
+    setTimeout(() => modal.css('display', 'none'), 300);
+    document.getElementById(window.appConfig.primaryKey).style.display = 'block';
+    document.querySelector(`label[for="${window.appConfig.primaryKey}"]`).style.display = 'block';
+}
 
-    // Adjust table on window resize
-    $(window).on('resize', () => {
-        table.columns.adjust();
+function deleteRecord(id) {
+    if (!confirm('Are you sure you want to delete this record?')) return;
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/${window.appConfig.tableName}`,
+        type: 'POST',
+        data: { action: 'delete', id: id },
+        success: function(response) {
+            $('#data-table').DataTable().ajax.reload(null, false);
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to delete record: ' + (xhr.responseText || error));
+        }
     });
+}
+
+function cancelJob(jobId, button) {
+    if (!confirm('Are you sure you want to cancel this job? This action cannot be undone.')) return;
+
+    $.ajax({
+        url: `${window.appConfig.basePath}/admin/manageTable/jobs`,
+        type: 'POST',
+        data: { action: 'update_status', job_id: jobId, completion: 0.1 },
+        dataType: 'json',
+        success: function(response) {
+            if (!response || !response.success) {
+                alert('Failed to cancel job: ' + (response?.error || 'Unknown error'));
+                return;
+            }
+            $(button).closest('td').siblings('.status-btn').removeClass('not-started started ongoing completed')
+                .addClass('cancelled')
+                .text('Cancelled')
+                .prop('disabled', true)
+                .data('completion', 0.1);
+            $(button).remove();
+            $('#data-table').DataTable().ajax.reload(null, false);
+        },
+        error: function(xhr, status, error) {
+            alert('Failed to cancel job: ' + (xhr.responseText || error));
+        }
+    });
+}
+
+
+$('#crud-modal').on('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+$('#invoice-modal').on('click', function(e) {
+    if (e.target === this) closeInvoiceModal();
 });
