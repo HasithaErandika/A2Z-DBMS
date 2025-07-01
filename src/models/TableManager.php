@@ -161,14 +161,29 @@ class TableManager extends Model {
         ],
     ];
 
+    /**
+     * Get the list of allowed tables for management.
+     * @return array
+     */
     public function getAllowedTables() {
         return $this->allowedTables;
     }
 
+    /**
+     * Get the configuration for a specific table.
+     * @param string $table
+     * @return array
+     */
     public function getConfig($table) {
         return $this->tableConfigs[$table] ?? [];
     }
 
+    /**
+     * Get the columns of a table.
+     * @param string $table
+     * @return array
+     * @throws Exception
+     */
     public function getColumns($table) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
@@ -184,6 +199,11 @@ class TableManager extends Model {
         }
     }
 
+    /**
+     * Get the primary key column for a table.
+     * @param string $table
+     * @return string
+     */
     public function getPrimaryKey($table) {
         $primaryKeys = [
             'employees' => 'emp_id',
@@ -295,52 +315,72 @@ class TableManager extends Model {
             $config = $this->getConfig($table);
             $idColumn = $this->getPrimaryKey($table);
             $dateField = $config['dateField'] ?? null;
-
             $selectColumns = array_map(function($col) use ($table, $dateField) {
                 if ($col === $dateField) {
                     return "DATE_FORMAT(`$table`.`$col`, '%Y-%m-%d') AS `$col`";
                 }
                 return "`$table`.`$col`";
             }, $allColumns);
+            $joins = '';
+            $extraSearchFields = [];
+            // Add joins and extra search fields for display fields
+            if (in_array($table, ['attendance', 'employee_bank_details', 'projects', 'jobs', 'operational_expenses', 'employee_payments', 'salary_increments', 'employee_payment_rates', 'cash_hand'])) {
+                if (in_array('emp_id', $allColumns)) {
+                    $joins .= " LEFT JOIN employees e ON $table.emp_id = e.emp_id ";
+                    $selectColumns[] = "e.emp_name AS emp_name_display";
+                    $extraSearchFields[] = "e.emp_name";
+                }
+            }
+            if (in_array($table, ['attendance', 'employee_bank_details', 'projects', 'operational_expenses', 'employee_payments', 'salary_increments', 'cash_hand', 'invoice_data'])) {
+                if (in_array('job_id', $allColumns)) {
+                    $joins .= " LEFT JOIN jobs j ON $table.job_id = j.job_id ";
+                    $selectColumns[] = "j.engineer AS job_engineer_display";
+                    $selectColumns[] = "j.customer_reference AS job_customer_reference_display";
+                    $extraSearchFields[] = "j.engineer";
+                    $extraSearchFields[] = "j.customer_reference";
+                }
+            }
+            if ($table === 'jobs' && in_array('project_id', $allColumns)) {
+                $joins .= " LEFT JOIN projects p ON jobs.project_id = p.project_id ";
+                $selectColumns[] = "p.project_description AS project_description_display";
+                $selectColumns[] = "p.company_reference AS project_company_reference_display";
+                $extraSearchFields[] = "p.project_description";
+                $extraSearchFields[] = "p.company_reference";
+            }
             $sql = "SELECT " . implode(',', $selectColumns);
             if ($table === 'jobs') {
                 $sql .= ", (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = `$table`.job_id) > 0 AS has_invoice";
             }
-            $sql .= " FROM `$table`";
-            $countSql = "SELECT COUNT(*) FROM `$table`";
+            $sql .= " FROM `$table` $joins";
+            $countSql = "SELECT COUNT(*) FROM `$table` $joins";
             $params = [];
-
             if (!empty($searchTerm)) {
-                $searchFields = $config['searchFields'] ?? $allColumns;
                 $searchTerm = "%" . trim($searchTerm) . "%";
+                $searchFields = array_merge($allColumns, $extraSearchFields);
                 $conditions = [];
                 $searchParams = [];
                 foreach ($searchFields as $index => $col) {
                     $paramName = ":search$index";
-                    $conditions[] = "`$col` LIKE $paramName";
+                    $conditions[] = "$col LIKE $paramName";
                     $searchParams[$paramName] = $searchTerm;
                 }
                 $sql .= " WHERE " . implode(' OR ', $conditions);
                 $countSql .= " WHERE " . implode(' OR ', $conditions);
                 $params = $searchParams;
             }
-
             if ($sortColumn && in_array($sortColumn, $allColumns)) {
                 $sql .= " ORDER BY `$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
             } else {
                 $sql .= " ORDER BY `$idColumn` DESC";
             }
-
             $offset = $perPage > 0 ? (int)(($page - 1) * $perPage) : 0;
             if ($perPage > 0) {
                 $sql .= " LIMIT :offset, :perPage";
                 $params[':offset'] = $offset;
                 $params[':perPage'] = $perPage;
             }
-
             $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
             $recordsTotal = $totalStmt->fetchColumn();
-
             $countStmt = $this->db->prepare($countSql);
             foreach ($params as $paramName => $paramValue) {
                 if (strpos($paramName, ':search') === 0) {
@@ -349,7 +389,6 @@ class TableManager extends Model {
             }
             $countStmt->execute();
             $recordsFiltered = $countStmt->fetchColumn();
-
             $stmt = $this->db->prepare($sql);
             foreach ($params as $paramName => $paramValue) {
                 $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
@@ -357,25 +396,19 @@ class TableManager extends Model {
             }
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             $data = $this->applyFormatters($data, $table, $allColumns);
-
             error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage, searchTerm: $searchTerm");
-
             if ($dataOnly) {
                 return $data;
             }
-
             $result = [
                 'recordsTotal' => (int)$recordsTotal,
                 'recordsFiltered' => (int)$recordsFiltered,
                 'data' => $data
             ];
-
             if ($dataTablesFormat) {
                 $result['draw'] = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
             }
-
             return $result;
         } catch (PDOException $e) {
             error_log("Error in fetchRecords for $table: " . $e->getMessage());
@@ -383,6 +416,13 @@ class TableManager extends Model {
         }
     }
 
+    /**
+     * Apply formatters to records for display.
+     * @param array $records
+     * @param string $table
+     * @param array $columns
+     * @return array
+     */
     private function applyFormatters($records, $table, $columns) {
         $config = $this->getConfig($table);
         foreach ($records as &$record) {
@@ -623,10 +663,6 @@ class TableManager extends Model {
             error_log("Error in fetchEmployeeName: " . $e->getMessage());
             return 'Error';
         }
-    }
-
-    public function getEmployeeName($empId) {
-        return $this->fetchEmployeeName($empId);
     }
 
     public function getBooleanIcon($value) {
@@ -920,6 +956,13 @@ class TableManager extends Model {
         return number_format((float)$value, 2, '.', '');
     }
 
+    /**
+     * Validate data against rules for a table.
+     * @param string $table
+     * @param array $data
+     * @param array $rules
+     * @throws Exception
+     */
     private function validate($table, $data, $rules) {
         $errors = [];
         foreach ($rules as $field => $fieldRules) {
