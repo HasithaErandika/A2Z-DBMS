@@ -1,4 +1,36 @@
 <!-- views/reports/expenses_report.php -->
+<?php
+// Define BASE_PATH and FULL_BASE_URL for consistency with other files
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', '/A2Z-DBMS');
+}
+if (!defined('FULL_BASE_URL')) {
+    define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
+}
+
+// Fallback for missing data from AdminController::expenseReport()
+if (!isset($filters) || !is_array($filters)) {
+    $filters = ['year' => '', 'month' => ''];
+}
+if (!isset($report_title)) {
+    $report_title = 'Full Company Expense Report (All Time)';
+}
+if (!isset($total_invoices)) $total_invoices = 0;
+if (!isset($total_expenses)) $total_expenses = 0;
+if (!isset($total_employee_costs)) $total_employee_costs = 0;
+if (!isset($total_invoices_count)) $total_invoices_count = 0;
+if (!isset($total_jobs)) $total_jobs = 0;
+if (!isset($total_job_capacity)) $total_job_capacity = 0;
+if (!isset($profit)) $profit = 0;
+if (!isset($expenses_by_category) || !is_array($expenses_by_category)) {
+    $expenses_by_category = [];
+}
+if (!isset($employee_costs_by_type) || !is_array($employee_costs_by_type)) {
+    $employee_costs_by_type = [];
+}
+if (!isset($error)) $error = null;
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -202,8 +234,6 @@
             .chart-container { max-width: 100%; }
             .table { font-size: 12px; }
         }
-        .chart-card { margin-bottom: 30px; }
-        .chart-container { max-width: 600px; margin: 0 auto 20px; }
     </style>
 </head>
 <body>
@@ -212,21 +242,21 @@
             <h1>Expense Report - A2Z Engineering</h1>
             <div class="header-controls">
                 <button class="btn btn-primary" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
-                <button class="btn btn-primary" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'"><i class="ri-arrow-left-line"></i> Go Back</button>
+                <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
                 <button class="btn btn-secondary" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
             </div>
         </div>
 
-        <div class="filter-card">
-            <form method="POST" class="filter-form" id="filterForm" action="<?php echo BASE_PATH; ?>/reports/expense_report">
-                <div class="filter-item">
+        <div class="form-card">
+            <form method="POST" class="form-group" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/expenses_report', ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="form-item">
                     <label>Year</label>
                     <select name="year" required>
                         <option value="2024" <?php echo $filters['year'] === '2024' ? 'selected' : ''; ?>>2024</option>
                         <option value="2025" <?php echo $filters['year'] === '2025' ? 'selected' : ''; ?>>2025</option>
                     </select>
                 </div>
-                <div class="filter-item">
+                <div class="form-item">
                     <label>Month</label>
                     <select name="month" required>
                         <?php for ($m = 1; $m <= 12; $m++): ?>
@@ -241,16 +271,16 @@
         </div>
 
         <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error-message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php else: ?>
-            <div class="summary-card">
-                <h2><?php echo htmlspecialchars($report_title); ?></h2>
+            <div class="report-card">
+                <h2><?php echo htmlspecialchars($report_title, ENT_QUOTES, 'UTF-8'); ?></h2>
                 <div class="summary-grid">
                     <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($total_invoices, 2); ?></p></div>
                     <div class="summary-item"><h3>Total Operational Expenses</h3><p><?php echo number_format($total_expenses, 2); ?></p></div>
                     <div class="summary-item"><h3>Total Employee Costs</h3><p><?php echo number_format($total_employee_costs, 2); ?></p></div>
-                    <div class="summary-item"><h3>Invoice Count</h3><p><?php echo $total_invoices_count; ?></p></div>
-                    <div class="summary-item"><h3>Total Jobs</h3><p><?php echo $total_jobs; ?></p></div>
+                    <div class="summary-item"><h3>Invoice Count</h3><p><?php echo htmlspecialchars($total_invoices_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
+                    <div class="summary-item"><h3>Total Jobs</h3><p><?php echo htmlspecialchars($total_jobs, ENT_QUOTES, 'UTF-8'); ?></p></div>
                     <div class="summary-item"><h3>Total Job Capacity</h3><p><?php echo number_format($total_job_capacity, 2); ?></p></div>
                     <div class="summary-item <?php echo $profit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
                         <h3>Net Profit</h3><p><?php echo number_format($profit, 2); ?></p>
@@ -265,25 +295,25 @@
                 </div>
             </div>
 
-            <div class="table-card">
+            <div class="report-card">
                 <h2>Operational Expenses by Category</h2>
                 <table class="table">
                     <thead><tr><th>Category</th><th>Amount</th></tr></thead>
                     <tbody>
                         <?php foreach ($expenses_by_category as $category => $amount): ?>
-                            <tr><td><?php echo htmlspecialchars($category); ?></td><td><?php echo number_format($amount, 2); ?></td></tr>
+                            <tr><td><?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo number_format($amount, 2); ?></td></tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
 
-            <div class="table-card">
+            <div class="report-card">
                 <h2>Employee Costs by Type</h2>
                 <table class="table">
                     <thead><tr><th>Type</th><th>Amount</th></tr></thead>
                     <tbody>
                         <?php foreach ($employee_costs_by_type as $type => $amount): ?>
-                            <tr><td><?php echo htmlspecialchars($type); ?></td><td><?php echo number_format($amount, 2); ?></td></tr>
+                            <tr><td><?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo number_format($amount, 2); ?></td></tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>

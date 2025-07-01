@@ -16,10 +16,9 @@ class User extends Model {
         }
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         error_log("Fetched user: " . print_r($user, true));
-        return $user ?: false; // Return user array or false
+        return $user ?: false;
     }
 
-    // Other methods...
     public function create($username, $password, $userType) {
         $sql = "INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)";
         $stmt = $this->db->prepare($sql);
@@ -34,7 +33,7 @@ class User extends Model {
     }
 
     public function getAll() {
-        $sql = "SELECT * FROM users";
+        $sql = "SELECT * FROM users ORDER BY created_at DESC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -50,28 +49,5 @@ class User extends Model {
         $sql = "DELETE FROM users WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([$id]);
-    }
-
-    public function getAllUsers() {
-        $sql = "SELECT * FROM Users ORDER BY Created_At DESC";
-        $stmt = $this->query($sql);
-        return $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
-    }
-    
-    public function createUser($username, $password, $userType) {
-        $sql = "INSERT INTO Users (Username, Password, User_Type) VALUES (:username, :password, :userType)";
-        return $this->query($sql, [
-            ':username' => $username,
-            ':password' => $password,
-            ':userType' => $userType
-        ]);
-    }
-    
-    public function updateUserStatus($userId, $status) {
-        $sql = "UPDATE Users SET Status = :status WHERE User_ID = :userId";
-        return $this->query($sql, [
-            ':status' => $status,
-            ':userId' => $userId
-        ]);
     }
 }

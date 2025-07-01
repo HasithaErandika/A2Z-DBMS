@@ -1,5 +1,40 @@
 <?php
-if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
+// Ensure BASE_PATH is defined for relative paths
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', '/A2Z-DBMS'); // Matches index.php
+}
+
+// Define FULL_BASE_URL for absolute links, matching index.php
+if (!defined('FULL_BASE_URL')) {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    define('FULL_BASE_URL', $protocol . $host . $path);
+}
+
+// Check if $data is available (passed from AdminController::dashboard)
+if (!isset($data) || !is_array($data)) {
+    $data = [
+        'username' => 'Unknown',
+        'dbname' => 'Unknown',
+        'summary' => [
+            'total_employees' => 0,
+            'active_jobs' => 0,
+            'total_projects' => 0,
+            'total_expenses' => 0,
+            'total_payments' => 0,
+            'todays_jobs' => 0,
+            'todays_expenses' => 0,
+        ],
+        'system_info' => [
+            'php_version' => 'Unknown',
+            'mysql_version' => 'Unknown',
+            'server_software' => 'Unknown',
+            'db_name' => 'Unknown',
+        ]
+    ];
+    error_log("Warning: \$data not provided to dashboard.php. Using fallback values.");
+}
 ?>
 
 <!DOCTYPE html>
@@ -11,21 +46,20 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
     <title>A2Z Engineering - DBMS Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/adminDashboard.css">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/css/adminDashboard.css', ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body>
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <img src="<?php echo BASE_PATH; ?>/src/assets/images/logo.png" alt="A2Z Engineering Logo">
+            <div class="sidebar-logo" style="background: none; box-shadow: none; padding: 0;">
+                <img src="<?php echo htmlspecialchars(FULL_BASE_URL . '/src/assets/images/LongLogoB.png', ENT_QUOTES, 'UTF-8'); ?>" alt="A2Z Engineering Long Logo" style="width: 180px; height: auto; display: block; margin: 0 auto; background: none; box-shadow: none;">
             </div>
-            <h2>A2Z Engineering</h2>
         </div>
         <ul class="sidebar-menu">
-            <li><a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/tables"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/admin/records"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Records</span></a></li>
-            <li><a href="<?php echo BASE_PATH; ?>/logout"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>" class="active"><i class="fas fa-tachometer-alt"></i> <span class="sidebar-text">Dashboard</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-table"></i> <span class="sidebar-text">Tables</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-file-alt"></i> <span class="sidebar-text">Reports</span></a></li>
+            <li><a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-sign-out-alt"></i> <span class="sidebar-text">Logout</span></a></li>
         </ul>
     </div>
 
@@ -35,12 +69,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
                 <button class="toggle-btn" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
                     <i class="fas fa-bars"></i>
                 </button>
-                A2Z Engineering DBMS Dashboard
+                Dashboard
                 <span id="datetime"><?php echo date('l, F j, Y - H:i:s'); ?></span>
             </div>
             <div class="user-info">
                 <i class="fas fa-user-circle"></i>
-                <span><?php echo htmlspecialchars($data['username']); ?> | DB: <?php echo htmlspecialchars($data['dbname']); ?></span>
+                <span><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?> | DB: <?php echo htmlspecialchars($data['dbname'], ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
         </div>
 
@@ -50,30 +84,37 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             </div>
             <div class="summary-grid">
                 <div class="summary-card">
+                    <i class="fas fa-users summary-icon"></i>
                     <h3>Total Employees</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['total_employees']); ?></p>
+                    <p><?php echo htmlspecialchars($data['summary']['total_employees'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-briefcase summary-icon"></i>
                     <h3>Active Jobs</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['active_jobs']); ?></p>
+                    <p><?php echo htmlspecialchars($data['summary']['active_jobs'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-diagram-project summary-icon"></i>
                     <h3>Total Projects</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['total_projects']); ?></p>
+                    <p><?php echo htmlspecialchars($data['summary']['total_projects'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-money-bill-wave summary-icon"></i>
                     <h3>Total Expenses</h3>
                     <p><?php echo number_format($data['summary']['total_expenses'], 2); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-credit-card summary-icon"></i>
                     <h3>Total Payments</h3>
                     <p><?php echo number_format($data['summary']['total_payments'], 2); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-calendar-check summary-icon"></i>
                     <h3>Today's Jobs</h3>
-                    <p><?php echo htmlspecialchars($data['summary']['todays_jobs']); ?></p>
+                    <p><?php echo htmlspecialchars($data['summary']['todays_jobs'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="summary-card">
+                    <i class="fas fa-wallet summary-icon"></i>
                     <h3>Today's Expenses</h3>
                     <p><?php echo number_format($data['summary']['todays_expenses'], 2); ?></p>
                 </div>
@@ -86,20 +127,24 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/A2Z-DBMS');
             </div>
             <div class="system-info-grid">
                 <div class="system-info-card">
+                    <i class="fas fa-code system-info-icon"></i>
                     <h3>PHP Version</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['php_version']); ?></p>
+                    <p><?php echo htmlspecialchars($data['system_info']['php_version'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
+                    <i class="fas fa-database system-info-icon"></i>
                     <h3>MySQL Version</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['mysql_version']); ?></p>
+                    <p><?php echo htmlspecialchars($data['system_info']['mysql_version'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
+                    <i class="fas fa-server system-info-icon"></i>
                     <h3>Server Software</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['server_software']); ?></p>
+                    <p><?php echo htmlspecialchars($data['system_info']['server_software'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
                 <div class="system-info-card">
+                    <i class="fas fa-folder system-info-icon"></i>
                     <h3>Database Name</h3>
-                    <p><?php echo htmlspecialchars($data['system_info']['db_name']); ?></p>
+                    <p><?php echo htmlspecialchars($data['system_info']['db_name'], ENT_QUOTES, 'UTF-8'); ?></p>
                 </div>
             </div>
         </div>
