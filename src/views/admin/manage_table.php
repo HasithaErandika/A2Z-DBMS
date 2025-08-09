@@ -212,17 +212,353 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         </div>
     </div>
 
-    <script>
-        window.appConfig = {
-            basePath: "<?php echo BASE_PATH; ?>",
-            tableName: "<?php echo htmlspecialchars($data['table']); ?>",
-            columns: <?php echo json_encode($data['columns']); ?>,
-            primaryKey: "<?php echo $primaryKey; ?>",
-            dateColumns: <?php echo json_encode($dateColumns); ?>
-        };
-    </script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-    <script src="<?php echo BASE_PATH; ?>/src/assets/js/manage_table.js"></script>
+    <script>
+        $(document).ready(function() {
+            var columns = <?php echo json_encode($data['columns']); ?>;
+            var dateColumns = <?php echo json_encode($dateColumns); ?>;
+            var table;
+
+            // Initialize spinner and hide table
+            $('#loading-spinner').show();
+            $('#data-table').hide();
+
+            // Ensure modals are hidden on page load
+            $('#crud-modal').hide();
+            $('#invoice-modal').hide();
+            $('#confirm-modal').hide();
+
+            // Define column definitions for DataTables
+            var columnDefs = [
+                <?php foreach ($data['columns'] as $column): ?>
+                    { 
+                        data: "<?php echo htmlspecialchars($column); ?>",
+                        title: "<?php echo htmlspecialchars($column); ?>",
+                        name: "<?php echo htmlspecialchars($column); ?>"
+                    },
+                <?php endforeach; ?>
+                <?php if ($data['table'] === 'jobs'): ?>
+                    {
+                        data: "completion",
+                        title: "Status",
+                        name: "completion",
+                        render: function(data, type, row) {
+                            return '<select class="status-select" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '">' +
+                                '<option value="0.0" ' + (data == '0.0' ? 'selected' : '') + '>Not Started</option>' +
+                                '<option value="0.1" ' + (data == '0.1' ? 'selected' : '') + '>Cancelled</option>' +
+                                '<option value="0.2" ' + (data == '0.2' ? 'selected' : '') + '>Started</option>' +
+                                '<option value="0.5" ' + (data == '0.5' ? 'selected' : '') + '>Ongoing</option>' +
+                                '<option value="1.0" ' + (data == '1.0' ? 'selected' : '') + '>Completed</option>' +
+                                '</select>';
+                        }
+                    },
+                <?php endif; ?>
+                {
+                    data: null,
+                    title: "Actions",
+                    name: "actions",
+                    render: function(data, type, row) {
+                        var buttons = '<button class="btn btn-primary btn-sm edit-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i></button>' +
+                                      '<button class="btn btn-danger btn-sm delete-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i></button>';
+                        <?php if ($data['table'] === 'jobs'): ?>
+                            if (row.has_invoice) {
+                                buttons += '<button class="btn btn-info btn-sm invoice-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i></button>';
+                            }
+                        <?php endif; ?>
+                        return buttons;
+                    }
+                }
+            ];
+
+            table = $('#data-table').DataTable({
+                paging: true,
+                pageLength: 10,
+                lengthChange: true,
+                lengthMenu: [10, 25, 50, 100],
+                processing: true,
+                serverSide: true,
+                searching: false,
+                scrollX: true,
+                autoWidth: false,
+                order: [[0, 'desc']],
+                ajax: {
+                    url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
+                    type: "POST",
+                    data: function(d) {
+                        var searchValue = $('#searchInput').val();
+                        var isDate = /^\d{4}-\d{2}-\d{2}$/.test(searchValue);
+                        d.action = 'get_records';
+                        d.search = {
+                            value: searchValue,
+                            isDate: isDate
+                        };
+                        d.sortColumn = d.columns[d.order[0].column].name || d.columns[d.order[0].column].data;
+                        d.sortOrder = d.order[0].dir;
+                        d.page = Math.floor(d.start / d.length) + 1;
+                        d.perPage = d.length;
+                    },
+                    beforeSend: function() {
+                        $('#loading-spinner').show();
+                        $('#data-table').hide();
+                    },
+                    complete: function() {
+                        $('#loading-spinner').hide();
+                        $('#data-table').show();
+                        updateRecordCount();
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('DataTable AJAX error:', error, thrown);
+                        $('#loading-spinner').hide();
+                        $('#data-table').show();
+                        $('#record-count').text('Error loading data');
+                    }
+                },
+                columns: columnDefs,
+                drawCallback: function() {
+                    table.columns.adjust();
+                    updateRecordCount();
+                }
+            });
+
+            // Function to update record count display
+            function updateRecordCount() {
+                var info = table.ajax.json() || {};
+                var totalRecords = info.recordsTotal || 0;
+                var filteredRecords = info.recordsFiltered !== undefined ? info.recordsFiltered : totalRecords;
+                var searchValue = $('#searchInput').val();
+                var displayText = totalRecords + ' Records';
+                if (searchValue && filteredRecords !== totalRecords) {
+                    displayText += ' (' + filteredRecords + ' Filtered)';
+                }
+                $('#record-count').text(displayText);
+            }
+
+            // Custom search bar functionality
+            $('#searchInput').on('keyup', function() {
+                var searchValue = $(this).val();
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(searchValue)) {
+                    if (/^\d{2}[-\\/]\d{2}[-\\/]\d{4}$/.test(searchValue)) {
+                        var parts = searchValue.split(/[-\\/]/);
+                        searchValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        $(this).val(searchValue);
+                    }
+                }
+                table.ajax.reload(function() {
+                    updateRecordCount();
+                }, false);
+            });
+
+            // Event delegation for edit button
+            $('#data-table tbody').on('click', '.edit-btn', function() {
+                var id = $(this).data('id');
+                var rowData = table.row($(this).closest('tr')).data();
+                if (rowData) {
+                    openModal('update', id, rowData);
+                }
+            });
+
+            // Event delegation for delete button
+            $('#data-table tbody').on('click', '.delete-btn', function() {
+                var id = $(this).data('id');
+                openConfirmModal('delete', id);
+            });
+
+            // Event delegation for status select
+            $('#data-table tbody').on('change', '.status-select', function() {
+                var id = $(this).data('id');
+                var newStatus = $(this).val();
+                $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
+                    action: 'update_status',
+                    job_id: id,
+                    completion: newStatus
+                }, function(response) {
+                    if (response.success) {
+                        table.ajax.reload();
+                    } else {
+                        alert('Error updating status: ' + (response.error || 'Unknown error'));
+                    }
+                }, 'json').fail(function(xhr, error) {
+                    console.error('Status update error:', error);
+                    alert('Error updating status');
+                });
+            });
+
+            // Event delegation for invoice button
+            $('#data-table tbody').on('click', '.invoice-btn', function() {
+                var id = $(this).data('id');
+                openInvoiceModal(id);
+            });
+
+            // Adjust table on window resize
+            $(window).on('resize', function() {
+                table.columns.adjust();
+            });
+        });
+
+        function openModal(action, id = null, data = null) {
+            $('#crud-modal').show();
+            $('#form-action').val(action);
+            $('#modal-title').text(action === 'create' ? 'Add New Record' : 'Edit Record');
+            if (action === 'create') {
+                $('.primary-key-field').closest('.form-group').hide();
+                $('#crud-form')[0].reset();
+                $('#form-id').val('');
+                $('.btn-option').removeClass('active');
+                $('.nice-dropdown').val('');
+            } else if (action === 'update' && data) {
+                $('.primary-key-field').closest('.form-group').show();
+                $('#form-id').val(id);
+                var dateColumns = <?php echo json_encode($dateColumns); ?>;
+                <?php foreach ($data['columns'] as $column): ?>
+                    if (dateColumns.includes('<?php echo $column; ?>') && data.<?php echo htmlspecialchars($column); ?>) {
+                        let dateValue = data.<?php echo htmlspecialchars($column); ?>;
+                        if (dateValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                            try {
+                                let date = new Date(dateValue);
+                                dateValue = date.toISOString().split('T')[0];
+                            } catch (e) {
+                                dateValue = '';
+                            }
+                        }
+                        $('#<?php echo $column; ?>').val(dateValue || '');
+                    } else {
+                        let value = data.<?php echo htmlspecialchars($column); ?> || '';
+                        $('#<?php echo $column; ?>').val(value);
+                        // Update dropdowns and button groups
+                        var select = document.querySelector(`#crud-form select.nice-dropdown[onchange*="document.getElementById('<?php echo $column; ?>')"]`);
+                        if (select) {
+                            select.value = value;
+                        }
+                        var button = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('<?php echo $column; ?>')"]`);
+                        if (button) {
+                            document.querySelectorAll(`#crud-form .form-group button[onclick*="selectOption('<?php echo $column; ?>')"]`).forEach(btn => btn.classList.remove('active'));
+                            button.classList.add('active');
+                        }
+                    }
+                <?php endforeach; ?>
+            }
+        }
+
+        function closeModal() {
+            $('#crud-modal').hide();
+            $('.primary-key-field').closest('.form-group').show();
+        }
+
+        function selectOption(fieldId, value) {
+            document.getElementById(fieldId).value = value;
+            const buttons = document.querySelectorAll(`#crud-form .form-group button[data-value][onclick*="${fieldId}"]`);
+            buttons.forEach(btn => btn.classList.remove('active'));
+            const selectedButton = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="${fieldId}"]`);
+            if (selectedButton) selectedButton.classList.add('active');
+        }
+
+        function openInvoiceModal(jobId) {
+            $('#invoice-modal').show();
+            $('#invoice-spinner').show();
+            $('#invoice-details').hide();
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
+                action: 'get_invoice_details',
+                job_id: jobId
+            }, function(data) {
+                $('#invoice-spinner').hide();
+                $('#invoice-details').show();
+                $('#invoice-no').text(data.invoice_no || '-');
+                let formatDate = (dateStr) => {
+                    if (!dateStr) return '-';
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        try {
+                            let date = new Date(dateStr);
+                            return date.toISOString().split('T')[0];
+                        } catch (e) {
+                            return dateStr;
+                        }
+                    }
+                    return dateStr;
+                };
+                $('#invoice-date').text(formatDate(data.invoice_date));
+                $('#invoice-value').text(data.invoice_value || '-');
+                $('#invoice-job').text(data.job_details ? data.job_details.details : '-');
+                $('#invoice-receiving').text(data.receiving_payment || '-');
+                $('#invoice-received').text(data.received_amount || '-');
+                $('#invoice-payment-date').text(formatDate(data.payment_received_date));
+                $('#invoice-remarks').text(data.remarks || '-');
+            }, 'json').fail(function(xhr, error) {
+                $('#invoice-spinner').hide();
+                $('#invoice-details').show();
+                alert('Error loading invoice details: ' + error);
+            });
+        }
+
+        function closeInvoiceModal() {
+            $('#invoice-modal').hide();
+        }
+
+        function openConfirmModal(action, id = null) {
+            $('#confirm-modal').show();
+            $('#confirm-title').text(
+                action === 'create' ? 'Confirm Add' :
+                action === 'update' ? 'Confirm Update' :
+                'Confirm Delete'
+            );
+            $('#confirm-message').text(
+                action === 'create' ? 'Are you sure you want to add this new record?' :
+                action === 'update' ? 'Are you sure you want to save changes to this record?' :
+                'Are you sure you want to delete this record? This action cannot be undone.'
+            );
+            
+            $('#confirm-action-btn').off('click').on('click', function() {
+                var formData = $('#crud-form').serialize();
+                if (action === 'create' || action === 'update') {
+                    // Submit create or update via AJAX
+                    $.ajax({
+                        url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
+                        type: 'POST',
+                        data: formData,
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                closeConfirmModal();
+                                closeModal();
+                                table.ajax.reload(function() {
+                                    updateRecordCount();
+                                }, false);
+                                alert(action === 'create' ? 'Record added successfully!' : 'Record updated successfully!');
+                            } else {
+                                alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (response.error || 'Unknown error'));
+                            }
+                        },
+                        error: function(xhr, error) {
+                            console.error((action === 'create' ? 'Create' : 'Update') + ' error:', error);
+                            alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (xhr.responseJSON?.error || 'Server error'));
+                        }
+                    });
+                } else if (action === 'delete') {
+                    // Perform the delete action
+                    $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
+                        action: 'delete',
+                        id: id
+                    }, function(response) {
+                        if (response.success) {
+                            closeConfirmModal();
+                            table.ajax.reload(function() {
+                                updateRecordCount();
+                            }, false);
+                            alert('Record deleted successfully!');
+                        } else {
+                            alert('Error deleting record: ' + (response.error || 'Unknown error'));
+                        }
+                    }, 'json').fail(function(xhr, error) {
+                        console.error('Delete error:', error);
+                        alert('Error deleting record: ' + (xhr.responseJSON?.error || 'Server error'));
+                    });
+                }
+            });
+        }
+
+        function closeConfirmModal() {
+            $('#confirm-modal').hide();
+        }
+    </script>
 </body>
 </html>
