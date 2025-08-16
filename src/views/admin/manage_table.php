@@ -41,7 +41,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         </div>
 
         <div class="search-bar">
-            <input class="search-input" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
+            <input class="search-input" id="searchInput" type="text" placeholder="Search table (e.g., text or YYYY-MM-DD)" aria-label="Search table data">
         </div>
 
         <div class="table-wrapper">
@@ -286,12 +286,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
                     type: "POST",
                     data: function(d) {
-                        var searchValue = $('#searchInput').val().trim();
-                        var searchTerms = searchValue ? searchValue.split(/\s+/) : [];
+                        var searchValue = $('#searchInput').val();
+                        var isDate = /^\d{4}-\d{2}-\d{2}$/.test(searchValue);
                         d.action = 'get_records';
                         d.search = {
-                            terms: searchTerms,
-                            isDate: /^\d{4}-\d{2}-\d{2}$/.test(searchValue)
+                            value: searchValue,
+                            isDate: isDate
                         };
                         d.sortColumn = d.columns[d.order[0].column].name || d.columns[d.order[0].column].data;
                         d.sortOrder = d.order[0].dir;
@@ -318,48 +318,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 drawCallback: function() {
                     table.columns.adjust();
                     updateRecordCount();
-                },
-                initComplete: function() {
-                    // Event delegation for edit button
-                    $('#data-table tbody').on('click', '.edit-btn', function() {
-                        var id = $(this).data('id');
-                        var rowData = table.row($(this).closest('tr')).data();
-                        if (rowData) {
-                            openModal('update', id, rowData);
-                        }
-                    });
-
-                    // Event delegation for delete button
-                    $('#data-table tbody').on('click', '.delete-btn', function() {
-                        var id = $(this).data('id');
-                        openConfirmModal('delete', id);
-                    });
-
-                    // Event delegation for status select
-                    $('#data-table tbody').on('change', '.status-select', function() {
-                        var id = $(this).data('id');
-                        var newStatus = $(this).val();
-                        $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
-                            action: 'update_status',
-                            job_id: id,
-                            completion: newStatus
-                        }, function(response) {
-                            if (response.success) {
-                                table.ajax.reload();
-                            } else {
-                                alert('Error updating status: ' + (response.error || 'Unknown error'));
-                            }
-                        }, 'json').fail(function(xhr, error) {
-                            console.error('Status update error:', error);
-                            alert('Error updating status');
-                        });
-                    });
-
-                    // Event delegation for invoice button
-                    $('#data-table tbody').on('click', '.invoice-btn', function() {
-                        var id = $(this).data('id');
-                        openInvoiceModal(id);
-                    });
                 }
             });
 
@@ -377,20 +335,59 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             }
 
             // Custom search bar functionality
-            $('#searchInput').on('keyup', function(e) {
-                var searchValue = $(this).val().trim();
-                // Normalize date formats (e.g., DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD)
-                if (/^\d{2}[-\\/]\d{2}[-\\/]\d{4}$/.test(searchValue)) {
-                    var parts = searchValue.split(/[-\\/]/);
-                    searchValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    $(this).val(searchValue);
+            $('#searchInput').on('keyup', function() {
+                var searchValue = $(this).val();
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(searchValue)) {
+                    if (/^\d{2}[-\\/]\d{2}[-\\/]\d{4}$/.test(searchValue)) {
+                        var parts = searchValue.split(/[-\\/]/);
+                        searchValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        $(this).val(searchValue);
+                    }
                 }
-                // Trigger search on Enter key or after typing delay
-                if (e.key === 'Enter' || searchValue.length >= 3 || searchValue === '') {
-                    table.ajax.reload(function() {
-                        updateRecordCount();
-                    }, false);
+                table.ajax.reload(function() {
+                    updateRecordCount();
+                }, false);
+            });
+
+            // Event delegation for edit button
+            $('#data-table tbody').on('click', '.edit-btn', function() {
+                var id = $(this).data('id');
+                var rowData = table.row($(this).closest('tr')).data();
+                if (rowData) {
+                    openModal('update', id, rowData);
                 }
+            });
+
+            // Event delegation for delete button
+            $('#data-table tbody').on('click', '.delete-btn', function() {
+                var id = $(this).data('id');
+                openConfirmModal('delete', id);
+            });
+
+            // Event delegation for status select
+            $('#data-table tbody').on('change', '.status-select', function() {
+                var id = $(this).data('id');
+                var newStatus = $(this).val();
+                $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
+                    action: 'update_status',
+                    job_id: id,
+                    completion: newStatus
+                }, function(response) {
+                    if (response.success) {
+                        table.ajax.reload();
+                    } else {
+                        alert('Error updating status: ' + (response.error || 'Unknown error'));
+                    }
+                }, 'json').fail(function(xhr, error) {
+                    console.error('Status update error:', error);
+                    alert('Error updating status');
+                });
+            });
+
+            // Event delegation for invoice button
+            $('#data-table tbody').on('click', '.invoice-btn', function() {
+                var id = $(this).data('id');
+                openInvoiceModal(id);
             });
 
             // Adjust table on window resize
@@ -400,11 +397,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         });
 
         function openModal(action, id = null, data = null) {
-            if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying modal open');
-                setTimeout(() => openModal(action, id, data), 100);
-                return;
-            }
             $('#crud-modal').show();
             $('#form-action').val(action);
             $('#modal-title').text(action === 'create' ? 'Add New Record' : 'Edit Record');
@@ -462,11 +454,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
 
         function openInvoiceModal(jobId) {
-            if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying invoice modal open');
-                setTimeout(() => openInvoiceModal(jobId), 100);
-                return;
-            }
             $('#invoice-modal').show();
             $('#invoice-spinner').show();
             $('#invoice-details').hide();
@@ -508,11 +495,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
 
         function openConfirmModal(action, id = null) {
-            if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying confirm modal open');
-                setTimeout(() => openConfirmModal(action, id), 100);
-                return;
-            }
             $('#confirm-modal').show();
             $('#confirm-title').text(
                 action === 'create' ? 'Confirm Add' :
