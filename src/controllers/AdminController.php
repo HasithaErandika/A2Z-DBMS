@@ -127,7 +127,7 @@ class AdminController extends Controller {
         $this->render('admin/reports', $data);
     }
 
-   public function manageTable($table) {
+    public function manageTable($table) {
         if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
             header("Location: " . FULL_BASE_URL . "/login");
             exit;
@@ -152,14 +152,14 @@ class AdminController extends Controller {
             $idColumn = $this->tableManager->getPrimaryKey($table);
 
             if ($action === 'get_records') {
-                $searchTerms = isset($_POST['search']['terms']) && is_array($_POST['search']['terms']) ? array_map('trim', $_POST['search']['terms']) : [];
+                $searchTerm = $_POST['search']['value'] ?? '';
                 $sortColumn = $_POST['sortColumn'] ?? '';
                 $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
                 $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
                 $perPage = isset($_POST['perPage']) ? (int)$_POST['perPage'] : 10;
 
                 try {
-                    $result = $this->tableManager->fetchRecords($table, $page, $perPage, $searchTerms, $sortColumn, $sortOrder, true, false);
+                    $result = $this->tableManager->fetchRecords($table, $page, $perPage, $searchTerm, $sortColumn, $sortOrder, true, false);
                     header('Content-Type: application/json');
                     echo json_encode($result);
                 } catch (Exception $e) {
@@ -255,8 +255,8 @@ class AdminController extends Controller {
         }
 
         // Fetch records for initial page load
-        $searchTerms = isset($_GET['search']) ? array_map('trim', explode(' ', $_GET['search'])) : [];
-        $result = $this->tableManager->fetchRecords($table, 1, 0, $searchTerms, '', 'DESC', false, false);
+        $searchTerm = $_GET['search'] ?? '';
+        $result = $this->tableManager->fetchRecords($table, 1, 0, $searchTerm, '', 'DESC', false, false);
 
         $data = [
             'table' => $table,
@@ -277,7 +277,6 @@ class AdminController extends Controller {
 
         $this->render('admin/manage_table', $data);
     }
-
 
     public function wagesReport() {
         if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
