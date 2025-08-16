@@ -35,8 +35,7 @@ class TableManager extends Model {
                 'emp_name' => ['required'],
                 'emp_nic' => ['required']
             ],
-            'searchFields' => ['emp_name', 'emp_nic', 'designation'],
-            'dateField' => 'date_of_joined'
+            'searchFields' => ['emp_name', 'emp_nic', 'designation']
         ],
         'employee_bank_details' => [
             'editableFields' => ['emp_id', 'job_id', 'emp_name', 'acc_no', 'bank', 'branch'],
@@ -48,8 +47,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['emp_name', 'acc_no', 'bank', 'job_id'],
-            'dateField' => null
+            'searchFields' => ['emp_name', 'acc_no', 'bank', 'job_id']
         ],
         'projects' => [
             'editableFields' => ['emp_id', 'job_id', 'project_description', 'company_reference', 'remarks'],
@@ -61,8 +59,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['project_description', 'company_reference', 'job_id'],
-            'dateField' => null
+            'searchFields' => ['project_description', 'company_reference', 'job_id']
         ],
         'jobs' => [
             'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
@@ -75,7 +72,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'completion' => 'getCompletionStatus'
             ],
-            'searchFields' => ['engineer', 'location', 'customer_reference', 'date_started', 'job_capacity'],
+            'searchFields' => ['engineer', 'location', 'customer_reference'],
             'dateField' => 'date_started'
         ],
         'operational_expenses' => [
@@ -89,7 +86,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'expense_amount', 'job_id'],
+            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'job_id'],
             'dateField' => 'expensed_date'
         ],
         'invoice_data' => [
@@ -101,7 +98,7 @@ class TableManager extends Model {
             'formatters' => [
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['invoice_no', 'invoice_date', 'job_id', 'invoice_value'],
+            'searchFields' => ['invoice_no', 'invoice_date', 'job_id'],
             'dateField' => 'invoice_date'
         ],
         'employee_payments' => [
@@ -114,7 +111,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['payment_date', 'payment_type', 'job_id', 'paid_amount'],
+            'searchFields' => ['payment_date', 'payment_type', 'job_id'],
             'dateField' => 'payment_date'
         ],
         'salary_increments' => [
@@ -127,7 +124,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['increment_type', 'increment_date', 'job_id', 'increment_amount'],
+            'searchFields' => ['increment_type', 'increment_date', 'job_id'],
             'dateField' => 'increment_date'
         ],
         'employee_payment_rates' => [
@@ -142,7 +139,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'rate_amount' => 'formatCurrency'
             ],
-            'searchFields' => ['rate_type', 'effective_date', 'rate_amount'],
+            'searchFields' => ['rate_type', 'effective_date'],
             'dateField' => 'effective_date'
         ],
         'cash_hand' => [
@@ -159,7 +156,7 @@ class TableManager extends Model {
                 'amount' => 'formatCurrency',
                 'transaction_type' => 'getTransactionTypeDisplay'
             ],
-            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type', 'amount'],
+            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type'],
             'dateField' => 'txn_date'
         ],
     ];
@@ -288,7 +285,7 @@ class TableManager extends Model {
         }
     }
 
-    public function fetchRecords($table, $page = 1, $perPage = 10, $searchTerms = [], $sortColumn = '', $sortOrder = 'DESC', $dataTablesFormat = true, $dataOnly = false) {
+    public function fetchRecords($table, $page = 1, $perPage = 10, $searchTerm = '', $sortColumn = '', $sortOrder = 'DESC', $dataTablesFormat = true, $dataOnly = false) {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -312,39 +309,20 @@ class TableManager extends Model {
             $sql .= " FROM `$table`";
             $countSql = "SELECT COUNT(*) FROM `$table`";
             $params = [];
-            $conditions = [];
 
-            if (!empty($searchTerms)) {
+            if (!empty($searchTerm)) {
                 $searchFields = $config['searchFields'] ?? $allColumns;
-                foreach ($searchTerms as $index => $term) {
-                    $term = trim($term);
-                    if ($term === '') continue;
-
-                    $termConditions = [];
-                    foreach ($searchFields as $fieldIndex => $col) {
-                        $paramName = ":search{$index}_{$fieldIndex}";
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
-                            // Numeric search for exact match
-                            $termConditions[] = "`$col` = $paramName";
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && in_array($col, [$dateField])) {
-                            // Date search
-                            $termConditions[] = "`$col` = $paramName";
-                        } else {
-                            // Text search with LIKE
-                            $termConditions[] = "`$col` LIKE $paramName";
-                            $term = "%{$term}%";
-                        }
-                        $params[$paramName] = $term;
-                    }
-                    if (!empty($termConditions)) {
-                        $conditions[] = '(' . implode(' OR ', $termConditions) . ')';
-                    }
+                $searchTerm = "%" . trim($searchTerm) . "%";
+                $conditions = [];
+                $searchParams = [];
+                foreach ($searchFields as $index => $col) {
+                    $paramName = ":search$index";
+                    $conditions[] = "`$col` LIKE $paramName";
+                    $searchParams[$paramName] = $searchTerm;
                 }
-            }
-
-            if (!empty($conditions)) {
-                $sql .= " WHERE " . implode(' AND ', $conditions);
-                $countSql .= " WHERE " . implode(' AND ', $conditions);
+                $sql .= " WHERE " . implode(' OR ', $conditions);
+                $countSql .= " WHERE " . implode(' OR ', $conditions);
+                $params = $searchParams;
             }
 
             if ($sortColumn && in_array($sortColumn, $allColumns)) {
@@ -382,7 +360,7 @@ class TableManager extends Model {
 
             $data = $this->applyFormatters($data, $table, $allColumns);
 
-            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage, searchTerms: " . json_encode($searchTerms));
+            error_log("Fetched " . count($data) . " records for $table, page $page, perPage $perPage, searchTerm: $searchTerm");
 
             if ($dataOnly) {
                 return $data;
@@ -949,9 +927,9 @@ class TableManager extends Model {
                 if ($rule === 'required' && (!isset($data[$field]) || $data[$field] === '')) {
                     $errors[] = "Field $field is required for $table";
                 } elseif (strpos($rule, 'in:') === 0 && isset($data[$field]) && $data[$field] !== '') {
-                    $allowedValues = explode(',', substr($rule, 3));
-                    if (!in_array($data[$field], $allowedValues)) {
-                        $errors[] = "Field $field in $table must be one of: " . implode(', ', $allowedValues);
+                    $allowed = explode(',', substr($rule, 3));
+                    if (!in_array($data[$field], $allowed)) {
+                        $errors[] = "Field $field must be one of: " . implode(', ', $allowed);
                     }
                 }
             }
@@ -961,4 +939,3 @@ class TableManager extends Model {
         }
     }
 }
-?>
