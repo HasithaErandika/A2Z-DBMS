@@ -13,7 +13,7 @@ if (!defined('FULL_BASE_URL')) {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/cost_calculation.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/wages_report.css', ENT_QUOTES, 'UTF-8'); ?>">
     <style>
         .details ul {
             list-style-type: none;
