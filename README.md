@@ -7,7 +7,7 @@ A comprehensive database management system built with PHP, featuring user authen
 - Secure user authentication system
 - Role-based access control
 - Table management interface
-- Report generation
+- Report generation (Cost Calculation, Expenses, Wages)
 - Modern and responsive UI
 - Secure database operations using PDO
 
@@ -25,14 +25,14 @@ A comprehensive database management system built with PHP, featuring user authen
 git clone https://github.com/yourusername/A2Z-DBMS.git
 ```
 
-2. Configure your web server to point to the `public` directory.
+2. Configure your web server to point to the project root directory.
 
 3. Create a MySQL database and import the schema:
 ```bash
-mysql -u your_username -p your_database < database/schema.sql
+mysql -u your_username -p your_database < database/str.sql
 ```
 
-4. Update the database configuration in `config/database.php`:
+4. Update the database configuration in `src/config/database.php`:
 ```php
 define('DB_HOST', 'your_host');
 define('DB_NAME', 'your_database');
@@ -40,10 +40,7 @@ define('DB_USER', 'your_username');
 define('DB_PASS', 'your_password');
 ```
 
-5. Set up the application URL in `config/settings.php`:
-```php
-define('APP_URL', 'http://your-domain.com/A2Z-DBMS');
-```
+5. Ensure your web server is configured to serve from the project root directory.
 
 ## Directory Structure
 
@@ -51,44 +48,58 @@ define('APP_URL', 'http://your-domain.com/A2Z-DBMS');
 A2Z-DBMS/
 ├── index.php              # Main entry point with routing
 ├── database/
-│   └── setup.sql         # Database structure
+│   └── str.sql           # Database structure
 ├── src/
-│   ├── assets/     # Styling and js
-│   │   ├── css  # CSS
-│   │   │   ├── adminDashboard.css
+│   ├── assets/           # Styling and JavaScript
+│   │   ├── css/          # CSS files
+│   │   │   ├── cost_calculation.css
+│   │   │   ├── dashboard.css
+│   │   │   ├── error.css
+│   │   │   ├── expenses_report.css
 │   │   │   ├── index.css
 │   │   │   ├── login.css
 │   │   │   ├── manage_table.css
-│   │   │   ├── records.css
+│   │   │   ├── reports.css
 │   │   │   ├── tables.css
-│   │   ├── images # image files
-│   │   ├── js  # javascript
-│   ├── core/            # Core framework classes
-│   │   ├── Model.php    # Base Model class
-│   │   └── Controller.php # Base Controller class
-│   │   └── Database.php # Database class
-│   ├── models/          # Database models
-│   │   ├── ReportManager.php    # Base Model class
-│   │   ├── TableManager.php    # Base Model class
-│   │   └── User.php     # User model
-│   ├── controllers/     # Controllers
-│   │   ├── AuthController.php # Authentication controller
+│   │   │   └── wages_report.css
+│   │   ├── images/       # Image files
+│   │   │   ├── logo.png
+│   │   │   └── longLogoB.png
+│   │   └── js/           # JavaScript files
+│   │       └── manage_table.js
+│   ├── core/             # Core framework classes
+│   │   ├── Controller.php # Base Controller class
+│   │   ├── Database.php  # Database connection class
+│   │   └── Model.php     # Base Model class
+│   ├── models/           # Database models
+│   │   ├── ReportManager.php # Report management model
+│   │   ├── TableManager.php  # Table management model
+│   │   └── User.php      # User model
+│   ├── controllers/      # Controllers
 │   │   ├── AdminController.php # Admin controller
-│   │   └── HomeController.php # Home controller
-│   │   └── ErrorController.php # Error Controller 
-│   ├── views/          # View templates
-│   │   ├── reports/    # report page
-│   │   │   ├── cost_calculation.php.php
-│   │   ├── errors/    # error page
-│   │   │   ├── error.php
-│   │   ├── auth/       # Authentication views
+│   │   ├── AuthController.php  # Authentication controller
+│   │   ├── ErrorController.php # Error handling controller
+│   │   └── HomeController.php  # Home controller
+│   ├── views/            # View templates
+│   │   ├── admin/        # Admin views
+│   │   │   ├── dashboard.php
+│   │   │   ├── manage_table.php
+│   │   │   ├── reports.php
+│   │   │   └── tables.php
+│   │   ├── auth/         # Authentication views
 │   │   │   └── login.php
-│   │   ├── admin/      # Admin views
-│   │   │   └── dashboard.php
-│   │   └── home/       # Home views
-│   │       └── index.php
-│   └── config/         # Configuration files
-│       └── database.php # Database connection
+│   │   ├── errors/       # Error pages
+│   │   │   └── error.php
+│   │   ├── home/         # Home views
+│   │   │   └── index.php
+│   │   ├── layouts/      # Layout templates
+│   │   ├── partials/     # Partial view components
+│   │   └── reports/      # Report views
+│   │       ├── cost_calculation.php
+│   │       ├── expenses_report.php
+│   │       └── wages_report.php
+│   └── config/           # Configuration files
+│       └── database.php  # Database connection settings
 ```
 
 ## Security Features
