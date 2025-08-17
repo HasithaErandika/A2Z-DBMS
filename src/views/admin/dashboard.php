@@ -195,79 +195,165 @@ if (!isset($data) || !is_array($data)) {
             </div>
             
             <div class="summary-grid">
-                <div class="summary-card primary">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="card-badge">Total</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value"><?php echo $totalEmployees; ?></div>
-                        <div class="metric-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+12 this month</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="#" class="view-details">View All Employees <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <div class="summary-card success">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-project-diagram"></i>
-                        </div>
-                        <div class="card-badge">Active</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value"><?php echo $activeProjects; ?></div>
-                        <div class="metric-change positive">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>+3 this week</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="#" class="view-details">View All Projects <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <div class="summary-card warning">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="card-badge">Pending</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value"><?php echo $pendingTasks; ?></div>
-                        <div class="metric-change negative">
-                            <i class="fas fa-arrow-down"></i>
-                            <span>-5 today</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="#" class="view-details">View Pending Tasks <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
-                <div class="summary-card info">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="card-badge">Storage</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-value"><?php echo $storageUsed; ?>%</div>
-                        <div class="metric-change neutral">
-                            <i class="fas fa-minus"></i>
-                            <span>No change</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <a href="#" class="view-details">Storage Details <i class="fas fa-arrow-right"></i></a>
-                    </div>
-                </div>
+    <!-- Total Employees -->
+    <div class="summary-card primary">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-users"></i>
             </div>
+            <div class="card-badge">Employees</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                <?php echo htmlspecialchars($data['summary']['total_employees'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <?php if (isset($data['summary']['employees_change'])): ?>
+                <div class="metric-change 
+                    <?php echo $data['summary']['employees_change'] > 0 ? 'positive' : ($data['summary']['employees_change'] < 0 ? 'negative' : 'neutral'); ?>">
+                    <i class="fas 
+                        <?php echo $data['summary']['employees_change'] > 0 ? 'fa-arrow-up' : ($data['summary']['employees_change'] < 0 ? 'fa-arrow-down' : 'fa-minus'); ?>">
+                    </i>
+                    <span>
+                        <?php 
+                            if ($data['summary']['employees_change'] > 0) echo '+' . $data['summary']['employees_change'] . ' this month';
+                            elseif ($data['summary']['employees_change'] < 0) echo $data['summary']['employees_change'] . ' this month';
+                            else echo 'No change';
+                        ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/employees" class="view-details">View All Employees <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Active Jobs -->
+    <div class="summary-card success">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <div class="card-badge">Active Jobs</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                <?php echo htmlspecialchars($data['summary']['active_jobs'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+            <?php if (isset($data['summary']['jobs_change'])): ?>
+                <div class="metric-change 
+                    <?php echo $data['summary']['jobs_change'] > 0 ? 'positive' : ($data['summary']['jobs_change'] < 0 ? 'negative' : 'neutral'); ?>">
+                    <i class="fas 
+                        <?php echo $data['summary']['jobs_change'] > 0 ? 'fa-arrow-up' : ($data['summary']['jobs_change'] < 0 ? 'fa-arrow-down' : 'fa-minus'); ?>">
+                    </i>
+                    <span>
+                        <?php 
+                            if ($data['summary']['jobs_change'] > 0) echo '+' . $data['summary']['jobs_change'] . ' this week';
+                            elseif ($data['summary']['jobs_change'] < 0) echo $data['summary']['jobs_change'] . ' this week';
+                            else echo 'No change';
+                        ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/jobs" class="view-details">View All Jobs <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Total Projects -->
+    <div class="summary-card primary">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="card-badge">Projects</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                <?php echo htmlspecialchars($data['summary']['total_projects'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/projects" class="view-details">View All Projects <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Total Expenses -->
+    <div class="summary-card warning">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="card-badge">Expenses</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                LKR <?php echo number_format($data['summary']['total_expenses'], 2); ?>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/operational_expenses" class="view-details">View Expense Report <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Total Payments -->
+    <div class="summary-card success">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="card-badge">Invoice Data</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                LKR <?php echo number_format($data['summary']['total_payments'], 2); ?>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/invoice_data" class="view-details">View Payment Records <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Today's Jobs -->
+    <div class="summary-card info">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="card-badge">Today’s Jobs</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                <?php echo htmlspecialchars($data['summary']['todays_jobs'], ENT_QUOTES, 'UTF-8'); ?>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/jobs" class="view-details">View Today’s Jobs <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <!-- Today's Expenses -->
+    <div class="summary-card danger">
+        <div class="card-header">
+            <div class="card-icon">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="card-badge">Today’s Expenses</div>
+        </div>
+        <div class="card-body">
+            <div class="metric-value">
+                LKR <?php echo number_format($data['summary']['todays_expenses'], 2); ?>
+            </div>
+        </div>
+        <div class="card-footer">
+            <a href="manageTable/operational_expenses" class="view-details">View Today’s Expenses <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+</div>
+
+
+
         </div>
 
         <!-- Enhanced System Information -->

@@ -766,10 +766,23 @@ body {
         width: 80px;
         padding: var(--spacing) 12px;
     }
+    .sidebar-title {
+        font-size: var(--font-xl);
+        font-weight: 600;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
     
-    .sidebar .sidebar-text,
-    .sidebar .sidebar-title,
-    .sidebar .sidebar-subtitle {
+    .sidebar-subtitle {
+        font-size: var(--font-sm);
+        color: var(--text-muted);
+        margin-top: -5px;
+    }
+    
+    .sidebar .sidebar-text
+     {
         display: none;
     }
     
