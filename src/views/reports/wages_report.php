@@ -14,34 +14,7 @@ if (!defined('FULL_BASE_URL')) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/wages_report.css', ENT_QUOTES, 'UTF-8'); ?>">
-    <style>
-        .details ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        .details ul li {
-            margin-bottom: 0.5rem;
-        }
-        .details {
-            display: none;
-        }
-        .collapsible.active + .details {
-            display: block;
-        }
-        .percentage-panel {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-        .percentage-panel p {
-            margin: 0.25rem 0;
-        }
-        .table-card + .table-card {
-            margin-top: 2rem;
-        }
-    </style>
+          
 </head>
 <body>
     <div class="container">
