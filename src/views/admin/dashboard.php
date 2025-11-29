@@ -43,444 +43,336 @@ if (!isset($data) || !is_array($data)) {
     <title>A2Z Engineering - DBMS Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/dashboard.css">
+    <link href="<?php echo BASE_PATH; ?>/src/assets/css/tailwind.css" rel="stylesheet">
 </head>
-<body>
+<body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
     <!-- Enhanced Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fas fa-database"></i>
-                <div class="logo-glow"></div>
+    <div class="sidebar bg-white w-64 h-screen fixed left-0 top-0 shadow-xl z-50 flex flex-col transition-all duration-300" id="sidebar">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center space-x-3 mb-2">
+                <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-database text-white text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-lg bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">A2Z Engineering</h2>
+                    <p class="text-xs text-gray-500">Internal Database System</p>
+                </div>
             </div>
-            <h2 class="sidebar-title">A2Z Engineering</h2>
-            <p class="sidebar-subtitle">Internal Database System</p>
         </div>
         
-        <nav class="sidebar-nav">
-            <ul class="sidebar-menu">
-                <li class="menu-item">
-                    <a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="menu-link active">
-                        <i class="fas fa-tachometer-alt menu-icon"></i>
-                        <span class="menu-text">Dashboard</span>
-                        <span class="menu-indicator"></span>
+        <nav class="flex-1 py-4">
+            <ul class="space-y-1 px-4">
+                <li>
+                    <a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-br from-blue-900 to-blue-500 text-white border-l-4 border-blue-700">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
                     </a>
                 </li>
-                <li class="menu-item">
-                    <a href="<?php echo BASE_PATH; ?>/admin/tables" class="menu-link">
-                        <i class="fas fa-table menu-icon"></i>
-                        <span class="menu-text">Data Tables</span>
-                        <span class="menu-indicator"></span>
+                <li>
+                    <a href="<?php echo BASE_PATH; ?>/admin/tables" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-table"></i>
+                        <span>Data Tables</span>
                     </a>
                 </li>
-                <!-- <li class="menu-item">
-                    <a href="<?php echo BASE_PATH; ?>/admin/manage_table" class="menu-link">
-                        <i class="fas fa-edit menu-icon"></i>
-                        <span class="menu-text">Manage Data</span>
-                        <span class="menu-indicator"></span>
-                    </a>
-                </li> -->
-                <li class="menu-item">
-                    <a href="<?php echo BASE_PATH; ?>/admin/reports" class="menu-link">
-                        <i class="fas fa-chart-bar menu-icon"></i>
-                        <span class="menu-text">Reports</span>
-                        <span class="menu-indicator"></span>
+                <li>
+                    <a href="<?php echo BASE_PATH; ?>/admin/reports" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
                     </a>
                 </li>
-                <li class="menu-divider"></li>
-                <li class="menu-item">
-                    <a href="#" class="menu-link">
-                        <i class="fas fa-cog menu-icon"></i>
-                        <span class="menu-text">Settings</span>
-                        <span class="menu-indicator"></span>
-                    </a>
-                </li>
-                <li class="menu-divider"></li>
-                <li class="menu-item">
-                    <a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="menu-link logout-link">
-                        <div class="menu-icon">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <span class="menu-text">Logout</span>
-                        <div class="menu-indicator"></div>
+                <li class="mt-8">
+                    <a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </a>
                 </li>
             </ul>
         </nav>
-
-        <div class="sidebar-footer">
-            <div class="system-status">
-                <div class="status-indicator online"></div>
-                <span>System Online</span>
-            </div>
-        </div>
     </div>
 
     <!-- Enhanced Main Container -->
-    <div class="container" id="container">
+    <div class="ml-64 transition-all duration-300" id="container">
         <!-- Enhanced Dashboard Header -->
-        <div class="dashboard-header">
-            <div class="header-left">
-                <button class="btn btn-toggle" onclick="toggleSidebar()">
+        <div class="bg-gradient-to-br from-blue-900 to-blue-500 p-8 rounded-b-xl shadow-2xl flex items-center justify-between mb-10 text-white relative overflow-hidden">
+            <div class="flex items-center space-x-4 z-10">
+                <button class="lg:hidden btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
+                <!-- Custom Design Element -->
+                <div class="relative">
+                    <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
+                        <div class="bg-white bg-opacity-30 rounded-full w-8 h-8 flex items-center justify-center">
+                            <i class="fas fa-database text-white text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="absolute -top-1 -right-1 bg-yellow-400 rounded-full w-5 h-5 flex items-center justify-center shadow">
+                        <i class="fas fa-users text-white text-xs"></i>
+                    </div>
+                </div>
                 <div>
-                    <h1 class="header-title">System Dashboard</h1>
-                    <p class="header-subtitle">Internal Database Management Overview</p>
+                    <h1 class="text-3xl font-semibold">System Dashboard</h1>
+                    <p class="text-blue-100 mt-1">Internal Database Management Overview</p>
                 </div>
             </div>
             
-            <div class="header-right">
-                <div class="header-actions">
-                    <button class="action-btn" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-badge">3</span>
-                    </button>
-                    <button class="action-btn" title="Quick Actions">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="action-btn" title="Search">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                
-                <div class="user-info">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-circle"></i>
-                    </div>
-                    <div class="user-details">
-                        <div class="user-name"><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?></div>
-                        <div class="user-role">Database: <?php echo htmlspecialchars($data['dbname'], ENT_QUOTES, 'UTF-8'); ?></div>
-                    </div>
-                    <div class="user-menu-toggle">
-                        <i class="fas fa-chevron-down"></i>
+            <div class="flex items-center space-x-4 z-10">
+                <div class="hidden md:flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                    <i class="fas fa-user-circle text-xl"></i>
+                    <div>
+                        <div class="font-medium text-sm"><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="text-xs text-blue-100">Database: <?php echo htmlspecialchars($data['dbname'], ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Enhanced DateTime Display -->
-        <div class="datetime-display">
-            <div class="datetime-card">
-                <div class="datetime-icon">
-                    <i class="fas fa-clock"></i>
+        <div class="px-8 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl flex items-center space-x-4 max-w-md">
+                <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center text-white">
+                    <i class="fas fa-clock text-xl"></i>
                 </div>
-                <div class="datetime-content">
-                    <div class="current-date" id="currentDate"><?php echo date('l, F j, Y'); ?></div>
-                    <div class="current-time" id="currentTime"><?php echo date('H:i:s'); ?></div>
+                <div>
+                    <div class="text-gray-500 text-sm" id="currentDate"><?php echo date('l, F j, Y'); ?></div>
+                    <div class="text-2xl font-bold text-gray-900" id="currentTime"><?php echo date('H:i:s'); ?></div>
+                </div>
+                <!-- Custom Design Element Next to Clock -->
+                <div class="relative">
+                    <div class="bg-gradient-to-br from-green-500 to-teal-600 rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
+                        <div class="bg-white bg-opacity-30 rounded-full w-8 h-8 flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-1 -left-1 bg-purple-500 rounded-full w-5 h-5 flex items-center justify-center shadow">
+                        <i class="fas fa-cog text-white text-xs"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Enhanced Summary Overview -->
-        <div class="main-content">
-            <div class="section-header">
-                <div class="section-title">
-                    <i class="fas fa-chart-pie"></i>
-                    <div>
-                        <h2>System Overview</h2>
-                        <p>Key metrics and performance indicators</p>
+        <div class="px-8 mb-10">
+            <div class="bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl mb-8">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                        <i class="fas fa-chart-pie text-blue-600 text-xl"></i>
+                        <div>
+                            <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">System Overview</h2>
+                            <p class="text-gray-500 text-sm">Key metrics and performance indicators</p>
+                        </div>
                     </div>
                 </div>
-                <div class="section-actions">
-                    <button class="btn btn-outline">
-                        <i class="fas fa-download"></i>
-                        Export Report
-                    </button>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        Add Record
-                    </button>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Total Employees -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-users text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Employees</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            <?php echo htmlspecialchars($data['summary']['total_employees'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/employees" class="text-blue-600 text-sm font-medium flex items-center mt-3 hover:text-blue-800 transition-colors">
+                            View All Employees <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Active Jobs -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-green-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-green-100 p-3 rounded-lg text-green-600">
+                                <i class="fas fa-project-diagram text-xl"></i>
+                            </div>
+                            <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Active Jobs</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            <?php echo htmlspecialchars($data['summary']['active_jobs'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/jobs" class="text-green-600 text-sm font-medium flex items-center mt-3 hover:text-green-800 transition-colors">
+                            View All Jobs <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Total Projects -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-tasks text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Projects</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            <?php echo htmlspecialchars($data['summary']['total_projects'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/projects" class="text-blue-600 text-sm font-medium flex items-center mt-3 hover:text-blue-800 transition-colors">
+                            View All Projects <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Total Expenses -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-amber-100 p-3 rounded-lg text-amber-600">
+                                <i class="fas fa-money-bill-wave text-xl"></i>
+                            </div>
+                            <span class="bg-amber-500 text-white text-xs px-2 py-1 rounded-full">Expenses</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            LKR <?php echo number_format($data['summary']['total_expenses'], 2); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/operational_expenses" class="text-amber-600 text-sm font-medium flex items-center mt-3 hover:text-amber-800 transition-colors">
+                            View Expense Report <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Total Payments -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-green-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-green-100 p-3 rounded-lg text-green-600">
+                                <i class="fas fa-credit-card text-xl"></i>
+                            </div>
+                            <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Invoice Data</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            LKR <?php echo number_format($data['summary']['total_payments'], 2); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/invoice_data" class="text-green-600 text-sm font-medium flex items-center mt-3 hover:text-green-800 transition-colors">
+                            View Payment Records <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Today's Jobs -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-indigo-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-indigo-100 p-3 rounded-lg text-indigo-600">
+                                <i class="fas fa-briefcase text-xl"></i>
+                            </div>
+                            <span class="bg-indigo-500 text-white text-xs px-2 py-1 rounded-full">Today's Jobs</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            <?php echo htmlspecialchars($data['summary']['todays_jobs'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/jobs" class="text-indigo-600 text-sm font-medium flex items-center mt-3 hover:text-indigo-800 transition-colors">
+                            View Today's Jobs <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+
+                    <!-- Today's Expenses -->
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-red-100 p-3 rounded-lg text-red-600">
+                                <i class="fas fa-receipt text-xl"></i>
+                            </div>
+                            <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">Today's Expenses</span>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            LKR <?php echo number_format($data['summary']['todays_expenses'], 2); ?>
+                        </div>
+                        <a href="<?php echo BASE_PATH; ?>/manageTable/operational_expenses" class="text-red-600 text-sm font-medium flex items-center mt-3 hover:text-red-800 transition-colors">
+                            View Today's Expenses <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
-            
-            <div class="summary-grid">
-    <!-- Total Employees -->
-    <div class="summary-card primary">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="card-badge">Employees</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                <?php echo htmlspecialchars($data['summary']['total_employees'], ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-            <?php if (isset($data['summary']['employees_change'])): ?>
-                <div class="metric-change 
-                    <?php echo $data['summary']['employees_change'] > 0 ? 'positive' : ($data['summary']['employees_change'] < 0 ? 'negative' : 'neutral'); ?>">
-                    <i class="fas 
-                        <?php echo $data['summary']['employees_change'] > 0 ? 'fa-arrow-up' : ($data['summary']['employees_change'] < 0 ? 'fa-arrow-down' : 'fa-minus'); ?>">
-                    </i>
-                    <span>
-                        <?php 
-                            if ($data['summary']['employees_change'] > 0) echo '+' . $data['summary']['employees_change'] . ' this month';
-                            elseif ($data['summary']['employees_change'] < 0) echo $data['summary']['employees_change'] . ' this month';
-                            else echo 'No change';
-                        ?>
-                    </span>
-                </div>
-            <?php endif; ?>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/employees" class="view-details">View All Employees <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Active Jobs -->
-    <div class="summary-card success">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-project-diagram"></i>
-            </div>
-            <div class="card-badge">Active Jobs</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                <?php echo htmlspecialchars($data['summary']['active_jobs'], ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-            <?php if (isset($data['summary']['jobs_change'])): ?>
-                <div class="metric-change 
-                    <?php echo $data['summary']['jobs_change'] > 0 ? 'positive' : ($data['summary']['jobs_change'] < 0 ? 'negative' : 'neutral'); ?>">
-                    <i class="fas 
-                        <?php echo $data['summary']['jobs_change'] > 0 ? 'fa-arrow-up' : ($data['summary']['jobs_change'] < 0 ? 'fa-arrow-down' : 'fa-minus'); ?>">
-                    </i>
-                    <span>
-                        <?php 
-                            if ($data['summary']['jobs_change'] > 0) echo '+' . $data['summary']['jobs_change'] . ' this week';
-                            elseif ($data['summary']['jobs_change'] < 0) echo $data['summary']['jobs_change'] . ' this week';
-                            else echo 'No change';
-                        ?>
-                    </span>
-                </div>
-            <?php endif; ?>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/jobs" class="view-details">View All Jobs <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Total Projects -->
-    <div class="summary-card primary">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div class="card-badge">Projects</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                <?php echo htmlspecialchars($data['summary']['total_projects'], ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/projects" class="view-details">View All Projects <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Total Expenses -->
-    <div class="summary-card warning">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-money-bill-wave"></i>
-            </div>
-            <div class="card-badge">Expenses</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                LKR <?php echo number_format($data['summary']['total_expenses'], 2); ?>
-            </div>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/operational_expenses" class="view-details">View Expense Report <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Total Payments -->
-    <div class="summary-card success">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-credit-card"></i>
-            </div>
-            <div class="card-badge">Invoice Data</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                LKR <?php echo number_format($data['summary']['total_payments'], 2); ?>
-            </div>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/invoice_data" class="view-details">View Payment Records <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Today's Jobs -->
-    <div class="summary-card info">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-briefcase"></i>
-            </div>
-            <div class="card-badge">Today’s Jobs</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                <?php echo htmlspecialchars($data['summary']['todays_jobs'], ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/jobs" class="view-details">View Today’s Jobs <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-
-    <!-- Today's Expenses -->
-    <div class="summary-card danger">
-        <div class="card-header">
-            <div class="card-icon">
-                <i class="fas fa-receipt"></i>
-            </div>
-            <div class="card-badge">Today’s Expenses</div>
-        </div>
-        <div class="card-body">
-            <div class="metric-value">
-                LKR <?php echo number_format($data['summary']['todays_expenses'], 2); ?>
-            </div>
-        </div>
-        <div class="card-footer">
-            <a href="manageTable/operational_expenses" class="view-details">View Today’s Expenses <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </div>
-</div>
-
-
-
         </div>
 
         <!-- Enhanced System Information -->
-        <div class="main-content">
-            <div class="section-header">
-                <div class="section-title">
-                    <i class="fas fa-server"></i>
+        <div class="px-8 mb-10">
+            <div class="bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
+                <div class="flex items-center space-x-3 mb-6">
+                    <i class="fas fa-server text-blue-600 text-xl"></i>
                     <div>
-                        <h2>System Information</h2>
-                        <p>Technical details and system status</p>
+                        <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">System Information</h2>
+                        <p class="text-gray-500 text-sm">Technical details and system specifications</p>
                     </div>
                 </div>
-                <div class="section-actions">
-                    <button class="btn btn-outline btn-sm">
-                        <i class="fas fa-refresh"></i> Refresh
-                    </button>
-                </div>
-            </div>
-            
-            <div class="system-info-grid">
-                <div class="system-info-card">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-server"></i>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-t-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-server text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Server</span>
                         </div>
-                        <div class="card-badge">Server</div>
+                        <div class="text-lg font-semibold text-gray-900 mb-2">Production Server</div>
+                        <div class="text-sm text-gray-600">Status: <span class="text-green-600 font-medium">Operational</span></div>
                     </div>
-                    <div class="card-body">
-                        <div class="info-value">Production Server</div>
-                        <div class="info-status">
-                            <span class="status-dot online"></span>
-                            <span>Online</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="system-info-card">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="card-badge">Database</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-value">MySQL 8.0</div>
-                        <div class="info-status">
-                            <span class="status-dot online"></span>
-                            <span>Connected</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="system-info-card">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="card-badge">Security</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-value">SSL Enabled</div>
-                        <div class="info-status">
-                            <span class="status-dot online"></span>
-                            <span>Secure</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="system-info-card">
-                    <div class="card-header">
-                        <div class="card-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="card-badge">Uptime</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-value">99.9%</div>
-                        <div class="info-status">
-                            <span class="status-dot online"></span>
-                            <span>Stable</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Enhanced Quick Actions -->
-        <div class="main-content">
-            <div class="section-header">
-                <div class="section-title">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                        <h2>Quick Actions</h2>
-                        <p>Common tasks and operations</p>
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-t-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-database text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Database</span>
+                        </div>
+                        <div class="text-lg font-semibold text-gray-900 mb-2">MySQL 8.0</div>
+                        <div class="text-sm text-gray-600">Status: <span class="text-green-600 font-medium">Connected</span></div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-t-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-shield-alt text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Security</span>
+                        </div>
+                        <div class="text-lg font-semibold text-gray-900 mb-2">SSL Enabled</div>
+                        <div class="text-sm text-gray-600">Status: <span class="text-green-600 font-medium">Secure</span></div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-t-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="bg-blue-100 p-3 rounded-lg text-blue-600">
+                                <i class="fas fa-clock text-xl"></i>
+                            </div>
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Uptime</span>
+                        </div>
+                        <div class="text-lg font-semibold text-gray-900 mb-2">99.9%</div>
+                        <div class="text-sm text-gray-600">Status: <span class="text-green-600 font-medium">Stable</span></div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="quick-actions-grid">
-                <div class="quick-action-card">
-                    <div class="action-icon">
-                        <i class="fas fa-user-plus"></i>
+                
+                <!-- Additional Custom Design Elements -->
+                <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-gradient-to-br from-blue-500 to-blue-700 w-12 h-12 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-sync-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Auto Backup</h4>
+                                <p class="text-sm text-gray-600">Daily automated backups</p>
+                            </div>
+                        </div>
                     </div>
-                    <h4>Add Employee</h4>
-                    <p>Register new employee in the system</p>
-                    <button class="btn btn-primary">Add Employee</button>
-                </div>
-                <div class="quick-action-card">
-                    <div class="action-icon">
-                        <i class="fas fa-project-diagram"></i>
+                    
+                    <div class="bg-gradient-to-br from-green-50 to-teal-50 p-6 rounded-xl border border-green-200">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-gradient-to-br from-green-500 to-green-700 w-12 h-12 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-bell text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Notifications</h4>
+                                <p class="text-sm text-gray-600">Real-time alerts system</p>
+                            </div>
+                        </div>
                     </div>
-                    <h4>Create Job</h4>
-                    <p>Set up new project or job assignment</p>
-                    <button class="btn btn-primary">Create Job</button>
-                </div>
-                <div class="quick-action-card">
-                    <div class="action-icon">
-                        <i class="fas fa-chart-bar"></i>
+                    
+                    <div class="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border border-purple-200">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-gradient-to-br from-purple-500 to-purple-700 w-12 h-12 rounded-lg flex items-center justify-center text-white">
+                                <i class="fas fa-shield-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900">Encryption</h4>
+                                <p class="text-sm text-gray-600">AES-256 data protection</p>
+                            </div>
+                        </div>
                     </div>
-                    <h4>Generate Report</h4>
-                    <p>Create custom reports and analytics</p>
-                    <button class="btn btn-primary">Generate Report</button>
-                </div>
-                <div class="quick-action-card">
-                    <div class="action-icon">
-                        <i class="fas fa-cog"></i>
-                    </div>
-                    <h4>System Settings</h4>
-                    <p>Configure system preferences and options</p>
-                    <button class="btn btn-primary">Settings</button>
                 </div>
             </div>
         </div>
@@ -491,12 +383,10 @@ if (!isset($data) || !is_array($data)) {
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const container = document.getElementById('container');
-            sidebar.classList.toggle('collapsed');
-            container.classList.toggle('full-width');
-            
-            // Add animation class
-            sidebar.classList.add('animating');
-            setTimeout(() => sidebar.classList.remove('animating'), 300);
+            sidebar.classList.toggle('lg:block');
+            sidebar.classList.toggle('hidden');
+            container.classList.toggle('ml-0');
+            container.classList.toggle('ml-64');
         }
 
         // Enhanced date/time updates
@@ -532,107 +422,19 @@ if (!isset($data) || !is_array($data)) {
 
         // Enhanced card interactions
         document.addEventListener('DOMContentLoaded', function() {
-            // Add hover effects to summary cards
-            document.querySelectorAll('.summary-card').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
-                    this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0) scale(1)';
-                    this.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.1)';
-                });
-            });
-
-            // Add hover effects to system info cards
-            document.querySelectorAll('.system-info-card').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'scale(1.05)';
-                    this.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.15)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                    this.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.1)';
-                });
-            });
-
-            // Add hover effects to quick action cards
-            document.querySelectorAll('.quick-action-card').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-5px)';
-                    this.style.boxShadow = '0 15px 35px rgba(0, 0, 0, 0.15)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.1)';
-                });
-            });
-
-            // Enhanced button interactions
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.addEventListener('mousedown', function() {
-                    this.style.transform = 'scale(0.95)';
-                });
-                
-                btn.addEventListener('mouseup', function() {
-                    this.style.transform = 'scale(1)';
-                });
-                
-                btn.addEventListener('mouseleave', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-
             // Menu item interactions
-            document.querySelectorAll('.menu-link').forEach(link => {
+            document.querySelectorAll('a[href]').forEach(link => {
                 link.addEventListener('click', function() {
                     // Remove active class from all menu items
-                    document.querySelectorAll('.menu-link').forEach(item => {
-                        item.classList.remove('active');
+                    document.querySelectorAll('a[href]').forEach(item => {
+                        item.classList.remove('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white', 'border-l-4', 'border-blue-700');
+                        item.classList.add('text-gray-700', 'hover:bg-gray-100');
                     });
                     
                     // Add active class to clicked item
-                    this.classList.add('active');
+                    this.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                    this.classList.add('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white', 'border-l-4', 'border-blue-700');
                 });
-            });
-
-            // Action button interactions
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    // Add click effect
-                    this.style.transform = 'scale(0.9)';
-                    setTimeout(() => {
-                        this.style.transform = 'scale(1)';
-                    }, 150);
-                });
-            });
-        });
-
-        // Enhanced scroll effects
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const parallax = document.querySelector('.dashboard-header');
-            if (parallax) {
-                parallax.style.transform = `translateY(${scrolled * 0.1}px)`;
-            }
-        });
-
-        // Add loading states for buttons
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                if (this.classList.contains('btn-loading')) return;
-                
-                this.classList.add('btn-loading');
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-                
-                // Simulate loading (remove in production)
-                setTimeout(() => {
-                    this.classList.remove('btn-loading');
-                    this.innerHTML = this.getAttribute('data-original-text') || 'Button';
-                }, 2000);
             });
         });
     </script>

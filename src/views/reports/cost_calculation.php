@@ -5,141 +5,7 @@ if (!defined('BASE_PATH')) {
 if (!defined('FULL_BASE_URL')) {
     define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
-
-if (!isset($filters) || !is_array($filters)) {
-    $filters = [
-        'invoice_no' => '',
-        'customer_reference' => '',
-        'company_reference' => '',
-        'status' => '',
-        'from_date' => '',
-        'to_date' => '',
-        'completion' => ''
-    ];
-}
-if (!isset($customer_refs) || !is_array($customer_refs)) $customer_refs = [];
-if (!isset($company_refs) || !is_array($company_refs)) $company_refs = [];
-if (!isset($job_data) || !is_array($job_data)) $job_data = [];
-if (!isset($total_invoice_amount)) $total_invoice_amount = 0;
-if (!isset($total_paid_amount)) $total_paid_amount = 0;
-if (!isset($total_unpaid_amount)) $total_unpaid_amount = 0;
-if (!isset($unpaid_invoice_count)) $unpaid_invoice_count = 0;
-if (!isset($due_balance)) $due_balance = 0;
-if (!isset($total_expenses)) $total_expenses = 0;
-if (!isset($total_employee_costs_sum)) $total_employee_costs_sum = 0;
-if (!isset($total_capacity)) $total_capacity = 0;
-if (!isset($total_net_profit)) $total_net_profit = 0;
-if (!isset($profit_margin)) $profit_margin = 0;
-if (!isset($overall_invoice_amount)) $overall_invoice_amount = 0;
-if (!isset($overall_paid_amount)) $overall_paid_amount = 0;
-if (!isset($overall_unpaid_amount)) $overall_unpaid_amount = 0;
-if (!isset($overall_unpaid_count)) $overall_unpaid_count = 0;
-if (!isset($overall_due_balance)) $overall_due_balance = 0;
-if (!isset($error)) $error = null;
-
-// Group jobs by completion status
-$job_groups = [
-    'Completed' => [],
-    'Ongoing' => [],
-    'Started' => [],
-    'Not Started' => [],
-    'Cancelled' => []
-];
-foreach ($job_data as $row) {
-    $status = $row['completion_status'] ?? 'Unknown';
-    if (!isset($job_groups[$status])) {
-        $job_groups['Unknown'][] = $row;
-    } else {
-        $job_groups[$status][] = $row;
-    }
-}
-
-// Apply filters to grouped job data
-$filtered_job_groups = [];
-foreach ($job_groups as $status => $jobs) {
-    $filtered_job_groups[$status] = array_filter($jobs, function($row) use ($filters) {
-        if (!empty($filters['invoice_no']) && stripos($row['invoice_no'] ?? '', $filters['invoice_no']) === false) {
-            return false;
-        }
-        if (!empty($filters['customer_reference']) && ($row['customer_reference'] ?? '') !== $filters['customer_reference']) {
-            return false;
-        }
-        if (!empty($filters['company_reference']) && ($row['company_reference'] ?? '') !== $filters['company_reference']) {
-            return false;
-        }
-        if (!empty($filters['status'])) {
-            $has_invoice = !is_null($row['invoice_no']);
-            $outstanding = $has_invoice ? floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0) : 0;
-            if ($filters['status'] === 'paid' && ($outstanding > 0 || !$has_invoice)) {
-                return false;
-            }
-            if ($filters['status'] === 'unpaid' && $outstanding <= 0 && $has_invoice) {
-                return false;
-            }
-        }
-        if (!empty($filters['from_date']) && $row['date_completed'] !== '0000-00-00' && strtotime($row['date_completed'] ?? '') < strtotime($filters['from_date'])) {
-            return false;
-        }
-        if (!empty($filters['to_date']) && $row['date_completed'] !== '0000-00-00' && strtotime($row['date_completed'] ?? '') > strtotime($filters['to_date'])) {
-            return false;
-        }
-        if (!empty($filters['completion']) && ($row['completion'] ?? '') !== $filters['completion']) {
-            return false;
-        }
-        return true;
-    });
-}
-
-// Calculate totals based on filtered data
-$total_expenses = 0;
-$total_employee_costs_sum = 0;
-$total_capacity = 0;
-$total_invoice_amount = 0;
-$total_paid_amount = 0;
-$total_unpaid_amount = 0;
-$unpaid_invoice_count = 0;
-$due_balance = 0;
-
-foreach ($filtered_job_groups as $jobs) {
-    foreach ($jobs as $row) {
-        $has_invoice = !is_null($row['invoice_no']);
-        $invoice_value = $has_invoice ? floatval($row['invoice_value'] ?? 0) : 0;
-        $received_amount = $has_invoice ? floatval($row['received_amount'] ?? 0) : 0;
-        $outstanding = $invoice_value - $received_amount;
-
-        $total_invoice_amount += $invoice_value;
-        $total_paid_amount += $received_amount;
-        $total_unpaid_amount += $outstanding;
-        if ($outstanding > 0 || !$has_invoice) {
-            $unpaid_invoice_count++;
-            $due_balance += $outstanding;
-        }
-
-        if (!empty($row['expense_details'])) {
-            foreach ($row['expense_details'] as $amount) {
-                $total_expenses += floatval($amount);
-            }
-        }
-        if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
-            foreach ($row['employee_details'] as $emp) {
-                $total_employee_costs_sum += floatval($emp['payment'] ?? 0);
-            }
-        }
-        $total_capacity += floatval($row['job_capacity'] ?? 0);
-    }
-}
-
-$total_net_profit = $total_invoice_amount - $total_expenses - $total_employee_costs_sum;
-$profit_margin = ($total_invoice_amount > 0) ? (($total_net_profit / $total_invoice_amount) * 100) : 0;
-
-// Calculate overall_unpaid_count if not provided
-$overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, function($count, $row) {
-    $has_invoice = !is_null($row['invoice_no']);
-    $outstanding = $has_invoice ? floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0) : 0;
-    return $count + ($outstanding > 0 || !$has_invoice ? 1 : 0);
-}, 0);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -149,52 +15,30 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/cost_calculation.css', ENT_QUOTES, 'UTF-8'); ?>">
-    <style>
-        .status-section { margin-bottom: 20px; }
-        .status-header { 
-            cursor: pointer; 
-            background: #f1f5f9; 
-            padding: 10px; 
-            border-radius: 5px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
-        .status-header h2 { margin: 0; }
-        .status-content { display: block; }
-        .status-header i { transition: transform 0.3s; }
-        .status-header.active i { transform: rotate(180deg); }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Cost Calculation Report</h1>
-            <div class="header-controls">
-                <button class="btn btn-primary" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
-                <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
-                <button class="btn btn-secondary" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
+<body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
+    <div class="container mx-auto p-6 min-h-screen bg-[url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"120\" viewBox=\"0 0 120 120\"%3E%3Cg fill=\"%231E3A8A\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M60 20 L80 60 L60 100 L40 60 Z\"/%3E%3C/g%3E%3C/svg%3E')] bg-[length:240px]">
+        <div class="header bg-gradient-to-br from-blue-900 to-blue-500 p-8 rounded-xl shadow-2xl flex items-center justify-between mb-10 text-white relative overflow-hidden hover:after:opacity-20 after:content-[''] after:absolute after:top-[-50%] after:left-[-50%] after:w-[200%] after:h-[200%] after:bg-white/10 after:rotate-30 after:transition-all after:duration-500 after:opacity-0 after:z-0">
+            <h1 class="text-3xl font-semibold z-10">Cost Calculation Report</h1>
+            <div class="header-controls flex gap-3 z-10">
+                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
+                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
+                <button class="btn bg-transparent text-blue-900 border-2 border-blue-900 px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:bg-blue-900 hover:text-white hover:translate-y-[-2px]" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
             </div>
         </div>
-
-        <!-- Debug Output -->
-        <pre style="display: none;">
-            Filtered Job Groups: <?php print_r($filtered_job_groups); ?>
-        </pre>
-
         <?php if (isset($error)): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
+            <div class="error-message bg-red-500 text-white p-4 rounded-xl mb-5 text-center"><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
         <?php else: ?>
-            <div class="filter-card">
-                <form method="GET" class="filter-form" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/cost_calculation', ENT_QUOTES, 'UTF-8'); ?>">
-                    <div class="filter-item">
-                        <label>Invoice ID</label>
-                        <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="filter-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
+                <form method="GET" class="filter-form grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 items-end" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/cost_calculation', ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Invoice ID</label>
+                        <input type="text" name="invoice_id" value="<?php echo htmlspecialchars($filters['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                     </div>
-                    <div class="filter-item">
-                        <label>Customer</label>
-                        <select name="customer_name">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Customer</label>
+                        <select name="customer_name" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All</option>
                             <?php foreach ($customer_refs as $ref): ?>
                                 <option value="<?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['customer_reference'] === $ref ? 'selected' : ''; ?>>
@@ -203,9 +47,9 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="filter-item">
-                        <label>Company Ref</label>
-                        <select name="client_ref">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Company Ref</label>
+                        <select name="client_ref" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All</option>
                             <?php foreach ($company_refs as $ref): ?>
                                 <option value="<?php echo htmlspecialchars($ref ?? '', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filters['company_reference'] === $ref ? 'selected' : ''; ?>>
@@ -214,146 +58,208 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="filter-item">
-                        <label>Payment Status</label>
-                        <select name="status">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Payment Status</label>
+                        <select name="status" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All</option>
                             <option value="paid" <?php echo $filters['status'] === 'paid' ? 'selected' : ''; ?>>Paid</option>
                             <option value="unpaid" <?php echo $filters['status'] === 'unpaid' ? 'selected' : ''; ?>>Unpaid</option>
                         </select>
                     </div>
-                    <div class="filter-item">
-                        <label>Completion Status</label>
-                        <select name="completion">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Completion Status</label>
+                        <select name="completion" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All</option>
-                            <option value="1.0" <?php echo $filters['completion'] === '1.0' ? 'selected' : ''; ?>>Completed</option>
-                            <option value="0.5" <?php echo $filters['completion'] === '0.5' ? 'selected' : ''; ?>>Ongoing</option>
-                            <option value="0.2" <?php echo $filters['completion'] === '0.2' ? 'selected' : ''; ?>>Started</option>
-                            <option value="0.0" <?php echo $filters['completion'] === '0.0' ? 'selected' : ''; ?>>Not Started</option>
-                            <option value="0.1" <?php echo $filters['completion'] === '0.1' ? 'selected' : ''; ?>>Cancelled</option>
+                            <option value="Completed" <?php echo $filters['completion'] === 'Completed' ? 'selected' : ''; ?>>Completed</option>
+                            <option value="Ongoing" <?php echo $filters['completion'] === 'Ongoing' ? 'selected' : ''; ?>>Ongoing</option>
+                            <option value="Started" <?php echo $filters['completion'] === 'Started' ? 'selected' : ''; ?>>Started</option>
+                            <option value="Not Started" <?php echo $filters['completion'] === 'Not Started' ? 'selected' : ''; ?>>Not Started</option>
+                            <option value="Cancelled" <?php echo $filters['completion'] === 'Cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                         </select>
                     </div>
-                    <div class="filter-item">
-                        <label>From Date</label>
-                        <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">From Date</label>
+                        <input type="date" name="from_date" value="<?php echo htmlspecialchars($filters['from_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                     </div>
-                    <div class="filter-item">
-                        <label>To Date</label>
-                        <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">To Date</label>
+                        <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                     </div>
-                    <button type="submit" class="btn btn-primary"><i class="ri-filter-line"></i> Filter</button>
+                    <button type="submit" class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30"><i class="ri-filter-line"></i> Filter</button>
                 </form>
             </div>
-
-            <div class="summary-card">
-                <h2>Filtered Summary</h2>
-                <div class="summary-grid">
-                    <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($total_invoice_amount, 2); ?></p></div>
-                    <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($total_paid_amount, 2); ?></p></div>
-                    <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($total_unpaid_amount, 2); ?></p></div>
-                    <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($unpaid_invoice_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
-                    <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($due_balance, 2); ?></p></div>
+            <div class="summary-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Filtered Summary</h2>
+                <div class="summary-grid grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                        <h3 class="text-base text-gray-500 mb-2">Total Invoices</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_invoice_amount, 2); ?></p>
+                    </div>
+                    <div class="summary-item paid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-green-500">
+                        <h3 class="text-base text-gray-500 mb-2">Paid Amount</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_paid_amount, 2); ?></p>
+                    </div>
+                    <div class="summary-item unpaid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
+                        <h3 class="text-base text-gray-500 mb-2">Unpaid Amount</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_unpaid_amount, 2); ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                        <h3 class="text-base text-gray-500 mb-2">Unpaid Count</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars($unpaid_invoice_count, ENT_QUOTES, 'UTF-8'); ?></p>
+                    </div>
+                    <div class="summary-item unpaid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
+                        <h3 class="text-base text-gray-500 mb-2">Due Balance</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo number_format($due_balance, 2); ?></p>
+                    </div>
                 </div>
-                <div class="section">
-                    <h2>Additional Metrics</h2>
-                    <div class="summary-grid">
-                        <div class="summary-item"><h3>Total Expenses</h3><p><?php echo number_format($total_expenses, 2); ?></p></div>
-                        <div class="summary-item"><h3>Total Employee Costs</h3><p><?php echo number_format($total_employee_costs_sum, 2); ?></p></div>
-                        <div class="summary-item"><h3>Total Jobs</h3><p><?php echo htmlspecialchars(array_sum(array_map('count', $filtered_job_groups)), ENT_QUOTES, 'UTF-8'); ?></p></div>
-                        <div class="summary-item"><h3>Total Capacity</h3><p><?php echo number_format($total_capacity, 2); ?></p></div>
-                        <div class="summary-item <?php echo $total_net_profit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
-                            <h3>Net Profit</h3><p><?php echo number_format($total_net_profit, 2); ?></p>
+                <div class="section mt-6">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Additional Metrics</h2>
+                    <div class="summary-grid grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Total Expenses</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_expenses, 2); ?></p>
                         </div>
-                        <div class="summary-item <?php echo $profit_margin >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
-                            <h3>Profit Margin</h3><p><?php echo number_format($profit_margin, 2); ?>%</p>
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Total Employee Costs</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_employee_costs_sum, 2); ?></p>
+                        </div>
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Total Jobs</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars(array_sum(array_map('count', $job_groups)), ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Total Capacity</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_capacity, 2); ?></p>
+                        </div>
+                        <div class="summary-item <?php echo $total_net_profit >= 0 ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'; ?> bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg">
+                            <h3 class="text-base text-gray-500 mb-2">Net Profit</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($total_net_profit, 2); ?></p>
+                        </div>
+                        <div class="summary-item <?php echo $profit_margin >= 0 ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'; ?> bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg">
+                            <h3 class="text-base text-gray-500 mb-2">Profit Margin</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($profit_margin, 2); ?>%</p>
                         </div>
                     </div>
                 </div>
-                <div class="section overall">
-                    <h2>Overall Summary</h2>
-                    <div class="summary-grid">
-                        <div class="summary-item"><h3>Total Invoices</h3><p><?php echo number_format($overall_invoice_amount, 2); ?></p></div>
-                        <div class="summary-item paid"><h3>Paid Amount</h3><p><?php echo number_format($overall_paid_amount, 2); ?></p></div>
-                        <div class="summary-item unpaid"><h3>Unpaid Amount</h3><p><?php echo number_format($overall_unpaid_amount, 2); ?></p></div>
-                        <div class="summary-item"><h3>Unpaid Count</h3><p><?php echo htmlspecialchars($overall_unpaid_count, ENT_QUOTES, 'UTF-8'); ?></p></div>
-                        <div class="summary-item unpaid"><h3>Due Balance</h3><p><?php echo number_format($overall_due_balance, 2); ?></p></div>
+                <div class="section overall mt-6">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Overall Summary</h2>
+                    <div class="summary-grid grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Total Invoices</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($overall_invoice_amount, 2); ?></p>
+                        </div>
+                        <div class="summary-item paid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-green-500">
+                            <h3 class="text-base text-gray-500 mb-2">Paid Amount</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($overall_paid_amount, 2); ?></p>
+                        </div>
+                        <div class="summary-item unpaid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
+                            <h3 class="text-base text-gray-500 mb-2">Unpaid Amount</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($overall_unpaid_amount, 2); ?></p>
+                        </div>
+                        <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                            <h3 class="text-base text-gray-500 mb-2">Unpaid Count</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo htmlspecialchars($overall_unpaid_count, ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
+                        <div class="summary-item unpaid bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
+                            <h3 class="text-base text-gray-500 mb-2">Due Balance</h3>
+                            <p class="text-lg font-semibold text-gray-900"><?php echo number_format($overall_due_balance, 2); ?></p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="chart-card">
-                <h2>Financial Overview</h2>
-                <div class="chart-container">
-                    <canvas id="financialChart"></canvas>
+            <div class="charts-container flex flex-row gap-6 mb-10 flex-wrap">
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Financial Overview</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Job Status by Company</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="jobStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Net Profit by Company</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="netProfitChart"></canvas>
+                    </div>
                 </div>
             </div>
-
-            <div class="table-card">
-                <h2>Detailed Job Analysis</h2>
-                <?php foreach ($filtered_job_groups as $status => $jobs): ?>
+            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl overflow-x-auto">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Detailed Job Analysis</h2>
+                <?php foreach ($job_groups as $status => $jobs): ?>
                     <?php if (!empty($jobs)): ?>
-                        <div class="status-section">
-                            <div class="status-header">
-                                <h2><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?> Jobs (<?php echo count($jobs); ?>)</h2>
-                                <i class="ri-arrow-down-s-line"></i>
+                        <div class="status-section mb-5">
+                            <div class="status-header cursor-pointer bg-gray-100 p-2.5 rounded-md flex justify-between items-center">
+                                <h2 class="text-base font-semibold m-0"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?> Jobs (<?php echo count($jobs); ?>)</h2>
+                                <i class="ri-arrow-down-s-line transition-transform duration-300"></i>
                             </div>
-                            <div class="status-content active">
-                                <table class="table">
+                            <div class="status-content hidden">
+                                <table class="table w-full border-collapse text-base">
                                     <thead>
                                         <tr>
-                                            <th>Job Details</th>
-                                            <th>Date</th>
-                                            <th>Capacity</th>
-                                            <th>Invoice Details</th>
-                                            <th>Expenses</th>
-                                            <th>Employee Costs</th>
-                                            <th>Outstanding</th>
-                                            <th>Net Profit</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Job Details</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Date</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Capacity</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Invoice Details</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Expenses</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Employee Costs</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Total Cost</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Total Invoiced</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Outstanding</th>
+                                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Net Profit</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        <?php $current_company = ''; ?>
                                         <?php foreach ($jobs as $row): ?>
+                                            <?php if ($row['company_reference'] !== $current_company): ?>
+                                                <tr>
+                                                    <td colspan="10" class="bg-gray-200 p-3 font-bold">Company: <?php echo htmlspecialchars($row['company_reference'] ?? 'Unknown', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                </tr>
+                                                <?php $current_company = $row['company_reference']; ?>
+                                            <?php endif; ?>
                                             <?php
-                                            $jobDetails = "<ul>";
+                                            $jobDetails = "<ul class='list-disc pl-5'>";
                                             $jobDetails .= "<li>Job ID: " . htmlspecialchars($row['job_id'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
                                             $jobDetails .= "<li>Location: " . htmlspecialchars($row['location'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
                                             $jobDetails .= "<li>Company Ref: " . htmlspecialchars($row['company_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
                                             $jobDetails .= "<li>Engineer: " . htmlspecialchars($row['engineer'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "</li>";
                                             $jobDetails .= "</ul>";
-
-                                            $has_invoice = !is_null($row['invoice_no']);
-                                            $invoiceDetails = "<ul>";
+                                            $has_invoice = !empty($row['invoices']);
+                                            $invoiceDetails = "<ul class='list-disc pl-5'>";
                                             if ($has_invoice) {
-                                                $invoiceDetails .= "<li>No: " . htmlspecialchars($row['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
-                                                $invoiceDetails .= "<li>Value: " . number_format(floatval($row['invoice_value'] ?? 0), 2) . "</li>";
-                                                $invoiceDetails .= "<li>Received: " . number_format(floatval($row['received_amount'] ?? 0), 2) . "</li>";
-                                                $invoiceDetails .= "<li>Date Paid: " . htmlspecialchars($row['payment_received_date'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
+                                                foreach ($row['invoices'] as $inv) {
+                                                    $invoiceDetails .= "<li>";
+                                                    $invoiceDetails .= "Invoice No: " . htmlspecialchars($inv['no'], ENT_QUOTES, 'UTF-8') . "<br>";
+                                                    $invoiceDetails .= "Value: " . number_format($inv['value'], 2) . "<br>";
+                                                    $invoiceDetails .= "Received: " . number_format($inv['received'], 2) . "<br>";
+                                                    $invoiceDetails .= "Date Paid: " . htmlspecialchars($inv['date_paid'], ENT_QUOTES, 'UTF-8');
+                                                    $invoiceDetails .= "</li>";
+                                                }
                                             } else {
                                                 $invoiceDetails .= "<li>No Invoice</li>";
                                             }
                                             $invoiceDetails .= "</ul>";
-
-                                            $expenseDetails = "<ul>";
-                                            $totalExpensesForJob = 0;
+                                            $expenseDetails = "<ul class='list-disc pl-5'>";
+                                            $totalExpensesForJob = floatval($row['operational_expenses'] ?? 0);
                                             if (!empty($row['expense_details'])) {
                                                 foreach ($row['expense_details'] as $category => $amount) {
-                                                    $expenseDetails .= "<li>" . htmlspecialchars($category ?? '', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($amount ?? 0), 2) . "</li>";
-                                                    $totalExpensesForJob += floatval($amount ?? 0);
+                                                    $expenseDetails .= "<li>" . htmlspecialchars($category, ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($amount), 2) . "</li>";
                                                 }
-                                            }
-                                            if ($totalExpensesForJob == 0) {
+                                            } else {
                                                 $expenseDetails .= "<li>No expenses recorded</li>";
                                             }
                                             $expenseDetails .= "</ul>";
-
-                                            $employeeDetails = "<ul>";
-                                            $totalEmployeeCostsForJob = 0;
+                                            $employeeDetails = "<ul class='list-disc pl-5'>";
+                                            $totalEmployeeCostsForJob = floatval($row['total_employee_costs'] ?? 0);
                                             if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
                                                 foreach ($row['employee_details'] as $emp) {
                                                     $employeeDetails .= "<li>" . htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8') . ": " . number_format(floatval($emp['payment'] ?? 0), 2);
-                                                    $totalEmployeeCostsForJob += floatval($emp['payment'] ?? 0);
                                                     if (!empty($emp['days']) && is_array($emp['days'])) {
-                                                        $employeeDetails .= "<ul>";
+                                                        $employeeDetails .= "<ul class='list-disc pl-5'>";
                                                         foreach ($emp['days'] as $day) {
                                                             $presence = floatval($day['presence'] ?? 0);
                                                             $presenceText = $presence == 1.0 ? 'Full Day' : ($presence == 0.5 ? 'Half Day' : number_format($presence, 1) . ' Days');
@@ -369,49 +275,50 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                                                     }
                                                     $employeeDetails .= "</li>";
                                                 }
-                                            }
-                                            if ($totalEmployeeCostsForJob == 0) {
+                                            } else {
                                                 $employeeDetails .= "<li>No employee costs recorded for Job ID: " . htmlspecialchars($row['job_id'] ?? '', ENT_QUOTES, 'UTF-8') . " (Check attendance or rate data)</li>";
                                             }
                                             $employeeDetails .= "</ul>";
-
-                                            $outstanding = $has_invoice ? floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0) : 0;
-                                            $netProfit = $has_invoice ? floatval($row['invoice_value'] ?? 0) - $totalExpensesForJob - $totalEmployeeCostsForJob : -$totalExpensesForJob - $totalEmployeeCostsForJob;
+                                            $totalCost = $totalExpensesForJob + $totalEmployeeCostsForJob;
+                                            $outstanding = floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0);
+                                            $netProfit = floatval($row['net_profit'] ?? 0);
                                             $displayDate = $row['date_completed'] === '0000-00-00' ? 'Not Set' : htmlspecialchars($row['date_completed'] ?? '', ENT_QUOTES, 'UTF-8');
                                             ?>
                                             <tr>
-                                                <td>
-                                                    <div class="collapsible">
+                                                <td class="p-3 border-b border-gray-200 align-top">
+                                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
                                                         <span class="total">Customer: <?php echo htmlspecialchars($row['customer_reference'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
-                                                        <i class="ri-arrow-down-s-line icon"></i>
+                                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
                                                     </div>
-                                                    <div class="details"><?php echo $jobDetails; ?></div>
+                                                    <div class="details hidden p-3 bg-blue-50/50 rounded-lg mt-2"><?php echo $jobDetails; ?></div>
                                                 </td>
-                                                <td><?php echo $displayDate; ?></td>
-                                                <td><?php echo htmlspecialchars($row['job_capacity'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
-                                                <td>
-                                                    <div class="collapsible">
-                                                        <span class="total"><?php echo $has_invoice ? htmlspecialchars($row['invoice_no'] ?? '', ENT_QUOTES, 'UTF-8') : 'No Invoice'; ?></span>
-                                                        <i class="ri-arrow-down-s-line icon"></i>
+                                                <td class="p-3 border-b border-gray-200 align-top"><?php echo $displayDate; ?></td>
+                                                <td class="p-3 border-b border-gray-200 align-top"><?php echo htmlspecialchars($row['job_capacity'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="p-3 border-b border-gray-200 align-top">
+                                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
+                                                        <span class="total"><?php echo $has_invoice ? htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8') : 'No Invoice'; ?></span>
+                                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
                                                     </div>
-                                                    <div class="details"><?php echo $invoiceDetails; ?></div>
+                                                    <div class="details hidden p-3 bg-blue-50/50 rounded-lg mt-2"><?php echo $invoiceDetails; ?></div>
                                                 </td>
-                                                <td>
-                                                    <div class="collapsible">
+                                                <td class="p-3 border-b border-gray-200 align-top">
+                                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
                                                         <span class="total">Total: <?php echo number_format($totalExpensesForJob, 2); ?></span>
-                                                        <i class="ri-arrow-down-s-line icon"></i>
+                                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
                                                     </div>
-                                                    <div class="details"><?php echo $expenseDetails; ?></div>
+                                                    <div class="details hidden p-3 bg-blue-50/50 rounded-lg mt-2"><?php echo $expenseDetails; ?></div>
                                                 </td>
-                                                <td>
-                                                    <div class="collapsible">
+                                                <td class="p-3 border-b border-gray-200 align-top">
+                                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
                                                         <span class="total">Total: <?php echo number_format($totalEmployeeCostsForJob, 2); ?></span>
-                                                        <i class="ri-arrow-down-s-line icon"></i>
+                                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
                                                     </div>
-                                                    <div class="details"><?php echo $employeeDetails; ?></div>
+                                                    <div class="details hidden p-3 bg-blue-50/50 rounded-lg mt-2"><?php echo $employeeDetails; ?></div>
                                                 </td>
-                                                <td><?php echo $has_invoice ? number_format($outstanding, 2) : 'N/A'; ?></td>
-                                                <td class="<?php echo $netProfit >= 0 ? 'profit-positive' : 'profit-negative'; ?>">
+                                                <td class="p-3 border-b border-gray-200 align-top"><?php echo number_format($totalCost, 2); ?></td>
+                                                <td class="p-3 border-b border-gray-200 align-top"><?php echo number_format(floatval($row['invoice_value'] ?? 0), 2); ?></td>
+                                                <td class="p-3 border-b border-gray-200 align-top"><?php echo $has_invoice ? number_format($outstanding, 2) : 'N/A'; ?></td>
+                                                <td class="p-3 border-b border-gray-200 align-top <?php echo $netProfit >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
                                                     <?php echo number_format($netProfit, 2); ?>
                                                 </td>
                                             </tr>
@@ -425,7 +332,6 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
             </div>
         <?php endif; ?>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Row-level collapsible
@@ -433,20 +339,19 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                 item.addEventListener('click', () => {
                     const details = item.nextElementSibling;
                     item.classList.toggle('active');
-                    details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    details.classList.toggle('hidden');
                 });
             });
-
             // Status section collapsible
             document.querySelectorAll('.status-header').forEach(header => {
-                item.addEventListener('click', () => {
+                header.addEventListener('click', () => {
                     const content = header.nextElementSibling;
                     header.classList.toggle('active');
-                    content.classList.toggle('active');
-                    content.style.display = content.classList.contains('active') ? 'block' : 'none';
+                    const icon = header.querySelector('i');
+                    icon.classList.toggle('rotate-180');
+                    content.classList.toggle('hidden');
                 });
             });
-
             const ctx = document.getElementById('financialChart').getContext('2d');
             new Chart(ctx, {
                 type: 'bar',
@@ -462,12 +367,12 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                             <?php echo $total_net_profit; ?>
                         ],
                         backgroundColor: [
-                            'rgba(30, 144, 255, 0.6)', 'rgba(16, 185, 129, 0.6)', 
+                            'rgba(30, 144, 255, 0.6)', 'rgba(16, 185, 129, 0.6)',
                             'rgba(255, 107, 0, 0.6)', 'rgba(0, 196, 180, 0.6)',
                             '<?php echo $total_net_profit >= 0 ? "rgba(16, 185, 129, 0.6)" : "rgba(239, 68, 68, 0.6)"; ?>'
                         ],
                         borderColor: [
-                            'rgba(30, 144, 255, 1)', 'rgba(16, 185, 129, 1)', 
+                            'rgba(30, 144, 255, 1)', 'rgba(16, 185, 129, 1)',
                             'rgba(255, 107, 0, 1)', 'rgba(0, 196, 180, 1)',
                             '<?php echo $total_net_profit >= 0 ? "rgba(16, 185, 129, 1)" : "rgba(239, 68, 68, 1)"; ?>'
                         ],
@@ -479,8 +384,46 @@ $overall_unpaid_count = $overall_unpaid_count ?: array_reduce($job_data, functio
                     plugins: { legend: { display: false }, title: { display: true, text: 'Filtered Financial Overview' } }
                 }
             });
+            const jobStatusCtx = document.getElementById('jobStatusChart').getContext('2d');
+            new Chart(jobStatusCtx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode(array_keys($company_stats)); ?>,
+                    datasets: [
+                        { label: 'Completed', data: <?php echo json_encode(array_column($company_stats, 'Completed')); ?>, backgroundColor: 'rgba(16, 185, 129, 0.6)' },
+                        { label: 'Ongoing', data: <?php echo json_encode(array_column($company_stats, 'Ongoing')); ?>, backgroundColor: 'rgba(255, 193, 7, 0.6)' },
+                        { label: 'Started', data: <?php echo json_encode(array_column($company_stats, 'Started')); ?>, backgroundColor: 'rgba(0, 123, 255, 0.6)' },
+                        { label: 'Not Started', data: <?php echo json_encode(array_column($company_stats, 'Not Started')); ?>, backgroundColor: 'rgba(108, 117, 125, 0.6)' },
+                        { label: 'Cancelled', data: <?php echo json_encode(array_column($company_stats, 'Cancelled')); ?>, backgroundColor: 'rgba(239, 68, 68, 0.6)' }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, beginAtZero: true }
+                    },
+                    plugins: { legend: { display: true }, title: { display: true, text: 'Job Status by Company' } }
+                }
+            });
+            const netProfitCtx = document.getElementById('netProfitChart').getContext('2d');
+            new Chart(netProfitCtx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode(array_keys($company_stats)); ?>,
+                    datasets: [{
+                        label: 'Net Profit',
+                        data: <?php echo json_encode(array_column($company_stats, 'net_profit')); ?>,
+                        backgroundColor: 'rgba(30, 144, 255, 0.6)',
+                        borderColor: 'rgba(30, 144, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false }, title: { display: true, text: 'Net Profit by Company' } }
+                }
+            });
         });
-
         function downloadCSV() {
             const form = document.getElementById('filterForm');
             const url = new URL(form.action);

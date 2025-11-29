@@ -1,24 +1,35 @@
 <?php
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', '/A2Z-DBMS');
+}
 if (!defined('FULL_BASE_URL')) {
     define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
 
-// Calculate Maximum Working Days based on filters
-$max_working_days = 0;
-if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
-    $start = new DateTime($filters['from_date']);
-    $end = new DateTime($filters['to_date']);
-    $interval = $start->diff($end);
-    $max_working_days = $interval->days + 1; // Include end date
-} elseif (!empty($filters['year']) && !empty($filters['month'])) {
-    $year = $filters['year'];
-    $month = $filters['month'];
-    $max_working_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-} elseif (!empty($filters['year'])) {
-    $year = $filters['year'];
-    $max_working_days = (new DateTime("$year-12-31"))->format('L') ? 366 : 365; // Leap year check
-} else {
-    $max_working_days = 365; // Default to a year if no filters
+// Helper function — safe to be inside the view
+function buildEmployeeDetails($emp) {
+    $html = "<div class='p-3 bg-blue-50/50 rounded-lg mt-2'>";
+    $paid = $emp['paid_amount'] ?? ['Monthly Salary' => 0, 'Advance' => 0, 'Other' => 0];
+
+    $html .= "<h4 class='font-medium text-gray-800 mb-2'>Payment Breakdown</h4><ul class='list-disc pl-5'>";
+    foreach (['Monthly Salary', 'Advance', 'Other'] as $key) {
+        $html .= "<li><strong>$key:</strong> LKR " . number_format($paid[$key] ?? 0, 2) . "</li>";
+    }
+    $html .= "</ul>";
+
+    $html .= "<h4 class='font-medium text-gray-800 mt-3 mb-2'>Attendance Records</h4>";
+    if (!empty($emp['attendance_details'])) {
+        $html .= "<div class='max-h-40 overflow-y-auto'><ul class='list-disc pl-5'>";
+        foreach ($emp['attendance_details'] as $rec) {
+            $site = htmlspecialchars($rec['location'] ?? $rec['customer_reference'] ?? 'N/A');
+            $html .= "<li><strong>{$rec['date']}</strong> → Presence: {$rec['presence']} | Pay: LKR " . number_format($rec['payment'] ?? 0, 2) . " | Site: $site</li>";
+        }
+        $html .= "</ul></div>";
+    } else {
+        $html .= "<p class='italic text-gray-500'>No attendance records found.</p>";
+    }
+    $html .= "</div>";
+    return $html;
 }
 ?>
 <!DOCTYPE html>
@@ -30,45 +41,126 @@ if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(FULL_BASE_URL . '/css/wages_report.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1><?php echo htmlspecialchars($report_title ?? 'Wages Report', ENT_QUOTES, 'UTF-8'); ?></h1>
-            <div class="header-controls">
-                <button class="btn btn-primary" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
-                <button class="btn btn-primary" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
-                <button class="btn btn-secondary" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
+<body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
+    <div class="container mx-auto p-6 min-h-screen bg-[url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"%3E%3Cg fill="%231E3A8A" fill-opacity="0.03"%3E%3Cpath d="M60 20 L80 60 L60 100 L40 60 Z"/%3E%3C/g%3E%3C/svg%3E')] bg-[length:240px]">
+        <div class="header bg-gradient-to-br from-blue-900 to-blue-500 p-8 rounded-xl shadow-2xl flex items-center justify-between mb-10 text-white relative overflow-hidden hover:after:opacity-20 after:content-[''] after:absolute after:top-[-50%] after:left-[-50%] after:w-[200%] after:h-[200%] after:bg-white/10 after:rotate-30 after:transition-all after:duration-500 after:opacity-0 after:z-0">
+            <h1 class="text-3xl font-semibold z-10">Wages Report</h1>
+            <div class="header-controls flex gap-3 z-10">
+                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
+                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
+                <button class="btn bg-transparent text-blue-900 border-2 border-blue-900 px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:bg-blue-900 hover:text-white hover:translate-y-[-2px]" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
+                <?php if (empty($filters['emp_id'])): ?>
+                    <button class="btn bg-gradient-to-br from-green-600 to-green-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-green-900/30" onclick="generatePDF()"><i class="ri-file-pdf-line"></i> PDF Slips</button>
+                <?php endif; ?>
             </div>
         </div>
 
         <?php if (isset($error)): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
+            <div class="error-message bg-red-500 text-white p-4 rounded-xl mb-5 text-center"><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
         <?php else: ?>
-            <!-- Debug: Display wage_data for inspection -->
-            <?php if (empty($wage_data)): ?>
-                <div class="error-message">No wage data available for the selected filters.</div>
-            <?php else: ?>
-                <pre style="display: none;">wage_data: <?php print_r($wage_data); ?></pre>
-            <?php endif; ?>
 
-            <div class="filter-card">
-                <form method="GET" class="filter-form" id="filterForm" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/wages_report', ENT_QUOTES, 'UTF-8'); ?>">
-                    <div class="filter-item">
-                        <label for="year">Select Year</label>
-                        <select id="year" name="year" required>
-                            <?php $selectedYear = $filters['year'] ?? date('Y'); for ($year = 2023; $year <= 2033; $year++):  ?>
-                            <option value="<?php echo $year; ?>" <?php echo ($year == $selectedYear) ? 'selected' : ''; ?>>
-                                <?php echo $year; ?>
-                                </option>
-                                <?php endfor; ?>
-                        </select>
+            <!-- SINGLE EMPLOYEE DETAILED SALARY SLIP -->
+            <?php if (!empty($filters['emp_id'])):
+                $selectedEmp = null;
+                foreach ($wage_data as $e) {
+                    if ($e['emp_id'] == $filters['emp_id']) {
+                        $selectedEmp = $e;
+                        break;
+                    }
+                }
+                if ($selectedEmp):
+                    $isFixed   = strtoupper($selectedEmp['rate_type'] ?? 'DAILY') === 'FIXED';
+                    $basic     = $isFixed ? floatval($selectedEmp['basic_salary'] ?? $selectedEmp['rate_amount'] ?? 0) : 0;
+                    $days      = $selectedEmp['attendance_summary']['presence_count'] ?? 0;
+                    $rate      = $isFixed ? 0 : floatval($selectedEmp['rate_amount'] ?? 0);
+                    $earned    = $isFixed ? $basic : $days * $rate;
+                    $etf       = $isFixed ? $basic * 0.03 : 0;
+                    $epfEmp    = $isFixed ? $basic * 0.08 : 0;
+                    $epfComp   = $isFixed ? $basic * 0.12 : 0;
+                    $payable   = $earned + $epfComp;
+                    $paidArr   = $selectedEmp['paid_amount'] ?? ['Monthly Salary'=>0, 'Advance'=>0, 'Other'=>0];
+                    $paid      = array_sum($paidArr);
+                    $net       = $payable - $etf - $epfEmp - $paid;
+            ?>
+                <div class="salary-slip bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl mb-10">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Salary Slip</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <p><strong class="text-gray-600">Employee Name:</strong> <?php echo htmlspecialchars($selectedEmp['emp_name']); ?></p>
+                            <p><strong class="text-gray-600">Employee ID:</strong> <?php echo $selectedEmp['emp_id']; ?></p>
+                            <p><strong class="text-gray-600">Rate Type:</strong> <?php echo $isFixed ? 'Fixed Salary' : 'Daily Wage'; ?></p>
+                        </div>
+                        <div>
+                            <p><strong class="text-gray-600">Period:</strong> <?php echo htmlspecialchars($report_title); ?></p>
+                            <p><strong class="text-gray-600">Generated On:</strong> <?php echo date('d F Y'); ?></p>
+                        </div>
                     </div>
 
-                    <div class="filter-item">
-                        <label for="month">Select Month</label>
-                        <select id="month" name="month" required>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="table w-full border-collapse text-base">
+                            <thead>
+                                <tr>
+                                    <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-left">Description</th>
+                                    <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Earnings (LKR)</th>
+                                    <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Deductions (LKR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="p-3 border-b border-gray-200"><?php echo $isFixed ? 'Basic Salary' : 'Daily Earnings'; ?></td>
+                                    <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($earned, 2); ?></td>
+                                    <td class="p-3 border-b border-gray-200 text-right"><?php echo number_format($etf + $epfEmp, 2); ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 border-b border-gray-200">EPF Company Contribution (12%)</td>
+                                    <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($epfComp, 2); ?></td>
+                                    <td class="p-3 border-b border-gray-200 text-right">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-3 border-b border-gray-200">Advances & Other Payments</td>
+                                    <td class="p-3 border-b border-gray-200 text-right">-</td>
+                                    <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($paid, 2); ?></td>
+                                </tr>
+                                <tr class="bg-blue-50 font-bold">
+                                    <td class="p-3 text-center">NET PAYABLE</td>
+                                    <td class="p-3 text-right text-green-600"><?php echo number_format($net, 2); ?></td>
+                                    <td class="p-3"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-center">
+                        <button class="btn bg-gradient-to-br from-green-600 to-green-500 text-white px-6 py-3 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 mx-auto hover:translate-y-[-2px] hover:shadow-xl hover:shadow-green-900/30" onclick="window.print()">
+                            <i class="ri-printer-line"></i> Print Salary Slip
+                        </button>
+                    </div>
+                </div>
+                <?php
+                // Stop rendering the rest of the page for single employee
+                return;
+                endif;
+            endif; ?>
+
+            <!-- FULL REPORT WHEN NO SINGLE EMPLOYEE SELECTED -->
+
+            <!-- Filters -->
+            <div class="filter-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Report Filters</h2>
+                <form method="GET" id="filterForm" class="filter-form grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 items-end">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Year</label>
+                        <select name="year" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
+                            <?php for ($y = 2023; $y <= 2030; $y++): ?>
+                                <option value="<?php echo $y; ?>" <?php echo ($filters['year'] ?? date('Y')) == $y ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Month</label>
+                        <select name="month" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All Months</option>
                             <?php for ($m = 1; $m <= 12; $m++): ?>
                                 <option value="<?php echo $m; ?>" <?php echo ($filters['month'] ?? '') == $m ? 'selected' : ''; ?>>
@@ -77,336 +169,268 @@ if (!empty($filters['from_date']) && !empty($filters['to_date'])) {
                             <?php endfor; ?>
                         </select>
                     </div>
-                    <div class="filter-item">
-                        <label for="emp_id">Select Employee</label>
-                        <select id="emp_id" name="emp_id">
+                    <div class="filter-item flex flex-col gap-2">
+                        <label class="text-sm font-medium text-gray-500">Employee</label>
+                        <select name="emp_id" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
                             <option value="">All Employees</option>
-                            <?php foreach ($employee_refs as $emp): ?>
-                                <option value="<?php echo htmlspecialchars($emp['emp_id'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($filters['emp_id'] ?? '') === $emp['emp_id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($emp['emp_name'], ENT_QUOTES, 'UTF-8'); ?>
+                            <?php foreach ($employee_refs as $e): ?>
+                                <option value="<?php echo htmlspecialchars($e['emp_id']); ?>" <?php echo ($filters['emp_id'] ?? '') === $e['emp_id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($e['emp_name']); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-primary"><i class="ri-filter-line"></i> Apply Filter</button>
+                    <button type="submit" class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30">
+                        <i class="ri-filter-line"></i> Apply Filter
+                    </button>
                 </form>
             </div>
 
-            <div class="summary-card">
-                <h2>Filtered Summary</h2>
-                <div class="summary-grid">
-                    <div class="summary-item"><h3>Total Wages</h3><p><?php echo number_format($total_wages ?? 0, 2); ?></p></div>
-                    <div class="summary-item"><h3>Daily Wages</h3><p><?php echo number_format($total_daily_wages ?? 0, 2); ?></p></div>
-                    <div class="summary-item"><h3>Fixed Wages</h3><p><?php echo number_format($total_fixed_wages ?? 0, 2); ?></p></div>
-                    <div class="summary-item"><h3>EPF Costs</h3><p><?php echo number_format($epf_costs ?? 0, 2); ?></p></div>
-                    <div class="summary-item"><h3>Employee Count</h3><p><?php echo htmlspecialchars($employee_count ?? 0, ENT_QUOTES, 'UTF-8'); ?></p></div>
-                    <div class="summary-item"><h3>Average Wage</h3><p><?php echo number_format($avg_wage_per_employee ?? 0, 2); ?></p></div>
-                </div>
-                <div class="section">
-                    <h2>Additional Metrics</h2>
-                    <div class="summary-grid">
-                        <div class="summary-item"><h3>Maximum Working Days</h3><p><?php echo number_format($max_working_days, 0); ?></p></div>
+            <!-- Summary Cards -->
+            <div class="summary-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Financial Summary</h2>
+                <div class="summary-grid grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-amber-500">
+                        <h3 class="text-base text-gray-500 mb-2">Total Wages</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($total_wages, 2); ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-green-500">
+                        <h3 class="text-base text-gray-500 mb-2">Daily Wages</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($total_daily_wages, 2); ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-blue-500">
+                        <h3 class="text-base text-gray-500 mb-2">Fixed Wages</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($total_fixed_wages, 2); ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-purple-500">
+                        <h3 class="text-base text-gray-500 mb-2">EPF Cost</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($epf_costs, 2); ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-indigo-500">
+                        <h3 class="text-base text-gray-500 mb-2">Employees</h3>
+                        <p class="text-lg font-semibold text-gray-900"><?php echo $employee_count; ?></p>
+                    </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-pink-500">
+                        <h3 class="text-base text-gray-500 mb-2">Avg Wage</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($avg_wage_per_employee, 2); ?></p>
                     </div>
                 </div>
             </div>
 
-            <div class="chart-card">
-                <h2>Financial Overview</h2>
-                <div class="chart-container">
-                    <canvas id="financialChart"></canvas>
+            <!-- Charts -->
+            <div class="charts-container flex flex-row gap-6 mb-10 flex-wrap">
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Financial Overview</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Wage Distribution</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
+                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Top 10 Earners</h2>
+                    <div class="chart-container max-w-full h-[300px]">
+                        <canvas id="topEarnersChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <?php
-            // Ensure $wage_data is an array
-            $wage_data = $wage_data ?? [];
-            // Separate Daily and Fixed employees with explicit rate_type check
-            $daily_wage_employees = array_filter($wage_data, fn($emp) => ($emp['rate_type'] ?? 'Daily') !== 'Fixed');
-            $fixed_rate_employees = array_filter($wage_data, fn($emp) => ($emp['rate_type'] ?? 'Daily') === 'Fixed');
-            ?>
-
-            <!-- Daily Wage Employees Table -->
-            <div class="table-card">
-                <h2>Daily Wage Employees Analysis</h2>
-                <table class="table">
+            <!-- Daily Wage Table -->
+            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl mb-10 overflow-x-auto">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Daily Wage Employees</h2>
+                <table class="table w-full border-collapse text-base">
                     <thead>
                         <tr>
-                            <th>Employee Name</th>
-                            <th>Presence Count</th>
-                            <th>Daily Wage</th>
-                            <th>Earned</th>
-                            <th>Total Payable</th>
-                            <th>Total Paid</th>
-                            <th>Net Payable</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-left">Employee</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-center">Days</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Rate</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Earned</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Paid</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($daily_wage_employees)): ?>
-                            <?php foreach ($daily_wage_employees as $emp):
-                                $emp_name = $emp['emp_name'] ?? 'Unknown';
-                                $daily_wage = floatval($emp['rate_amount'] ?? 0);
-                                $presence_count = floatval($emp['attendance_summary']['presence_count'] ?? 0);
-                                // Get categorized paid amounts
-                                $paid_amounts = $emp['paid_amount'] ?? [
-                                    'Monthly Salary' => 0,
-                                    'Daily Wage' => 0,
-                                    'Advance' => 0,
-                                    'Other' => 0
-                                ];
-                                // Sum only Monthly Salary, Advance, and Other for Total Paid
-                                $total_paid = floatval($paid_amounts['Monthly Salary']) +
-                                              floatval($paid_amounts['Advance']) +
-                                              floatval($paid_amounts['Other']);
-                                // Create dropdown content for payment and attendance details
-                                $details = "<div class='details-section'>";
-                                $details .= "<h4>Payment Details</h4>";
-                                $details .= "<ul>";
-                                $details .= "<li>Monthly Salary: " . number_format($paid_amounts['Monthly Salary'], 2) . "</li>";
-                                $details .= "<li>Advance: " . number_format($paid_amounts['Advance'], 2) . "</li>";
-                                $details .= "<li>Other: " . number_format($paid_amounts['Other'], 2) . "</li>";
-                                $details .= "</ul>";
-                                $details .= "<h4>Attendance Details</h4>";
-                                $details .= "<ul>";
-                                $details .= "<li>Presence Count: " . number_format($presence_count, 0) . "</li>";
-                                $details .= "<li>Records: <ul>";
-                                foreach ($emp['attendance_details'] ?? [] as $record) {
-                                    $details .= "<li>";
-                                    $details .= "Date: " . htmlspecialchars($record['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Presence: " . number_format($record['presence'] ?? 0, 2) . "<br>";
-                                    $details .= "Payment: " . number_format($record['payment'] ?? 0, 2) . "<br>";
-                                    $details .= "Customer Reference: " . htmlspecialchars($record['customer_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Location: " . htmlspecialchars($record['location'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Job Capacity: " . htmlspecialchars($record['job_capacity'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Project Description: " . htmlspecialchars($record['project_description'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Company Reference: " . htmlspecialchars($record['company_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
-                                    $details .= "</li>";
-                                }
-                                $details .= "</ul></li>";
-                                $details .= "</ul>";
-                                $details .= "</div>";
-
-                                $earned = $presence_count * $daily_wage;
-                                $total_payable = $earned;
-                                $net_payable = $total_payable - $total_paid;
-                            ?>
+                        <?php foreach ($daily_wage_employees as $emp):
+                            $days   = $emp['attendance_summary']['presence_count'] ?? 0;
+                            $rate   = floatval($emp['rate_amount'] ?? 0);
+                            $earned = $days * $rate;
+                            $paid   = array_sum($emp['paid_amount'] ?? [0,0,0]);
+                            $net    = $earned - $paid;
+                        ?>
                             <tr>
-                                <td>
-                                    <div class="collapsible">
-                                        <span class="total"><?php echo htmlspecialchars($emp_name, ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <i class="ri-arrow-down-s-line icon"></i>
+                                <td class="p-3 border-b border-gray-200 align-top">
+                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
+                                        <span class="total"><?php echo htmlspecialchars($emp['emp_name']); ?></span>
+                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
                                     </div>
-                                    <div class="details"><?php echo $details; ?></div>
+                                    <div class="details hidden"><?php echo buildEmployeeDetails($emp); ?></div>
                                 </td>
-                                <td><?php echo number_format($presence_count, 0); ?></td>
-                                <td><?php echo number_format($daily_wage, 2); ?></td>
-                                <td><?php echo number_format($earned, 2); ?></td>
-                                <td><?php echo number_format($total_payable, 2); ?></td>
-                                <td><?php echo number_format($total_paid, 2); ?></td>
-                                <td><?php echo number_format($net_payable, 2); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="7">No daily wage employees found.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Fixed Rate Employees Table -->
-            <div class="table-card">
-                <h2>Fixed Rate Employees Analysis</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Employee Name</th>
-                            <th>Basic Salary</th>
-                            <th>ETF</th>
-                            <th>EPF (Employee)</th>
-                            <th>EPF (Company)</th>
-                            <th>Total Payable</th>
-                            <th>Total Paid</th>
-                            <th>Net Payable</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($fixed_rate_employees)): ?>
-                            <?php foreach ($fixed_rate_employees as $emp):
-                                $emp_name = $emp['emp_name'] ?? 'Unknown';
-                                $basic_salary = floatval($emp['basic_salary'] ?? $emp['rate_amount'] ?? 0);
-                                // Get categorized paid amounts
-                                $paid_amounts = $emp['paid_amount'] ?? [
-                                    'Monthly Salary' => 0,
-                                    'Daily Wage' => 0,
-                                    'Advance' => 0,
-                                    'Other' => 0
-                                ];
-                                // Sum only Monthly Salary, Advance, and Other for Total Paid
-                                $total_paid = floatval($paid_amounts['Monthly Salary']) +
-                                              floatval($paid_amounts['Advance']) +
-                                              floatval($paid_amounts['Other']);
-                                // Create dropdown content for payment and attendance details
-                                $details = "<div class='details-section'>";
-                                $details .= "<h4>Payment Details</h4>";
-                                $details .= "<ul>";
-                                $details .= "<li>Monthly Salary: " . number_format($paid_amounts['Monthly Salary'], 2) . "</li>";
-                                $details .= "<li>Advance: " . number_format($paid_amounts['Advance'], 2) . "</li>";
-                                $details .= "<li>Other: " . number_format($paid_amounts['Other'], 2) . "</li>";
-                                $details .= "</ul>";
-                                $details .= "<h4>Attendance Details</h4>";
-                                $details .= "<ul>";
-                                $details .= "<li>Presence Count: " . number_format($emp['attendance_summary']['presence_count'] ?? 0, 0) . "</li>";
-                                $details .= "<li>Records: <ul>";
-                                foreach ($emp['attendance_details'] ?? [] as $record) {
-                                    $details .= "<li>";
-                                    $details .= "Date: " . htmlspecialchars($record['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Presence: " . number_format($record['presence'] ?? 0, 2) . "<br>";
-                                    $details .= "Payment: " . number_format($record['payment'] ?? 0, 2) . "<br>";
-                                    $details .= "Customer Reference: " . htmlspecialchars($record['customer_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Location: " . htmlspecialchars($record['location'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Job Capacity: " . htmlspecialchars($record['job_capacity'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Project Description: " . htmlspecialchars($record['project_description'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                    $details .= "Company Reference: " . htmlspecialchars($record['company_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
-                                    $details .= "</li>";
-                                }
-                                $details .= "</ul></li>";
-                                $details .= "</ul>";
-                                $details .= "</div>";
-
-                                // ETF, EPF calculations
-                                $ETF_employee = $basic_salary * 0.03;
-                                $EPF_employee = $basic_salary * 0.08;
-                                $EPF_company = $basic_salary * 0.12;
-
-                                $total_payable = $basic_salary + $EPF_company;
-                                $net_payable = $total_payable - $ETF_employee - $EPF_employee - $total_paid;
-                            ?>
-                            <tr>
-                                <td>
-                                    <div class="collapsible">
-                                        <span class="total"><?php echo htmlspecialchars($emp_name, ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <i class="ri-arrow-down-s-line icon"></i>
-                                    </div>
-                                    <div class="details"><?php echo $details; ?></div>
+                                <td class="p-3 border-b border-gray-200 text-center font-medium"><?php echo $days; ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($rate, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right font-medium">LKR <?php echo number_format($earned, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($paid, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
+                                    LKR <?php echo number_format($net, 2); ?>
                                 </td>
-                                <td><?php echo number_format($basic_salary, 2); ?></td>
-                                <td><?php echo number_format($ETF_employee, 2); ?></td>
-                                <td><?php echo number_format($EPF_employee, 2); ?></td>
-                                <td><?php echo number_format($EPF_company, 2); ?></td>
-                                <td><?php echo number_format($total_payable, 2); ?></td>
-                                <td><?php echo number_format($total_paid, 2); ?></td>
-                                <td><?php echo number_format($net_payable, 2); ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr><td colspan="8">No fixed rate employees found.</td></tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-                <div class="percentage-panel">
-                    <p>ETF: 3%</p>
-                    <p>EPF (Employee): 8%</p>
-                    <p>EPF (Company): 12%</p>
-                </div>
-            </div>
-
-            <!-- Labor Wages Summation Table -->
-            <div class="table-card">
-                <h2>Labor Wages Summation</h2>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Labor Name</th>
-                            <th>Total Days</th>
-                            <th>Total Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($labor_wages_data['summations'] ?? [] as $sum): ?>
-                            <?php
-                            $laborDetails = "<ul>";
-                            foreach ($labor_wages_data['details'][$sum['labor_name']] ?? [] as $detail) {
-                                $laborDetails .= "<li>Job ID: " . htmlspecialchars($detail['job_id'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . ", Date: " . htmlspecialchars($detail['expensed_date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . ", Description: " . htmlspecialchars($detail['description'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . ", Amount: " . number_format($detail['expense_amount'] ?? 0, 2) . "</li>";
-                            }
-                            $laborDetails .= "</ul>";
-                            ?>
-                            <tr>
-                                <td>
-                                    <div class="collapsible">
-                                        <span class="total"><?php echo htmlspecialchars($sum['labor_name'] ?? 'Unknown', ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <i class="ri-arrow-down-s-line icon"></i>
-                                    </div>
-                                    <div class="details"><?php echo $laborDetails; ?></div>
-                                </td>
-                                <td><?php echo number_format($sum['total_days'] ?? 0, 0); ?></td>
-                                <td><?php echo number_format($sum['total_amount'] ?? 0, 2); ?></td>
                             </tr>
                         <?php endforeach; ?>
-                        <?php if (empty($labor_wages_data['summations'])): ?>
-                            <tr><td colspan="3">No labor wages summations found for the selected filters.</td></tr>
-                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+
+            <!-- Fixed Rate Table -->
+            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl mb-10 overflow-x-auto">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Fixed Salary Employees</h2>
+                <table class="table w-full border-collapse text-base">
+                    <thead>
+                        <tr>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-left">Employee</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Basic</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">ETF (3%)</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">EPF Emp (8%)</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">EPF Comp (12%)</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Payable</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Paid</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($fixed_rate_employees as $emp):
+                            $basic     = floatval($emp['basic_salary'] ?? $emp['rate_amount'] ?? 0);
+                            $etf       = $basic * 0.03;
+                            $epfEmp    = $basic * 0.08;
+                            $epfComp   = $basic * 0.12;
+                            $payable   = $basic + $epfComp;
+                            $paid      = array_sum($emp['paid_amount'] ?? [0,0,0]);
+                            $net       = $payable - $etf - $epfEmp - $paid;
+                        ?>
+                            <tr>
+                                <td class="p-3 border-b border-gray-200 align-top">
+                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
+                                        <span class="total"><?php echo htmlspecialchars($emp['emp_name']); ?></span>
+                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
+                                    </div>
+                                    <div class="details hidden"><?php echo buildEmployeeDetails($emp); ?></div>
+                                </td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($basic, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($etf, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($epfEmp, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($epfComp, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right font-medium">LKR <?php echo number_format($payable, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($paid, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
+                                    LKR <?php echo number_format($net, 2); ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Labor Wages Summary -->
+            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl overflow-x-auto">
+                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Labor Wages Summary</h2>
+                <table class="table w-full border-collapse text-base">
+                    <thead>
+                        <tr>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-left">Labor Name</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-center">Total Days</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($labor_wages_data['summations'] ?? [] as $sum):
+                            $details = '';
+                            foreach ($labor_wages_data['details'][$sum['labor_name']] ?? [] as $d) {
+                                $details .= "<li>Job {$d['job_id']} | {$d['expensed_date']} | " . htmlspecialchars($d['description'] ?? '') . " | LKR " . number_format($d['expense_amount'] ?? 0, 2) . "</li>";
+                            }
+                            $details = $details ? "<ul class='list-disc pl-5'>$details</ul>" : "<p class='italic text-gray-500'>No details</p>";
+                        ?>
+                            <tr>
+                                <td class="p-3 border-b border-gray-200 align-top">
+                                    <div class="collapsible cursor-pointer flex items-center gap-2 font-medium">
+                                        <span class="total"><?php echo htmlspecialchars($sum['labor_name'] ?? 'Unknown'); ?></span>
+                                        <i class="ri-arrow-down-s-line icon transition-transform duration-300"></i>
+                                    </div>
+                                    <div class="details hidden p-3 bg-blue-50/50 rounded-lg mt-2"><?php echo $details; ?></div>
+                                </td>
+                                <td class="p-3 border-b border-gray-200 text-center font-medium"><?php echo $sum['total_days'] ?? 0; ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right font-bold">LKR <?php echo number_format($sum['total_amount'] ?? 0, 2); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
         <?php endif; ?>
     </div>
 
     <script>
+        // Collapsible rows
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.collapsible').forEach(item => {
                 item.addEventListener('click', () => {
                     const details = item.nextElementSibling;
                     item.classList.toggle('active');
-                    details.style.display = details.style.display === 'block' ? 'none' : 'block';
+                    details.classList.toggle('hidden');
                 });
             });
 
-            const ctx = document.getElementById('financialChart')?.getContext('2d');
-            if (ctx) {
-                const financialData = [
-                    <?php echo isset($total_wages) ? floatval($total_wages) : 0; ?>,
-                    <?php echo isset($total_daily_wages) ? floatval($total_daily_wages) : 0; ?>,
-                    <?php echo isset($total_fixed_wages) ? floatval($total_fixed_wages) : 0; ?>,
-                    <?php echo isset($epf_costs) ? floatval($epf_costs) : 0; ?>,
-                    <?php echo isset($avg_wage_per_employee) ? floatval($avg_wage_per_employee) : 0; ?>
-                ];
-                if (financialData.every(val => val === 0)) {
-                    ctx.parentElement.innerHTML = '<p>No financial data available.</p>';
-                } else {
-                    new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Total Wages', 'Daily Wages', 'Fixed Wages', 'EPF Costs', 'Average Wage'],
-                            datasets: [{
-                                label: 'Financial Metrics',
-                                data: financialData,
-                                backgroundColor: [
-                                    'rgba(30, 144, 255, 0.6)', 'rgba(16, 185, 129, 0.6)', 
-                                    'rgba(255, 99, 132, 0.6)', 'rgba(255, 107, 0, 0.6)', 
-                                    'rgba(0, 196, 180, 0.6)'
-                                ],
-                                borderColor: [
-                                    'rgba(30, 144, 255, 1)', 'rgba(16, 185, 129, 1)', 
-                                    'rgba(255, 99, 132, 1)', 'rgba(255, 107, 0, 1)', 
-                                    'rgba(0, 196, 180, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            scales: { y: { beginAtZero: true } },
-                            plugins: { legend: { display: false }, title: { display: true, text: 'Filtered Financial Overview' } }
-                        }
-                    });
+            // Charts
+            new Chart(document.getElementById('financialChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Total', 'Daily', 'Fixed', 'EPF'],
+                    datasets: [{
+                        label: 'Amount (LKR)',
+                        data: [<?php echo $total_wages; ?>, <?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>],
+                        backgroundColor: 'rgba(30, 144, 255, 0.7)'
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+            });
+
+            new Chart(document.getElementById('distributionChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Daily Wages', 'Fixed Wages', 'EPF Cost'],
+                    datasets: [{
+                        data: [<?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                    }]
                 }
-            }
+            });
+
+            new Chart(document.getElementById('topEarnersChart'), {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode(array_column(array_slice($top_earners, 0, 10), 'emp_name')); ?>,
+                    datasets: [{
+                        label: 'Total Payment',
+                        data: <?php echo json_encode(array_column(array_slice($top_earners, 0, 10), 'total_payment')); ?>,
+                        backgroundColor: '#1d4ed8'
+                    }]
+                },
+                options: { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
+            });
         });
 
         function downloadCSV() {
             const form = document.getElementById('filterForm');
-            const url = new URL(form.action);
-            url.search = new URLSearchParams(new FormData(form)).toString();
-            url.searchParams.set('download_csv', '1');
-            window.location.href = url.toString();
+            const params = new URLSearchParams(new FormData(form));
+            params.set('download_csv', '1');
+            location.href = location.pathname + '?' + params.toString();
+        }
+
+        function generatePDF() {
+            const form = document.getElementById('filterForm');
+            const params = new URLSearchParams(new FormData(form));
+            params.set('generate_pdf', '1');
+            location.href = location.pathname + '?' + params.toString();
         }
     </script>
 </body>

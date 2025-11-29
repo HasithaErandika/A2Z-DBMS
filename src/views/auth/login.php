@@ -13,200 +13,178 @@ if (!defined('BASE_PATH')) {
     <meta name="description" content="Login to A2Z Engineering DBMS for Solar, AC, and Electrical Power Management">
     <title>Login - A2Z Engineering DBMS</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/login.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <!-- Enhanced Background Elements -->
-    <div id="background-animation"></div>
-    <div id="floating-elements"></div>
-    
-    <!-- Enhanced Navigation -->
-    <nav class="navbar navbar-expand-lg" role="navigation" aria-label="Main navigation">
-        <div class="container">
-            <a class="navbar-brand" href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>">
-                <div class="brand-icon">
-                    <i class="fas fa-solar-panel icon-solar" aria-hidden="true"></i>
+<body class="font-poppins bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 min-h-screen flex flex-col">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <img class="h-12 w-auto" src="<?php echo BASE_PATH; ?>/src/assets/images/longLogoB.png" alt="A2Z Engineering Logo">
+                    </div>
                 </div>
-                <span class="brand-text">A2Z Engineering</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>">
-                            <i class="fas fa-home me-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo htmlspecialchars(BASE_PATH . '/support', ENT_QUOTES, 'UTF-8'); ?>">
-                            <i class="fas fa-headset me-1"></i>Support
-                        </a>
-                    </li>
-                </ul>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/support', ENT_QUOTES, 'UTF-8'); ?>" class="text-gray-700 hover:text-blue-600 font-medium transition-colors duration-300">
+                        <i class="fas fa-headset mr-2"></i>Support
+                    </a>
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-button" class="text-gray-700 hover:text-blue-600">
+                        <i class="fas fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <a href="<?php echo htmlspecialchars(BASE_PATH . '/support', ENT_QUOTES, 'UTF-8'); ?>" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                    <i class="fas fa-headset mr-2"></i>Support
+                </a>
             </div>
         </div>
     </nav>
 
-    <!-- Enhanced Login Container -->
-    <div class="login-container">
-        <div class="login-content">
-            <!-- Left Panel - Branding -->
-            <div class="login-branding">
-                <div class="branding-content">
-                    <div class="brand-logo">
-                        <div class="logo-circle">
-                            <i class="fas fa-database"></i>
+    <!-- Login Container -->
+    <div class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-6xl mx-auto">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="md:flex">
+                    <!-- Left Panel - Branding -->
+                    <div class="md:w-1/2 bg-gradient-to-br from-blue-600 to-indigo-700 p-12 text-white">
+                        <div class="flex flex-col h-full justify-center">
+                            <div class="text-center mb-10">
+                                <img class="h-24 w-auto mx-auto mb-6" src="<?php echo BASE_PATH; ?>/src/assets/images/logo.png" alt="A2Z Engineering Logo">
+                                <h1 class="text-3xl font-bold mb-4">A2Z Engineering</h1>
+                                <p class="text-blue-100 text-lg">Internal Database Management System</p>
+                            </div>
+                            
+                            <div class="space-y-6">
+                                 <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl w-80 h-80 md:w-96 md:h-96 flex items-center justify-center shadow-2xl">
+                            <div class="bg-white bg-opacity-20 rounded-full w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+                                <div class="bg-white bg-opacity-30 rounded-full w-48 h-48 md:w-64 md:h-64 flex items-center justify-center">
+                                    <i class="fas fa-database text-white text-6xl"></i>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <h1>A2Z Engineering</h1>
-                    <p class="brand-tagline">Internal Database Management System</p>
-                    <div class="brand-features">
-                        <div class="feature-item">
-                            <i class="fas fa-users"></i>
-                            <span>Employee Portal</span>
+                        <div class="absolute -top-4 -right-4 bg-yellow-400 rounded-full w-24 h-24 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-users text-white text-3xl"></i>
                         </div>
-                        <div class="feature-item">
-                            <i class="fas fa-project-diagram"></i>
-                            <span>Project Management</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-chart-line"></i>
-                            <span>Performance Analytics</span>
-                        </div>
-                        <div class="feature-item">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Secure Access</span>
-                        </div>
-                    </div>
-                    <div class="brand-stats">
-                        <div class="stat-item">
-                            <span class="stat-number">500+</span>
-                            <span class="stat-label">Employees</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">50+</span>
-                            <span class="stat-label">Active Projects</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number">99.9%</span>
-                            <span class="stat-label">System Uptime</span>
+                        <div class="absolute -bottom-4 -left-4 bg-green-500 rounded-full w-24 h-24 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-chart-line text-white text-3xl"></i>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Right Panel - Login Form -->
-            <div class="login-form-panel">
-                <div class="login-box" role="main" aria-label="Login Section">
-                    <div class="login-header">
-                        <h2>Welcome Back</h2>
-                        <p>Access your company database and manage internal operations</p>
-                    </div>
-
-                    <?php if (isset($error)): ?>
-                        <div class="alert alert-danger" role="alert">
-                            <div class="alert-icon">
-                                <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                            </div>
-                            <div class="alert-content">
-                                <strong>Login Failed</strong>
-                                <p><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
                             </div>
                         </div>
-                    <?php endif; ?>
+                    </div>
+                    
+                    <!-- Right Panel - Login Form -->
+                    <div class="md:w-1/2 p-12">
+                        <div class="max-w-sm mx-auto">
+                            <div class="text-center mb-10">
+                                <h2 class="text-3xl font-bold text-gray-900 mb-3">Welcome Back</h2>
+                                <p class="text-gray-600">Access your company database and manage internal operations</p>
+                            </div>
 
-                    <form action="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" method="POST" aria-label="Login Form" class="login-form">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
-                        
-                        <div class="form-group">
-                            <label for="db_username" class="form-label">
-                                <i class="fas fa-user"></i>
-                                Database Username
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="db_username" 
-                                       name="db_username" 
-                                       required 
-                                       aria-required="true" 
-                                       placeholder="Enter your username"
-                                       autocomplete="username">
-                                <div class="input-icon">
-                                    <i class="fas fa-user"></i>
+                            <?php if (isset($error)): ?>
+                                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas fa-exclamation-circle text-red-500"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-red-700">
+                                                <strong>Login Failed:</strong> <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                            <form action="<?php echo htmlspecialchars(BASE_PATH . '/login', ENT_QUOTES, 'UTF-8'); ?>" method="POST" class="space-y-6">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
+                                
+                                <div>
+                                    <label for="db_username" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-user mr-2 text-blue-600"></i>Database Username
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-user text-gray-400"></i>
+                                        </div>
+                                        <input type="text" 
+                                               id="db_username" 
+                                               name="db_username" 
+                                               required 
+                                               class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                               placeholder="Enter your username"
+                                               autocomplete="username">
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="db_password" class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-lock mr-2 text-blue-600"></i>Database Password
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i class="fas fa-lock text-gray-400"></i>
+                                        </div>
+                                        <input type="password" 
+                                               id="db_password" 
+                                               name="db_password" 
+                                               required 
+                                               class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                               placeholder="Enter your password"
+                                               autocomplete="current-password">
+                                        <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center password-toggle">
+                                            <i class="fas fa-eye text-gray-400 hover:text-gray-600"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <input id="remember" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                        <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                                    </div>
+                                    <div class="text-sm">
+                                        <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Forgot Password?</a>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-900 transition-all duration-300 shadow-md hover:shadow-lg">
+                                        <span class="btn-content flex items-center justify-center">
+                                            <i class="fas fa-sign-in-alt mr-2"></i>
+                                            <span>Sign In</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <div class="mt-8 text-center">
+                                <a href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>" class="inline-flex items-center text-blue-600 font-medium hover:text-blue-800 transition-colors">
+                                    <i class="fas fa-arrow-left mr-2"></i>
+                                    <span>Return to Home</span>
+                                </a>
+                                <div class="mt-4 text-sm text-gray-600">
+                                    New employee? <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Contact HR for access</a>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="db_password" class="form-label">
-                                <i class="fas fa-lock"></i>
-                                Database Password
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="password" 
-                                       class="form-control" 
-                                       id="db_password" 
-                                       name="db_password" 
-                                       required 
-                                       aria-required="true" 
-                                       placeholder="Enter your password"
-                                       autocomplete="current-password">
-                                <div class="input-icon">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <button type="button" class="password-toggle" aria-label="Toggle password visibility">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="form-options">
-                            <label class="checkbox-wrapper">
-                                <input type="checkbox" id="remember" name="remember">
-                                <span class="checkmark"></span>
-                                Remember me
-                            </label>
-                            <a href="#" class="forgot-password">Forgot Password?</a>
-                        </div>
-
-                        <button type="submit" class="btn btn-login-user">
-                            <span class="btn-content">
-                                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
-                                <span>Sign In</span>
-                            </span>
-                            <div class="btn-loader">
-                                <div class="spinner"></div>
-                            </div>
-                        </button>
-                    </form>
-
-                    <div class="login-divider">
-                        <span>or continue with</span>
-                    </div>
-
-                    <div class="alternative-login">
-                        <button type="button" class="btn btn-google">
-                            <i class="fab fa-google"></i>
-                            Company Google Account
-                        </button>
-                        <button type="button" class="btn btn-microsoft">
-                            <i class="fab fa-microsoft"></i>
-                            Company Microsoft Account
-                        </button>
-                    </div>
-
-                    <div class="login-footer">
-                        <a href="<?php echo htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8'); ?>" class="back-link">
-                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                            <span>Return to Home</span>
-                        </a>
-                        <div class="signup-prompt">
-                            New employee? <a href="#" class="signup-link">Contact HR for access</a>
                         </div>
                     </div>
                 </div>
@@ -214,155 +192,59 @@ if (!defined('BASE_PATH')) {
         </div>
     </div>
 
-    <!-- Enhanced Footer -->
-    <footer role="contentinfo" class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <p class="mb-0">&copy; <?php echo date('Y'); ?> A2Z Engineering | Advanced DBMS Solutions</p>
-                    </div>
-                    <div class="col-md-6 text-md-end">
-                        <div class="footer-links">
-                            <a href="<?php echo htmlspecialchars(BASE_PATH . '/privacy', ENT_QUOTES, 'UTF-8'); ?>">Privacy Policy</a>
-                            <span class="separator">|</span>
-                            <a href="<?php echo htmlspecialchars(BASE_PATH . '/terms', ENT_QUOTES, 'UTF-8'); ?>">Terms of Service</a>
-                            <span class="separator">|</span>
-                            <a href="<?php echo htmlspecialchars(BASE_PATH . '/support', ENT_QUOTES, 'UTF-8'); ?>">Support</a>
-                        </div>
-                    </div>
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                
+            
+            <div class="border-t border-gray-800 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-gray-400 mb-4 md:mb-0">&copy; 2024 A2Z Engineering. Internal Database System - Company Use Only.</p>
+                    <p class="text-gray-400">Version 2.1.0 | Last Updated: <?php echo date('M Y'); ?></p>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
     <script>
-        // Enhanced form interactions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Password visibility toggle
-            const passwordToggle = document.querySelector('.password-toggle');
-            const passwordInput = document.querySelector('#db_password');
-            
-            if (passwordToggle && passwordInput) {
-                passwordToggle.addEventListener('click', function() {
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-                    this.querySelector('i').classList.toggle('fa-eye');
-                    this.querySelector('i').classList.toggle('fa-eye-slash');
-                });
-            }
-
-            // Enhanced form validation
-            const form = document.querySelector('.login-form');
-            const inputs = form.querySelectorAll('.form-control');
-            
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                
-                input.addEventListener('blur', function() {
-                    if (!this.value.trim()) {
-                        this.parentElement.classList.remove('focused');
-                    }
-                });
-                
-                input.addEventListener('input', function() {
-                    this.classList.toggle('is-valid', this.value.trim().length > 0);
-                    this.classList.toggle('is-invalid', this.value.trim().length === 0);
-                });
-            });
-
-            // Form submission with loading state
-            form.addEventListener('submit', function(e) {
-                const submitBtn = this.querySelector('.btn-login-user');
-                submitBtn.classList.add('loading');
-                
-                // Simulate loading (remove in production)
-                setTimeout(() => {
-                    submitBtn.classList.remove('loading');
-                }, 2000);
-            });
-
-            // Enhanced button interactions
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px) scale(1.02)';
-                });
-                
-                btn.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0) scale(1)';
-                });
-                
-                btn.addEventListener('mousedown', function() {
-                    this.style.transform = 'translateY(1px) scale(0.98)';
-                });
-                
-                btn.addEventListener('mouseup', function() {
-                    this.style.transform = 'translateY(-2px) scale(1.02)';
-                });
-            });
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
         });
 
-        // Background animation
-        function createBackgroundElement() {
-            const element = document.createElement('div');
-            element.className = 'bg-element';
-            element.style.cssText = `
-                position: absolute;
-                width: ${Math.random() * 100 + 50}px;
-                height: ${Math.random() * 100 + 50}px;
-                background: linear-gradient(45deg, rgba(30, 58, 138, 0.1), rgba(245, 158, 11, 0.1));
-                border-radius: 50%;
-                animation: float ${Math.random() * 20 + 15}s linear infinite;
-                left: ${Math.random() * 100}vw;
-                top: ${Math.random() * 100}vh;
-                z-index: -1;
-            `;
-            document.getElementById('background-animation').appendChild(element);
-            setTimeout(() => element.remove(), 25000);
-        }
-
-        // Floating elements
-        function createFloatingElement() {
-            const element = document.createElement('div');
-            const icons = ['fa-solar-panel', 'fa-bolt', 'fa-database', 'fa-chart-line'];
-            const randomIcon = icons[Math.floor(Math.random() * icons.length)];
+        // Password visibility toggle
+        document.querySelector('.password-toggle').addEventListener('click', function() {
+            const passwordInput = document.querySelector('#db_password');
+            const icon = this.querySelector('i');
             
-            element.innerHTML = `<i class="fas ${randomIcon}"></i>`;
-            element.className = 'floating-element';
-            element.style.cssText = `
-                position: absolute;
-                font-size: ${Math.random() * 2 + 1}rem;
-                color: rgba(30, 58, 138, 0.1);
-                animation: floatIcon ${Math.random() * 15 + 10}s linear infinite;
-                left: ${Math.random() * 100}vw;
-                top: ${Math.random() * 100}vh;
-                z-index: -1;
-            `;
-            document.getElementById('floating-elements').appendChild(element);
-            setTimeout(() => element.remove(), 20000);
-        }
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
 
-        setInterval(createBackgroundElement, 3000);
-        setInterval(createFloatingElement, 4000);
-
-        // Smooth scroll for navigation
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                if (this.getAttribute('href').startsWith('#')) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                }
-            });
+        // Form submission with loading state
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalContent = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<span class="flex items-center justify-center"><i class="fas fa-spinner fa-spin mr-2"></i>Signing In...</span>';
+            submitBtn.disabled = true;
+            
+            // In a real implementation, you would remove this timeout
+            // and let the form submission complete naturally
+            setTimeout(() => {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+            }, 2000);
         });
     </script>
 </body>

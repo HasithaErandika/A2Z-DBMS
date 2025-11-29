@@ -29,168 +29,172 @@ if (!isset($data) || !is_array($data)) {
     <title>A2Z Engineering - Reports</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo BASE_PATH; ?>/src/assets/css/reports.css">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
     <!-- Enhanced Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fas fa-database"></i>
-                <div class="logo-glow"></div>
-            </div>
-            <div>
-                <h2 class="sidebar-title">A2Z Engineering</h2>
-                <p class="sidebar-subtitle">Internal Database System</p>
+    <div class="sidebar bg-white w-64 h-screen fixed left-0 top-0 shadow-xl z-50 flex flex-col transition-all duration-300" id="sidebar">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center space-x-3 mb-2">
+                <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-database text-white text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-lg bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">A2Z Engineering</h2>
+                    <p class="text-xs text-gray-500">Internal Database System</p>
+                </div>
             </div>
         </div>
         
-        <nav class="sidebar-nav">
-            <ul class="sidebar-menu">
-                <li class="menu-item">
-                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>" class="menu-link">
-                        <i class="fas fa-tachometer-alt menu-icon"></i>
-                        <span class="menu-text">Dashboard</span>
-                        <span class="menu-indicator"></span>
+        <nav class="flex-1 py-4">
+            <ul class="space-y-1 px-4">
+                <li>
+                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/dashboard', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
                     </a>
                 </li>
-                <li class="menu-item">
-                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>" class="menu-link">
-                        <i class="fas fa-table menu-icon"></i>
-                        <span class="menu-text">Data Tables</span>
-                        <span class="menu-indicator"></span>
+                <li>
+                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/tables', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                        <i class="fas fa-table"></i>
+                        <span>Data Tables</span>
                     </a>
                 </li>
-                <li class="menu-item">
-                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="menu-link active">
-                        <i class="fas fa-chart-bar menu-icon"></i>
-                        <span class="menu-text">Reports</span>
-                        <span class="menu-indicator"></span>
+                <li>
+                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-br from-blue-900 to-blue-500 text-white">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
                     </a>
                 </li>
-                <li class="menu-divider"></li>
-                <li class="menu-item">
-                    <a href="#" class="menu-link">
-                        <i class="fas fa-cog menu-icon"></i>
-                        <span class="menu-text">Settings</span>
-                        <span class="menu-indicator"></span>
-                    </a>
-                </li>
-                <li class="menu-item">
-                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="menu-link logout-link">
-                        <i class="fas fa-sign-out-alt menu-icon"></i>
-                        <span class="menu-text">Logout</span>
-                        <span class="menu-indicator"></span>
+                <li class="mt-8">
+                    <a href="<?php echo htmlspecialchars(BASE_PATH . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
                     </a>
                 </li>
             </ul>
         </nav>
-        
-        <div class="sidebar-footer">
-            <div class="system-status">
-                <span class="status-indicator"></span>
-                <span>System Online</span>
-            </div>
-        </div>
     </div>
 
     <!-- Main Container -->
-    <div class="container" id="container">
+    <div class="ml-64 transition-all duration-300" id="container">
         <!-- Enhanced Dashboard Header -->
-        <div class="dashboard-header">
-            <div class="header-left">
-                <button class="btn-toggle" onclick="toggleSidebar()">
+        <div class="bg-gradient-to-br from-blue-900 to-blue-500 p-8 rounded-b-xl shadow-2xl flex items-center justify-between mb-10 text-white relative overflow-hidden">
+            <div class="flex items-center space-x-4 z-10">
+                <button class="lg:hidden btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
-                    <h1 class="header-title">Reports & Analytics</h1>
-                    <p class="header-subtitle">Internal Database System Reports</p>
+                    <h1 class="text-3xl font-semibold">Reports & Analytics</h1>
+                    <p class="text-blue-100 mt-1">Comprehensive Business Intelligence Reports</p>
                 </div>
             </div>
             
-            <div class="header-right">
-                <div class="header-actions">
-                    <div class="notification-badge">
-                        <i class="fas fa-bell"></i>
-                        <span>3</span>
+            <div class="flex items-center space-x-4 z-10">
+                <div class="hidden md:flex items-center space-x-2 bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                    <i class="fas fa-user-circle text-xl"></i>
+                    <div>
+                        <div class="font-medium text-sm"><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="text-xs text-blue-100">Administrator</div>
                     </div>
-                    <button class="action-btn">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                    <button class="action-btn">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-                
-                <div class="user-info">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name"><?php echo htmlspecialchars($data['username'], ENT_QUOTES, 'UTF-8'); ?></span>
-                        <span class="user-role">Administrator</span>
-                    </div>
-                    <button class="user-menu-toggle">
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
                 </div>
             </div>
         </div>
 
         <!-- DateTime Display -->
-        <div class="datetime-display">
-            <div class="datetime-card">
-                <div class="datetime-icon">
-                    <i class="fas fa-clock"></i>
+        <div class="px-8 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl flex items-center space-x-4 max-w-md">
+                <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center text-white">
+                    <i class="fas fa-clock text-xl"></i>
                 </div>
-                <div class="datetime-content">
-                    <div class="current-date" id="current-date"><?php echo date('l, F j, Y'); ?></div>
-                    <div class="current-time" id="current-time"><?php echo date('H:i:s'); ?></div>
+                <div>
+                    <div class="text-gray-500 text-sm" id="current-date"><?php echo date('l, F j, Y'); ?></div>
+                    <div class="text-2xl font-bold text-gray-900" id="current-time"><?php echo date('H:i:s'); ?></div>
                 </div>
             </div>
         </div>
 
         <!-- Main Content -->
-        <div class="main-content">
-            <div class="section-header">
-                <div class="section-title">
-                    <i class="fas fa-chart-line"></i>
-                    <div>
-                        <h2>System Reports</h2>
-                        <p>Generate and view comprehensive reports for internal operations</p>
+        <div class="px-8 pb-10">
+            <div class="bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+                    <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                        <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                        <div>
+                            <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">Business Reports</h2>
+                            <p class="text-gray-500 text-sm">Financial, operational, and performance analytics</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button class="bg-transparent text-blue-900 border-2 border-blue-900 px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:bg-blue-900 hover:text-white hover:translate-y-[-2px]">
+                            <i class="fas fa-download"></i> Export All
+                        </button>
+                        <button class="bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30">
+                            <i class="fas fa-plus"></i> New Report
+                        </button>
                     </div>
                 </div>
-                <div class="section-actions">
-                    <button class="btn btn-outline">
-                        <i class="fas fa-download"></i>
-                        Export All
-                    </button>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        New Report
-                    </button>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8" id="reports-grid">
+                    <?php if (empty($data['reportCards'])): ?>
+                        <div class="col-span-full text-center py-12">
+                            <div class="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                <i class="fas fa-chart-bar text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">No Reports Available</h3>
+                            <p class="text-gray-500 mb-6">Create your first report to get started with analytics</p>
+                            <button class="bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 mx-auto hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30">
+                                <i class="fas fa-plus"></i> Create Report
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($data['reportCards'] as $card): ?>
+                            <div class="bg-white p-6 rounded-xl shadow-md transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border border-gray-200">
+                                <a href="<?php echo htmlspecialchars($card['link'], ENT_QUOTES, 'UTF-8'); ?>" class="block">
+                                    <div class="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center text-blue-600 mb-4">
+                                        <i class="fas <?php echo htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8'); ?> text-xl"></i>
+                                    </div>
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2"><?php echo htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8'); ?></h3>
+                                    <p class="text-gray-600 text-sm mb-4"><?php echo htmlspecialchars($card['desc'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                    <div class="flex items-center text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors">
+                                        View Report <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                                    </div>
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
             
-            <div class="card-grid" id="reports-grid">
-                <?php if (empty($data['reportCards'])): ?>
-                    <div class="empty-state">
-                        <i class="fas fa-chart-bar"></i>
-                        <h3>No Reports Available</h3>
-                        <p>Create your first report to get started with analytics</p>
-                        <button class="btn btn-primary">Create Report</button>
+            <!-- Professional Content Section -->
+            <div class="mt-8 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-lg">
+                <div class="flex items-start space-x-4">
+                    <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                        <i class="fas fa-lightbulb text-xl"></i>
                     </div>
-                <?php else: ?>
-                    <?php foreach ($data['reportCards'] as $card): ?>
-                        <div class="card">
-                            <a href="<?php echo htmlspecialchars($card['link'], ENT_QUOTES, 'UTF-8'); ?>">
-                                <i class="fas <?php echo htmlspecialchars($card['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
-                                <div class="card-title"><?php echo htmlspecialchars($card['title'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                <div class="card-desc"><?php echo htmlspecialchars($card['desc'], ENT_QUOTES, 'UTF-8'); ?></div>
-                            </a>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Data-Driven Decision Making</h3>
+                        <p class="text-gray-700 mb-4">
+                            Our comprehensive reporting system provides actionable insights into your business operations. 
+                            Track financial performance, monitor operational efficiency, and identify growth opportunities 
+                            through detailed analytics and visualizations.
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <div class="text-blue-600 font-semibold mb-1">Financial Reports</div>
+                                <div class="text-sm text-gray-600">Track revenue, expenses, and profitability</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <div class="text-green-600 font-semibold mb-1">Operational Metrics</div>
+                                <div class="text-sm text-gray-600">Monitor efficiency and productivity</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <div class="text-purple-600 font-semibold mb-1">Performance Analytics</div>
+                                <div class="text-sm text-gray-600">Measure KPIs and business outcomes</div>
+                            </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -200,31 +204,10 @@ if (!isset($data) || !is_array($data)) {
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const container = document.getElementById('container');
-            sidebar.classList.toggle('collapsed');
-            container.classList.toggle('full-width');
-            
-            // Add animation class
-            sidebar.classList.add('animating');
-            setTimeout(() => sidebar.classList.remove('animating'), 300);
-        }
-
-        // Enhanced card filtering
-        function filterCards(input, gridId) {
-            const searchTerm = input.value.toLowerCase();
-            const grid = document.getElementById(`${gridId}-grid`);
-            const cards = grid.getElementsByClassName('card');
-            
-            Array.from(cards).forEach(card => {
-                const title = card.querySelector('.card-title').textContent.toLowerCase();
-                const desc = card.querySelector('.card-desc').textContent.toLowerCase();
-                const shouldShow = title.includes(searchTerm) || desc.includes(searchTerm);
-                
-                card.style.display = shouldShow ? 'flex' : 'none';
-                
-                if (shouldShow) {
-                    card.style.animation = 'slideIn 0.3s ease-out';
-                }
-            });
+            sidebar.classList.toggle('lg:block');
+            sidebar.classList.toggle('hidden');
+            container.classList.toggle('ml-0');
+            container.classList.toggle('ml-64');
         }
 
         // Enhanced date/time updates
@@ -254,85 +237,27 @@ if (!isset($data) || !is_array($data)) {
             }
         }
 
+        // Update date/time every second
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
         // Enhanced card interactions
         document.addEventListener('DOMContentLoaded', function() {
-            // Update date/time every second
-            setInterval(updateDateTime, 1000);
-            updateDateTime();
-
-            // Enhanced card hover effects
-            document.querySelectorAll('.card').forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
-                    this.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.15)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0) scale(1)';
-                    this.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                });
-                
-                // Enhanced click effects
-                card.addEventListener('mousedown', function() {
-                    this.style.transform = 'translateY(-4px) scale(0.98)';
-                });
-                
-                card.addEventListener('mouseup', function() {
-                    this.style.transform = 'translateY(-8px) scale(1.02)';
-                });
-            });
-
-            // Enhanced button interactions
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.addEventListener('mousedown', function() {
-                    this.style.transform = 'scale(0.95)';
-                });
-                
-                btn.addEventListener('mouseup', function() {
-                    this.style.transform = 'scale(1)';
-                });
-            });
-
-            // Menu item active state management
-            document.querySelectorAll('.menu-link').forEach(link => {
+            // Menu item interactions
+            document.querySelectorAll('a[href]').forEach(link => {
                 link.addEventListener('click', function() {
                     // Remove active class from all menu items
-                    document.querySelectorAll('.menu-link').forEach(l => l.classList.remove('active'));
+                    document.querySelectorAll('a[href]').forEach(item => {
+                        item.classList.remove('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white');
+                        item.classList.add('text-gray-700', 'hover:bg-gray-100');
+                    });
+                    
                     // Add active class to clicked item
-                    this.classList.add('active');
+                    this.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                    this.classList.add('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white');
                 });
-            });
-
-            // Action button click effects
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    this.style.transform = 'scale(0.9)';
-                    setTimeout(() => {
-                        this.style.transform = 'scale(1)';
-                    }, 150);
-                });
-            });
-
-            // Parallax effect for dashboard header
-            window.addEventListener('scroll', () => {
-                const scrolled = window.pageYOffset;
-                const header = document.querySelector('.dashboard-header');
-                if (header) {
-                    header.style.transform = `translateY(${scrolled * 0.1}px)`;
-                }
             });
         });
-
-        // Loading states for buttons
-        function setLoadingState(button, isLoading) {
-            if (isLoading) {
-                button.classList.add('loading');
-                button.disabled = true;
-            } else {
-                button.classList.remove('loading');
-                button.disabled = false;
-            }
-        }
     </script>
 </body>
 </html>
