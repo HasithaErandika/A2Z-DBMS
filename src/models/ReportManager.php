@@ -314,7 +314,17 @@ public function getWageData($filters = []) {
                       FROM employee_payments ep 
                       WHERE ep.emp_id = e.emp_id 
                         AND ep.payment_type = 'Other'
-                        AND ep.payment_date BETWEEN :start_date AND :end_date), 0) AS other_payments
+                        AND ep.payment_date BETWEEN :start_date AND :end_date), 0) AS other_payments,
+            COALESCE((SELECT SUM(ep.paid_amount) 
+                      FROM employee_payments ep 
+                      WHERE ep.emp_id = e.emp_id 
+                        AND ep.payment_type = 'Advance'
+                        AND ep.payment_date BETWEEN :start_date AND :end_date), 0) AS advance_paid,
+            COALESCE((SELECT SUM(ep.deduction_amount) 
+                      FROM employee_payments ep 
+                      WHERE ep.emp_id = e.emp_id 
+                        AND ep.payment_type = 'Advance'
+                        AND ep.payment_date BETWEEN :start_date AND :end_date), 0) AS advance_deduction
         FROM employees e
         LEFT JOIN (
             SELECT emp_id, rate_type, rate_amount, effective_date
@@ -390,6 +400,10 @@ public function getWageData($filters = []) {
                         'Advance' => floatval($row['advance']),
                         'Other' => floatval($row['other_payments'])
                     ],
+                    'advance_details' => [
+                        'paid_amount' => floatval($row['advance_paid']),
+                        'deduction_amount' => floatval($row['advance_deduction'])
+                    ],
                     'attendance_summary' => [
                         'presence_count' => 0,
                         'attendance_dates' => []
@@ -422,6 +436,28 @@ public function getWageData($filters = []) {
                 $employee_wages[$emp_id]['attendance_summary']['attendance_dates'][] = $row['attendance_date'];
             }
         }
+
+        // Separate fixed and daily wage employees
+        $fixed_wage_employees = [];
+        $daily_wage_employees = [];
+        foreach ($employee_wages as $emp) {
+            if ($emp['rate_type'] === 'Fixed') {
+                $fixed_wage_employees[] = $emp;
+            } else {
+                $daily_wage_employees[] = $emp;
+            }
+        }
+        
+        // Update attendance summary to correctly calculate days including half days
+        foreach ($employee_wages as &$emp) {
+            // Sum up all presence values (1.0 for full day, 0.5 for half day, 0.0 for absent)
+            $total_presence = array_sum(array_column($emp['attendance_details'], 'presence'));
+            $emp['attendance_summary']['total_presence'] = $total_presence;
+            
+            // Count actual attendance records for reference
+            $emp['attendance_summary']['record_count'] = count($emp['attendance_details']);
+        }
+        unset($emp);
 
         return array_values($employee_wages);
     } catch (PDOException $e) {

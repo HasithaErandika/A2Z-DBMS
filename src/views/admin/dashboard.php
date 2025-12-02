@@ -43,18 +43,18 @@ if (!isset($data) || !is_array($data)) {
     <title>A2Z Engineering - DBMS Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="<?php echo BASE_PATH; ?>/src/assets/css/tailwind.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
     <!-- Enhanced Sidebar -->
     <div class="sidebar bg-white w-64 h-screen fixed left-0 top-0 shadow-xl z-50 flex flex-col transition-all duration-300" id="sidebar">
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-center space-x-3 mb-2">
-                <div class="bg-gradient-to-br from-blue-900 to-blue-500 w-12 h-12 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-database text-white text-xl"></i>
-                </div>
+                <!-- Added logo image -->
+                <img src="<?php echo BASE_PATH; ?>/src/assets/images/logo.png" alt="A2Z Engineering Logo" class="w-12 h-12 object-contain">
                 <div>
                     <h2 class="font-bold text-lg bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent">A2Z Engineering</h2>
+                    <!-- Updated text to full system name -->
                     <p class="text-xs text-gray-500">Internal Database System</p>
                 </div>
             </div>
@@ -63,25 +63,32 @@ if (!isset($data) || !is_array($data)) {
         <nav class="flex-1 py-4">
             <ul class="space-y-1 px-4">
                 <li>
-                    <a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-br from-blue-900 to-blue-500 text-white border-l-4 border-blue-700">
+                    <!-- Enhanced active bar design with custom border style -->
+                    <a href="<?php echo BASE_PATH; ?>/admin/dashboard" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-900 border-l-4 border-blue-600 shadow-sm relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                         <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
+                        <span class="font-medium">Dashboard</span>
+                        <!-- Custom design element for active state -->
+                        <div class="absolute right-2 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500"></div>
                     </a>
                 </li>
                 <li>
-                    <a href="<?php echo BASE_PATH; ?>/admin/tables" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                    <a href="<?php echo BASE_PATH; ?>/admin/tables" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <i class="fas fa-table"></i>
                         <span>Data Tables</span>
                     </a>
                 </li>
                 <li>
-                    <a href="<?php echo BASE_PATH; ?>/admin/reports" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200">
+                    <a href="<?php echo BASE_PATH; ?>/admin/reports" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-200 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <i class="fas fa-chart-bar"></i>
                         <span>Reports</span>
                     </a>
                 </li>
                 <li class="mt-8">
-                    <a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200">
+                    <a href="<?php echo htmlspecialchars(FULL_BASE_URL . '/logout', ENT_QUOTES, 'UTF-8'); ?>" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </a>
@@ -424,18 +431,48 @@ if (!isset($data) || !is_array($data)) {
         document.addEventListener('DOMContentLoaded', function() {
             // Menu item interactions
             document.querySelectorAll('a[href]').forEach(link => {
-                link.addEventListener('click', function() {
+                link.addEventListener('click', function(e) {
+                    // Prevent default for demo purposes
+                    // e.preventDefault();
+                    
                     // Remove active class from all menu items
-                    document.querySelectorAll('a[href]').forEach(item => {
-                        item.classList.remove('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white', 'border-l-4', 'border-blue-700');
+                    document.querySelectorAll('.sidebar a').forEach(item => {
+                        item.classList.remove('bg-gradient-to-r', 'from-blue-50', 'to-indigo-50', 'text-blue-900', 'border-l-4', 'border-blue-600', 'shadow-sm');
                         item.classList.add('text-gray-700', 'hover:bg-gray-100');
+                        
+                        // Remove custom design element
+                        const indicator = item.querySelector('.absolute.right-2');
+                        if (indicator) {
+                            indicator.remove();
+                        }
                     });
                     
-                    // Add active class to clicked item
+                    // Add active class to clicked item with enhanced styling
                     this.classList.remove('text-gray-700', 'hover:bg-gray-100');
-                    this.classList.add('bg-gradient-to-br', 'from-blue-900', 'to-blue-500', 'text-white', 'border-l-4', 'border-blue-700');
+                    this.classList.add('bg-gradient-to-r', 'from-blue-50', 'to-indigo-50', 'text-blue-900', 'border-l-4', 'border-blue-600', 'shadow-sm');
+                    
+                    // Add custom design element for active state
+                    if (!this.querySelector('.absolute.right-2')) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'absolute right-2 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500';
+                        this.appendChild(indicator);
+                    }
                 });
             });
+            
+            // Set initial active state for dashboard
+            const dashboardLink = document.querySelector('a[href="<?php echo BASE_PATH; ?>/admin/dashboard"]');
+            if (dashboardLink) {
+                dashboardLink.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                dashboardLink.classList.add('bg-gradient-to-r', 'from-blue-50', 'to-indigo-50', 'text-blue-900', 'border-l-4', 'border-blue-600', 'shadow-sm');
+                
+                // Add custom design element for active state if not present
+                if (!dashboardLink.querySelector('.absolute.right-2')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'absolute right-2 top-1/2 transform -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500';
+                    dashboardLink.appendChild(indicator);
+                }
+            }
         });
     </script>
 </body>

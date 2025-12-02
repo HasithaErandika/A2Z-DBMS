@@ -237,6 +237,17 @@ class AdminController extends Controller {
                     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
                 }
                 exit;
+            } elseif ($action === 'get_job_completion' && $table === 'jobs') {
+                try {
+                    $jobId = $_POST['job_id'] ?? '';
+                    $completion = $this->tableManager->getJobCompletion($jobId);
+                    header('Content-Type: application/json');
+                    echo json_encode(['completion' => $completion]);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => $e->getMessage()]);
+                }
+                exit;
             } elseif ($action === 'get_invoice_details' && $table === 'jobs') {
                 try {
                     $jobId = $_POST['job_id'] ?? '';
@@ -335,19 +346,56 @@ class AdminController extends Controller {
         // Totals
         $total_daily_wages = array_sum(array_column($daily_wage_employees, 'total_payment'));
         $total_fixed_wages = array_sum(array_column($fixed_rate_employees, 'total_payment'));
+        $total_advance_payments = 0;
+        
+        // Calculate total advance payments
+        foreach ($wage_data as $emp) {
+            $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+            $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+            $total_advance_payments += $advance_paid + $advance_deduction;
+        }
+        
         $total_wages       = $total_daily_wages + $total_fixed_wages + $epf_costs;
         $employee_count    = count($wage_data);
         $avg_wage_per_employee = $employee_count > 0 ? $total_wages / $employee_count : 0;
 
-        // Top 10 earners
-        usort($wage_data, fn($a, $b) => ($b['total_payment'] ?? 0) <=> ($a['total_payment'] ?? 0));
+        // Top 10 earners - calculate based on net payable
+        foreach ($wage_data as &$emp) {
+            if (strtoupper($emp['rate_type'] ?? 'DAILY') === 'FIXED') {
+                $basic     = floatval($emp['basic_salary'] ?? $emp['rate_amount'] ?? 0);
+                $etf       = $basic * 0.03;
+                $epfEmp    = $basic * 0.08;
+                $epfComp   = $basic * 0.12;
+                $payable   = $basic + $epfComp;
+                $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+                $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+                $advance_total = $advance_paid + $advance_deduction;
+                $paid      = array_sum($emp['paid_amount'] ?? [0,0,0]);
+                // Net Payable = Payable - ETF - EPF Emp - Advance - Other Payments
+                $emp['net_payable'] = $payable - $etf - $epfEmp - $advance_total - $paid;
+            } else {
+                $days   = $emp['attendance_summary']['presence_count'] ?? 0;
+                $rate   = floatval($emp['rate_amount'] ?? 0);
+                $earned = $days * $rate;
+                $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+                $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+                $advance_total = $advance_paid + $advance_deduction;
+                $paid   = array_sum($emp['paid_amount'] ?? [0,0,0]);
+                // Net Payable = Earned - Advance - Other Payments
+                $emp['net_payable'] = $earned - $advance_total - $paid;
+            }
+        }
+        unset($emp);
+        
+        // Sort by net payable for Top 10 earners
+        usort($wage_data, fn($a, $b) => ($b['net_payable'] ?? 0) <=> ($a['net_payable'] ?? 0));
         $top_earners = array_slice($wage_data, 0, 10);
 
-        // CSV Export
-        if (isset($_GET['download_csv'])) {
-            $this->generateWagesCSV($report_title, $total_wages, $total_daily_wages, $total_fixed_wages, $epf_costs, $employee_count, $avg_wage_per_employee, $daily_wage_employees, $fixed_rate_employees, $labor_wages_data);
-            exit;
-        }
+        // Remove CSV Export
+        // if (isset($_GET['download_csv'])) {
+        //     $this->generateWagesCSV($report_title, $total_wages, $total_daily_wages, $total_fixed_wages, $epf_costs, $total_advance_payments, $employee_count, $avg_wage_per_employee, $daily_wage_employees, $fixed_rate_employees, $labor_wages_data);
+        //     exit;
+        // }
 
         // PDF Salary Slips (All or Single)
         if (isset($_GET['generate_pdf'])) {
@@ -365,6 +413,7 @@ class AdminController extends Controller {
             'total_wages'            => $total_wages,
             'total_daily_wages'      => $total_daily_wages,
             'total_fixed_wages'      => $total_fixed_wages,
+            'total_advance_payments' => $total_advance_payments,
             'epf_costs'              => $epf_costs,
             'employee_count'         => $employee_count,
             'avg_wage_per_employee'  => $avg_wage_per_employee,
@@ -386,7 +435,7 @@ class AdminController extends Controller {
 
 // ──────────────────────────────────────────────────────────────
 // CSV Export
-private function generateWagesCSV($title, $total_wages, $daily, $fixed, $epf, $count, $avg, $daily_emps, $fixed_emps, $labor) {
+private function generateWagesCSV($title, $total_wages, $daily, $fixed, $epf, $advance, $count, $avg, $daily_emps, $fixed_emps, $labor) {
     header('Content-Type: text/csv');
     header('Content-Disposition: attachment; filename="wages_report_' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
@@ -395,6 +444,7 @@ private function generateWagesCSV($title, $total_wages, $daily, $fixed, $epf, $c
     fputcsv($out, ['Daily Wages', number_format($daily,2)]);
     fputcsv($out, ['Fixed Wages', number_format($fixed,2)]);
     fputcsv($out, ['EPF Cost', number_format($epf,2)]);
+    fputcsv($out, ['Advance Payments', number_format($advance,2)]);
     fputcsv($out, ['Employee Count', $count]);
     fputcsv($out, ['Average Wage', number_format($avg,2)]);
     fclose($out);
@@ -451,7 +501,8 @@ private function buildSlipHTML($title, $employees, $forDompdf = true) {
 
         $isFixed = strtoupper($emp['rate_type'] ?? 'DAILY') === 'FIXED';
         $basic   = $isFixed ? floatval($emp['basic_salary'] ?? $emp['rate_amount'] ?? 0) : 0;
-        $days    = $emp['attendance_summary']['presence_count'] ?? 0;
+        // Use total_presence for correct day calculation including half days
+        $days    = $emp['attendance_summary']['total_presence'] ?? 0;
         $rate    = $isFixed ? 0 : floatval($emp['rate_amount'] ?? 0);
         $earned  = $isFixed ? $basic : $days * $rate;
 
@@ -460,20 +511,36 @@ private function buildSlipHTML($title, $employees, $forDompdf = true) {
         $epfComp = $isFixed ? $basic * 0.12 : 0;
         $payable = $earned + $epfComp;
         $paid    = array_sum($emp['paid_amount'] ?? [0,0,0,0]);
-        $net     = $payable - $etf - $epfEmp - $paid;
-
+        $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+        $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+        $advance_total = $advance_paid + $advance_deduction;
+        
+        // Net Payable calculation
+        if ($isFixed) {
+            // For fixed salary: Net Payable = Payable - ETF - EPF Emp - Advance - Other Payments
+            $net_payable = $payable - $etf - $epfEmp - $advance_total - $paid;
+        } else {
+            // For daily wage: Net Payable = Earned - Advance - Other Payments
+            $net_payable = $earned - $advance_total - $paid;
+        }
+        
         $html .= '<div class="slip">
             <div class="header">A2Z Engineering (Pvt) Ltd<br>Salary Slip – ' . htmlspecialchars($title) . '</div>
             <p><strong>Name:</strong> ' . htmlspecialchars($emp['emp_name']) . ' | <strong>ID:</strong> ' . $emp['emp_id'] . '</p>
             <table>
                 <tr><th>Earnings</th><th>Amount</th><th>Deductions</th><th>Amount</th></tr>
                 <tr><td>Basic / Daily</td><td>' . number_format($earned,2) . '</td><td>ETF (3%)</td><td>' . number_format($etf,2) . '</td></tr>
-                <tr><td>EPF Company (12%)</td><td>' . number_format($epfComp,2) . '</td><td>EPF Employee (8%)</td><td>' . number_format($epfEmp,2) . '</td></tr>
-                <tr><td></td><td></td><td>Advances/Other</td><td>' . number_format($paid,2) . '</td></tr>
+                <tr><td>EPF Company (12%)</td><td>' . number_format($epfComp,2) . '</td><td>EPF Employee (8%)</td><td>' . number_format($epfEmp,2) . '</td></tr>';
+                
+        if ($advance_total > 0) {
+            $html .= '<tr><td>Advance Payments</td><td>' . number_format($advance_total,2) . '</td><td></td><td></td></tr>';
+        }
+        
+        $html .= '<tr><td></td><td></td><td>Advances/Other</td><td>' . number_format($paid,2) . '</td></tr>
                 <tr><td><strong>Gross</strong></td><td><strong>' . number_format($payable,2) . '</strong></td>
                     <td><strong>Total Ded.</strong></td><td><strong>' . number_format($etf+$epfEmp+$paid,2) . '</strong></td></tr>
                 <tr><td colspan="4" style="text-align:center;font-size:16px;background:#e6f2ff;">
-                    <strong>Net Payable: LKR ' . number_format($net,2) . '</strong>
+                    <strong>Net Payable: LKR ' . number_format($net_payable,2) . '</strong>
                 </td></tr>
             </table>
             <small>Generated: ' . date('d M Y H:i') . '</small>

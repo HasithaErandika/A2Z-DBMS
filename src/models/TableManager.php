@@ -492,11 +492,8 @@ class TableManager extends Model {
             }
 
             $currentCompletion = (float)$currentCompletion;
-            if (in_array($currentCompletion, [1.0, 0.1])) {
-                return ['success' => false, 'error' => 'Job is already completed or cancelled'];
-            }
 
-            $validCompletions = [0.0, 0.1, 0.2, 0.5, 1.0];
+            $validCompletions = [0.0, 0.1, 0.2, 0.3, 0.5, 1.0];
             $newCompletion = (float)$newCompletion;
             if (!in_array($newCompletion, $validCompletions)) {
                 return ['success' => false, 'error' => 'Invalid completion value'];

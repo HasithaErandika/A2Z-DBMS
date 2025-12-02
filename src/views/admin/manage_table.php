@@ -1,7 +1,6 @@
 <?php
 if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app's actual base path
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,8 +14,15 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <!-- Include Select2 for searchable dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --secondary-gradient: linear-gradient(135deg, #10b981, #3b82f6);
+            --accent-gradient: linear-gradient(135deg, #f59e0b, #ef4444);
+        }
+        
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
         
         .modal {
@@ -29,32 +35,45 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.show {
+            opacity: 1;
         }
         
         .modal-content {
             background-color: #fff;
             margin: 5% auto;
             padding: 0;
-            border-radius: 12px;
+            border-radius: 16px;
             width: 90%;
-            max-width: 600px;
+            max-width: 700px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            animation: modalFadeIn 0.3s ease-out;
+            transform: translateY(-50px);
+            transition: transform 0.3s ease, opacity 0.3s ease;
             max-height: 90vh;
             overflow-y: auto;
+            opacity: 0;
         }
         
-        @keyframes modalFadeIn {
-            from {opacity: 0; transform: translateY(-50px);}
-            to {opacity: 1; transform: translateY(0);}
+        .modal.show .modal-content {
+            transform: translateY(0);
+            opacity: 1;
         }
         
         .btn {
             transition: all 0.2s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
         .btn:active {
@@ -89,11 +108,19 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
         
         .status-select {
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             border: 1px solid #d1d5db;
             background-color: white;
             font-size: 14px;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        
+        .status-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
         
         .spinner {
@@ -104,8 +131,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         
         .table-wrapper {
             overflow-x: auto;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: white;
         }
         
         #data-table {
@@ -116,7 +144,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         
         #data-table th,
         #data-table td {
-            padding: 12px 15px;
+            padding: 16px 15px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
         }
@@ -125,6 +153,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             background-color: #f9fafb;
             font-weight: 600;
             color: #374151;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         #data-table tr:hover {
@@ -136,12 +167,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             font-weight: 500;
             color: #374151;
         }
@@ -149,10 +180,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 10px 12px;
-            border-radius: 6px;
+            padding: 12px 14px;
+            border-radius: 8px;
             border: 1px solid #d1d5db;
-            font-size: 14px;
+            font-size: 15px;
+            transition: all 0.2s ease;
         }
         
         .form-group input:focus,
@@ -169,25 +201,27 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         
         .button-group {
             display: flex;
-            gap: 8px;
+            gap: 12px;
             flex-wrap: wrap;
         }
         
         .btn-option {
             flex: 1;
-            min-width: 80px;
-            padding: 8px 12px;
-            border-radius: 6px;
+            min-width: 100px;
+            padding: 12px 16px;
+            border-radius: 8px;
             border: 1px solid #d1d5db;
             background-color: white;
-            font-size: 13px;
+            font-size: 14px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            font-weight: 500;
         }
         
         .btn-option:hover {
             opacity: 0.9;
+            transform: translateY(-1px);
         }
         
         .btn-green {
@@ -228,15 +262,16 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         
         .invoice-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
         }
         
         .invoice-item {
-            padding: 12px;
+            padding: 16px;
             background-color: #f9fafb;
-            border-radius: 6px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         .invoice-item.full-width {
@@ -247,34 +282,37 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             display: block;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            font-size: 14px;
         }
         
         .stat-box {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background-color: #eff6ff;
-            border-radius: 6px;
-            font-size: 14px;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--secondary-gradient);
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 500;
-            color: #1e40af;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .search-input {
             width: 100%;
-            padding: 12px 16px;
-            border-radius: 8px;
+            padding: 14px 20px;
+            border-radius: 10px;
             border: 1px solid #d1d5db;
             font-size: 16px;
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
         }
         
         .search-input:focus {
             outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         }
         
         /* Custom design elements */
@@ -285,36 +323,39 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         .custom-design-element::before {
             content: '';
             position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            top: -10px;
+            right: -10px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary-gradient);
             border-radius: 50%;
             z-index: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         .custom-design-element::after {
             content: '';
             position: absolute;
-            bottom: -8px;
-            left: -8px;
-            width: 16px;
-            height: 16px;
-            background: linear-gradient(135deg, #10b981, #3b82f6);
+            bottom: -10px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: var(--secondary-gradient);
             border-radius: 50%;
             z-index: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         /* Custom styles for DataTables pagination */
         .dataTables_wrapper .dataTables_paginate .paginate_button {
-            padding: 0.5rem 0.75rem;
-            margin-left: 0.25rem;
-            border-radius: 0.375rem;
+            padding: 0.6rem 0.9rem;
+            margin-left: 0.3rem;
+            border-radius: 0.5rem;
             border: 1px solid #e5e7eb;
             background-color: #fff;
             color: #374151 !important;
             transition: all 0.2s;
+            font-weight: 500;
         }
         
         .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
@@ -323,9 +364,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
         
         .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background-color: #3b82f6;
+            background: var(--primary-gradient);
             color: #fff !important;
-            border-color: #3b82f6;
+            border-color: transparent;
         }
         
         .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
@@ -334,22 +375,22 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
         
         .dataTables_wrapper .dataTables_length select {
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
             border: 1px solid #d1d5db;
-            padding: 0.25rem 0.5rem;
+            padding: 0.3rem 0.6rem;
             background-color: #fff;
             color: #374151;
         }
         
         .dataTables_wrapper .dataTables_filter input {
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
             border: 1px solid #d1d5db;
-            padding: 0.25rem 0.5rem;
+            padding: 0.3rem 0.6rem;
         }
         
         .dataTables_info {
             color: #6b7280;
-            font-size: 0.875rem;
+            font-size: 0.9rem;
         }
         
         /* Clock picker styling */
@@ -359,7 +400,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         
         .clock-picker .clock-icon {
             position: absolute;
-            right: 10px;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
             color: #9ca3af;
@@ -371,47 +412,162 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem 0;
+            padding: 1.2rem 0;
             flex-wrap: wrap;
-            gap: 1rem;
+            gap: 1.2rem;
         }
         
         .entries-control {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
         }
         
         .entries-control select {
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
             border: 1px solid #d1d5db;
-            padding: 0.25rem 0.5rem;
+            padding: 0.3rem 0.6rem;
             background-color: #fff;
             color: #374151;
+        }
+        
+        /* Action buttons */
+        .action-btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .action-btn.edit {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .action-btn.edit:hover {
+            background-color: #bfdbfe;
+        }
+        
+        .action-btn.delete {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .action-btn.delete:hover {
+            background-color: #fecaca;
+        }
+        
+        .action-btn.invoice {
+            background-color: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .action-btn.invoice:hover {
+            background-color: #bbf7d0;
+        }
+        
+        .action-btn.status-change {
+            background-color: #dbeafe;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .action-btn.status-change:hover {
+            background-color: #bfdbfe;
+        }
+        
+        .status-option-btn.selected {
+            border-color: #3b82f6;
+            background-color: #dbeafe;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Status badges */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .status-not-started {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        
+        .status-cancelled {
+            background-color: #fecaca;
+            color: #dc2626;
+        }
+        
+        .status-started {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .status-ongoing {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .status-completed {
+            background-color: #d1fae5;
+            color: #059669;
+        }
+        
+        .status-postponed {
+            background-color: #ddd6fe;
+            color: #7c3aed;
+        }
+        
+        /* Card styling */
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Form actions */
+        .form-actions {
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 16px;
         }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Enhanced Header with Custom Design Elements -->
-    <div class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-0 sm:px-0 lg:px-0">
-            <div class="flex justify-between items-center py-6 px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center space-x-4">
+    <div class="bg-white shadow-xl">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between py-6 gap-6">
+                <div class="flex items-center space-x-5">
                     <div class="custom-design-element">
-                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 w-12 h-12 rounded-lg flex items-center justify-center shadow-lg">
-                            <i class="fas fa-table text-white text-xl"></i>
+                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 w-14 h-14 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-table text-white text-2xl"></i>
                         </div>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Manage <?php echo htmlspecialchars($data['table']); ?></h1>
-                        <p class="text-sm text-gray-500">Internal Database Management System</p>
+                        <h1 class="text-3xl font-bold text-gray-900">Manage <?php echo htmlspecialchars($data['table']); ?></h1>
+                        <p class="text-base text-gray-600 mt-1">Internal Database Management System</p>
                     </div>
                 </div>
-                <div class="flex space-x-3">
-                    <button class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2" onclick="openModal('create')">
+                <div class="flex flex-wrap gap-3">
+                    <button class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-base" onclick="openModal('create')">
                         <i class="fas fa-plus"></i> Add Record
                     </button>
-                    <button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-all duration-300 flex items-center gap-2" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
+                    <button class="bg-white border-2 border-gray-200 text-gray-700 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center gap-3 text-base shadow hover:shadow-md" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
                 </div>
@@ -419,83 +575,156 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-0 sm:px-0 lg:px-0 py-8">
-        <!-- Enhanced Filters Section -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6 mx-4 sm:mx-6 lg:mx-8">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div class="flex flex-wrap items-center gap-4">
-                    <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
-                        <div class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-sm font-medium shadow-md">
-                            <i class="fas fa-bolt"></i>
-                            <span>PV Capacity: <?php echo number_format($data['totalCapacity'], 2); ?> kW</span>
+    <div class="px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <!-- Enhanced Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
+                            <i class="fas fa-bolt text-xl"></i>
                         </div>
-                    <?php endif; ?>
-                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg text-sm font-medium shadow-md" id="record-count">
-                        <i class="fas fa-database"></i>
-                        <span><?php echo $data['totalRecords']; ?> Records</span>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">PV Capacity</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo number_format($data['totalCapacity'], 2); ?> kW</p>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if ($data['table'] === 'employees'): ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Active Employees</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['activeEmployees'] ?? 'N/A'; ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php elseif ($data['table'] === 'attendance'): ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white mr-4">
+                            <i class="fas fa-calendar-check text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Today's Attendance</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['todaysAttendance'] ?? 'N/A'; ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php elseif ($data['table'] === 'operational_expenses'): ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-red-500 to-orange-600 text-white mr-4">
+                            <i class="fas fa-money-bill-wave text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">This Month Expenses</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['monthlyExpenses'] ?? 'N/A'; ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php elseif ($data['table'] === 'employee_payments'): ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white mr-4">
+                            <i class="fas fa-rupee-sign text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Pending Payments</p>
+                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['pendingPayments'] ?? 'N/A'; ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="card p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white mr-4">
+                            <i class="fas fa-database text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Records</p>
+                            <p class="text-2xl font-bold text-gray-900" id="record-count"><?php echo $data['totalRecords']; ?></p>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Enhanced Filters Section -->
+        <div class="card p-6 mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input class="w-full sm:w-80 pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-base" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
                     </div>
                 </div>
                 
-                <form class="flex flex-col sm:flex-row gap-3 export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
+                <form class="flex flex-col sm:flex-row gap-4 export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                     <input type="hidden" name="action" value="export_csv">
-                    <div class="flex gap-2">
-                        <input type="date" name="start_date" required aria-label="Start Date" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
-                        <input type="date" name="end_date" required aria-label="End Date" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
+                    <div class="flex gap-3">
+                        <input type="date" name="start_date" required aria-label="Start Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
+                        <input type="date" name="end_date" required aria-label="End Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
                     </div>
-                    <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2">
-                        <i class="fas fa-download"></i> Export
+                    <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base">
+                        <i class="fas fa-download"></i> Export CSV
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- Enhanced Search Bar -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6 mx-4 sm:mx-6 lg:mx-8">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i class="fas fa-search text-gray-400"></i>
+        <!-- Enhanced Pagination Info -->
+        <div class="card p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label for="entries-per-page" class="text-gray-700 font-medium">Show</label>
+                        <select id="entries-per-page" class="border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="text-gray-700 font-medium">entries</span>
+                    </div>
+                    <div class="dataTables_info text-gray-600" id="pagination-info">
+                        Showing 1 to 10 of <?php echo $data['totalRecords']; ?> entries
+                    </div>
                 </div>
-                <input class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
+                <div class="flex items-center gap-2">
+                    <button id="refresh-table" class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Full Width Table Wrapper -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden mx-4 sm:mx-6 lg:mx-8">
+        <div class="card overflow-hidden">
             <div class="overflow-x-auto">
-                <table id="data-table" class="min-w-full divide-y divide-gray-200">
+                <table id="data-table" class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <?php foreach ($data['columns'] as $column): ?>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><?php echo htmlspecialchars($column); ?></th>
+                                <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap"><?php echo htmlspecialchars($column); ?></th>
                             <?php endforeach; ?>
                             <?php if ($data['table'] === 'jobs'): ?>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
                             <?php endif; ?>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <!-- Data will be populated by DataTables -->
                     </tbody>
                 </table>
-                <div class="spinner" id="loading-spinner"><i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i></div>
-            </div>
-            
-            <!-- Enhanced Pagination Info -->
-            <div class="pagination-info px-6 py-4 border-t border-gray-200">
-                <div class="entries-control">
-                    <label for="entries-per-page" class="text-gray-700">Show</label>
-                    <select id="entries-per-page" class="border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                    <span class="text-gray-700">entries</span>
-                </div>
-                <div class="dataTables_info" id="pagination-info">
-                    Showing 1 to 10 of <?php echo $data['totalRecords']; ?> entries
-                </div>
+                <div class="spinner" id="loading-spinner"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>
             </div>
         </div>
     </div>
@@ -503,8 +732,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <!-- Enhanced CRUD Modal -->
     <div class="modal" id="crud-modal">
         <div class="modal-content">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-lg">
-                <h2 id="modal-title" class="text-xl font-bold text-white" aria-live="polite"></h2>
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
+                <h2 id="modal-title" class="text-2xl font-bold text-white" aria-live="polite"></h2>
             </div>
             <div class="p-6">
                 <form id="crud-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
@@ -524,7 +753,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         if ($column === 'completion') continue; // Skip completion column
                         ?>
                         <div class="form-group">
-                            <label for="<?php echo $column; ?>" class="block text-sm font-medium text-gray-700 mb-1"><?php echo htmlspecialchars($column); ?></label>
+                            <label for="<?php echo $column; ?>" class="block text-sm font-semibold text-gray-800 mb-2"><?php echo htmlspecialchars($column); ?></label>
                             <?php if ($column === $primaryKey): ?>
                                 <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>" class="primary-key-field">
                             <?php elseif (($column === 'emp_id' && $data['table'] !== 'employees') || ($data['table'] === 'cash_hand' && in_array($column, ['given_by', 'received_by']))): ?>
@@ -614,12 +843,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-                    <div class="form-actions flex justify-end space-x-3 pt-4">
-                        <button type="button" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300 flex items-center gap-2" onclick="closeModal()">
+                    <div class="form-actions flex justify-end space-x-4 pt-6">
+                        <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeModal()">
                             <i class="fas fa-times"></i> Cancel
                         </button>
-                        <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2" onclick="openConfirmModal('update')">
-                            <i class="fas fa-save"></i> Save
+                        <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" onclick="openConfirmModal('update')">
+                            <i class="fas fa-save"></i> Save Changes
                         </button>
                     </div>
                 </form>
@@ -630,28 +859,28 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <!-- Enhanced Invoice Modal -->
     <div class="modal" id="invoice-modal">
         <div class="modal-content">
-            <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-t-lg">
-                <h2 class="text-xl font-bold text-white"><i class="fas fa-file-invoice"></i> Invoice Details</h2>
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-t-xl">
+                <h2 class="text-2xl font-bold text-white"><i class="fas fa-file-invoice"></i> Invoice Details</h2>
             </div>
             <div class="p-6">
                 <div id="invoice-details" class="invoice-details">
                     <div class="invoice-grid">
-                        <div class="invoice-item"><span class="label">Invoice Number:</span><span id="invoice-no">-</span></div>
-                        <div class="invoice-item"><span class="label">Invoice Date:</span><span id="invoice-date">-</span></div>
-                        <div class="invoice-item"><span class="label">Invoice Value:</span><span id="invoice-value">-</span></div>
-                        <div class="invoice-item"><span class="label">Job Details:</span><span id="invoice-job">-</span></div>
-                        <div class="invoice-item"><span class="label">Receiving Payment:</span><span id="invoice-receiving">-</span></div>
-                        <div class="invoice-item"><span class="label">Received Amount:</span><span id="invoice-received">-</span></div>
-                        <div class="invoice-item"><span class="label">Payment Received Date:</span><span id="invoice-payment-date">-</span></div>
-                        <div class="invoice-item full-width"><span class="label">Remarks:</span><span id="invoice-remarks">-</span></div>
+                        <div class="invoice-item"><span class="label">Invoice Number:</span><span id="invoice-no" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Invoice Date:</span><span id="invoice-date" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Invoice Value:</span><span id="invoice-value" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Job Details:</span><span id="invoice-job" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Receiving Payment:</span><span id="invoice-receiving" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Received Amount:</span><span id="invoice-received" class="font-medium">-</span></div>
+                        <div class="invoice-item"><span class="label">Payment Received Date:</span><span id="invoice-payment-date" class="font-medium">-</span></div>
+                        <div class="invoice-item full-width"><span class="label">Remarks:</span><span id="invoice-remarks" class="font-medium">-</span></div>
                     </div>
-                    <div class="form-actions flex justify-end pt-4">
-                        <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300 flex items-center gap-2" onclick="closeInvoiceModal()">
+                    <div class="form-actions flex justify-end pt-6">
+                        <button class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeInvoiceModal()">
                             <i class="fas fa-times"></i> Close
                         </button>
                     </div>
                 </div>
-                <div class="spinner" id="invoice-spinner"><i class="fas fa-spinner fa-spin text-2xl text-green-500"></i></div>
+                <div class="spinner" id="invoice-spinner"><i class="fas fa-spinner fa-spin text-3xl text-green-500"></i></div>
             </div>
         </div>
     </div>
@@ -659,17 +888,63 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <!-- Enhanced Confirmation Modal -->
     <div class="modal" id="confirm-modal">
         <div class="modal-content">
-            <div class="bg-gradient-to-r from-amber-500 to-orange-600 p-6 rounded-t-lg">
-                <h2 id="confirm-title" class="text-xl font-bold text-white" aria-live="polite"></h2>
+            <div class="bg-gradient-to-r from-amber-500 to-orange-600 p-6 rounded-t-xl">
+                <h2 id="confirm-title" class="text-2xl font-bold text-white" aria-live="polite"></h2>
             </div>
             <div class="p-6">
-                <p id="confirm-message" class="text-gray-700 mb-6"></p>
-                <div class="form-actions flex justify-end space-x-3">
-                    <button type="button" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all duration-300 flex items-center gap-2" onclick="closeConfirmModal()">
+                <p id="confirm-message" class="text-gray-700 mb-8 text-lg"></p>
+                <div class="form-actions flex justify-end space-x-4">
+                    <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeConfirmModal()">
                         <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2" id="confirm-action-btn">
+                    <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" id="confirm-action-btn">
                         <i class="fas fa-check"></i> Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Job Status Change Modal -->
+    <div class="modal" id="status-change-modal">
+        <div class="modal-content">
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
+                <h2 class="text-2xl font-bold text-white">Change Job Status</h2>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6">Select the new status for this job:</p>
+                <div class="status-options grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.0">
+                        <div class="font-semibold text-gray-900">Not Started</div>
+                        <div class="text-sm text-gray-600 mt-1">Job has not been started yet</div>
+                    </button>
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.2">
+                        <div class="font-semibold text-gray-900">Started</div>
+                        <div class="text-sm text-gray-600 mt-1">Job has been started</div>
+                    </button>
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.5">
+                        <div class="font-semibold text-gray-900">Ongoing</div>
+                        <div class="text-sm text-gray-600 mt-1">Job is currently in progress</div>
+                    </button>
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="1.0">
+                        <div class="font-semibold text-gray-900">Completed</div>
+                        <div class="text-sm text-gray-600 mt-1">Job has been completed</div>
+                    </button>
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.1">
+                        <div class="font-semibold text-gray-900">Cancelled</div>
+                        <div class="text-sm text-gray-600 mt-1">Job has been cancelled</div>
+                    </button>
+                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.3">
+                        <div class="font-semibold text-gray-900">Postponed</div>
+                        <div class="text-sm text-gray-600 mt-1">Job has been postponed</div>
+                    </button>
+                </div>
+                <div class="form-actions flex justify-end space-x-4">
+                    <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeStatusChangeModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" id="status-change-confirm-btn" disabled>
+                        <i class="fas fa-sync-alt"></i> Update Status
                     </button>
                 </div>
             </div>
@@ -708,7 +983,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     { 
                         data: "<?php echo htmlspecialchars($column); ?>",
                         title: "<?php echo htmlspecialchars($column); ?>",
-                        name: "<?php echo htmlspecialchars($column); ?>"
+                        name: "<?php echo htmlspecialchars($column); ?>",
+                        <?php if ($column === 'paid' && $data['table'] === 'operational_expenses'): ?>
+                        render: function(data, type, row) {
+                            return data == '1' ? 'Yes' : (data == '0' ? 'No' : data);
+                        }
+                        <?php endif; ?>
                     },
                 <?php endforeach; ?>
                 <?php if ($data['table'] === 'jobs'): ?>
@@ -717,13 +997,40 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         title: "Status",
                         name: "completion",
                         render: function(data, type, row) {
-                            return '<select class="status-select" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '">' +
-                                '<option value="0.0" ' + (data == '0.0' ? 'selected' : '') + '>Not Started</option>' +
-                                '<option value="0.1" ' + (data == '0.1' ? 'selected' : '') + '>Cancelled</option>' +
-                                '<option value="0.2" ' + (data == '0.2' ? 'selected' : '') + '>Started</option>' +
-                                '<option value="0.5" ' + (data == '0.5' ? 'selected' : '') + '>Ongoing</option>' +
-                                '<option value="1.0" ' + (data == '1.0' ? 'selected' : '') + '>Completed</option>' +
-                                '</select>';
+                            var statusText = '';
+                            var statusClass = '';
+                            
+                            switch(data) {
+                                case '0.0':
+                                    statusText = 'Not Started';
+                                    statusClass = 'status-not-started';
+                                    break;
+                                case '0.1':
+                                    statusText = 'Cancelled';
+                                    statusClass = 'status-cancelled';
+                                    break;
+                                case '0.2':
+                                    statusText = 'Started';
+                                    statusClass = 'status-started';
+                                    break;
+                                case '0.3':
+                                    statusText = 'Postponed';
+                                    statusClass = 'status-postponed';
+                                    break;
+                                case '0.5':
+                                    statusText = 'Ongoing';
+                                    statusClass = 'status-ongoing';
+                                    break;
+                                case '1.0':
+                                    statusText = 'Completed';
+                                    statusClass = 'status-completed';
+                                    break;
+                                default:
+                                    statusText = 'Unknown';
+                                    statusClass = 'status-not-started';
+                            }
+                            
+                            return '<span class="status-badge ' + statusClass + '" data-job-id="' + row.job_id + '" data-completion="' + data + '">' + statusText + '</span>';
                         }
                     },
                 <?php endif; ?>
@@ -732,12 +1039,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     title: "Actions",
                     name: "actions",
                     render: function(data, type, row) {
-                        var buttons = '<button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm mr-1 edit-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i></button>' +
-                                      '<button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm delete-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i></button>';
+                        var buttons = '<button class="action-btn edit mr-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i> Edit</button>' +
+                                      '<button class="action-btn delete" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i> Delete</button>';
                         <?php if ($data['table'] === 'jobs'): ?>
                             if (row.has_invoice) {
-                                buttons += '<button class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm invoice-btn" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i></button>';
+                                buttons += '<button class="action-btn invoice ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i> Invoice</button>';
                             }
+                            // Add status changer button
+                            buttons += '<button class="action-btn status-change ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '" data-completion="' + (row.completion || '0.0') + '"><i class="fas fa-sync-alt"></i> Change Status</button>';
                         <?php endif; ?>
                         return buttons;
                     }
@@ -755,6 +1064,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 scrollX: false,
                 autoWidth: false,
                 order: [[0, 'desc']],
+                dom: 'rtip', // Remove default pagination and use our custom one
                 ajax: {
                     url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
                     type: "POST",
@@ -796,7 +1106,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 },
                 initComplete: function() {
                     // Event delegation for edit button
-                    $('#data-table tbody').on('click', '.edit-btn', function() {
+                    $('#data-table tbody').on('click', '.edit', function() {
                         var id = $(this).data('id');
                         var rowData = table.row($(this).closest('tr')).data();
                         if (rowData) {
@@ -805,35 +1115,22 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     });
 
                     // Event delegation for delete button
-                    $('#data-table tbody').on('click', '.delete-btn', function() {
+                    $('#data-table tbody').on('click', '.delete', function() {
                         var id = $(this).data('id');
                         openConfirmModal('delete', id);
                     });
 
-                    // Event delegation for status select
-                    $('#data-table tbody').on('change', '.status-select', function() {
-                        var id = $(this).data('id');
-                        var newStatus = $(this).val();
-                        $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
-                            action: 'update_status',
-                            job_id: id,
-                            completion: newStatus
-                        }, function(response) {
-                            if (response.success) {
-                                table.ajax.reload();
-                            } else {
-                                alert('Error updating status: ' + (response.error || 'Unknown error'));
-                            }
-                        }, 'json').fail(function(xhr, error) {
-                            console.error('Status update error:', error);
-                            alert('Error updating status');
-                        });
-                    });
-
                     // Event delegation for invoice button
-                    $('#data-table tbody').on('click', '.invoice-btn', function() {
+                    $('#data-table tbody').on('click', '.invoice', function() {
                         var id = $(this).data('id');
                         openInvoiceModal(id);
+                    });
+                    
+                    // Event delegation for status change button
+                    $('#data-table tbody').on('click', '.status-change', function() {
+                        var jobId = $(this).data('id');
+                        var currentCompletion = $(this).data('completion');
+                        openStatusChangeModal(jobId, currentCompletion);
                     });
                 }
             });
@@ -844,11 +1141,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 var totalRecords = info.recordsTotal || 0;
                 var filteredRecords = info.recordsFiltered !== undefined ? info.recordsFiltered : totalRecords;
                 var searchValue = $('#searchInput').val();
-                var displayText = totalRecords + ' Records';
+                var displayText = totalRecords;
                 if (searchValue && filteredRecords !== totalRecords) {
                     displayText += ' (' + filteredRecords + ' Filtered)';
                 }
-                $('#record-count span').text(displayText);
+                $('#record-count').text(displayText);
+                        
+                // Also update the pagination info in the top section
+                updatePaginationInfo();
             }
 
             // Function to update pagination info
@@ -857,7 +1157,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 var totalRecords = info.recordsTotal;
                 var start = info.start + 1;
                 var end = info.end;
-                $('#pagination-info').text('Showing ' + start + ' to ' + end + ' of ' + totalRecords + ' entries');
+                var paginationText = 'Showing ' + start + ' to ' + end + ' of ' + totalRecords + ' entries';
+                $('.dataTables_info').text(paginationText);
             }
 
             // Custom search bar functionality
@@ -888,6 +1189,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 var length = parseInt($(this).val());
                 table.page.len(length).draw();
             });
+            
+            // Refresh table button
+            $('#refresh-table').on('click', function() {
+                table.ajax.reload(function() {
+                    updateRecordCount();
+                    updatePaginationInfo();
+                }, false);
+            });
         });
 
         function openModal(action, id = null, data = null) {
@@ -896,19 +1205,24 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 setTimeout(() => openModal(action, id, data), 100);
                 return;
             }
-            $('#crud-modal').show();
+            $('#crud-modal').addClass('show');
+            setTimeout(() => {
+                $('#crud-modal').show();
+            }, 10);
             $('#form-action').val(action);
             $('#modal-title').text(action === 'create' ? 'Add New Record' : 'Edit Record');
+            
+            // Reset form
+            $('.primary-key-field').closest('.form-group').show();
+            $('#crud-form')[0].reset();
+            $('#form-id').val(id || '');
+            $('.btn-option').removeClass('active');
+            $('.select2-dropdown').val('').trigger('change');
+            
             if (action === 'create') {
                 $('.primary-key-field').closest('.form-group').hide();
-                $('#crud-form')[0].reset();
-                $('#form-id').val('');
-                $('.btn-option').removeClass('active');
-                // Reset Select2 dropdowns
-                $('.select2-dropdown').val('').trigger('change');
             } else if (action === 'update' && data) {
                 $('.primary-key-field').closest('.form-group').show();
-                $('#form-id').val(id);
                 var dateColumns = <?php echo json_encode($dateColumns); ?>;
                 <?php foreach ($data['columns'] as $column): 
                     if ($column === 'completion') continue; // Skip completion column
@@ -943,8 +1257,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
 
         function closeModal() {
-            $('#crud-modal').hide();
-            $('.primary-key-field').closest('.form-group').show();
+            $('#crud-modal').removeClass('show');
+            setTimeout(() => {
+                $('#crud-modal').hide();
+            }, 300);
         }
 
         function selectOption(fieldId, value) {
@@ -961,17 +1277,25 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 setTimeout(() => openInvoiceModal(jobId), 100);
                 return;
             }
-            $('#invoice-modal').show();
+            $('#invoice-modal').addClass('show');
+            setTimeout(() => {
+                $('#invoice-modal').show();
+            }, 10);
+            
+            // Show loading spinner
             $('#invoice-spinner').show();
             $('#invoice-details').hide();
+            
+            // Fetch invoice details
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
                 action: 'get_invoice_details',
                 job_id: jobId
             }, function(data) {
                 $('#invoice-spinner').hide();
                 $('#invoice-details').show();
-                $('#invoice-no').text(data.invoice_no || '-');
-                let formatDate = (dateStr) => {
+                
+                // Helper function to format dates
+                const formatDate = (dateStr) => {
                     if (!dateStr) return '-';
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
                         try {
@@ -983,6 +1307,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     }
                     return dateStr;
                 };
+                
+                // Populate invoice details
+                $('#invoice-no').text(data.invoice_no || '-');
                 $('#invoice-date').text(formatDate(data.invoice_date));
                 $('#invoice-value').text(data.invoice_value || '-');
                 $('#invoice-job').text(data.job_details ? data.job_details.details : '-');
@@ -998,7 +1325,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
 
         function closeInvoiceModal() {
-            $('#invoice-modal').hide();
+            $('#invoice-modal').removeClass('show');
+            setTimeout(() => {
+                $('#invoice-modal').hide();
+            }, 300);
         }
 
         function openConfirmModal(action, id = null) {
@@ -1007,26 +1337,34 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 setTimeout(() => openConfirmModal(action, id), 100);
                 return;
             }
-            $('#confirm-modal').show();
-            $('#confirm-title').text(
-                action === 'create' ? 'Confirm Add' :
-                action === 'update' ? 'Confirm Update' :
-                'Confirm Delete'
-            );
-            $('#confirm-message').text(
-                action === 'create' ? 'Are you sure you want to add this new record?' :
-                action === 'update' ? 'Are you sure you want to save changes to this record?' :
-                'Are you sure you want to delete this record? This action cannot be undone.'
-            );
+            $('#confirm-modal').addClass('show');
+            setTimeout(() => {
+                $('#confirm-modal').show();
+            }, 10);
+            
+            // Set modal content based on action
+            const titles = {
+                'create': 'Confirm Add',
+                'update': 'Confirm Update',
+                'delete': 'Confirm Delete'
+            };
+            
+            const messages = {
+                'create': 'Are you sure you want to add this new record?',
+                'update': 'Are you sure you want to save changes to this record?',
+                'delete': 'Are you sure you want to delete this record? This action cannot be undone.'
+            };
+            
+            $('#confirm-title').text(titles[action]);
+            $('#confirm-message').text(messages[action]);
             
             $('#confirm-action-btn').off('click').on('click', function() {
-                var formData = $('#crud-form').serialize();
                 if (action === 'create' || action === 'update') {
                     // Submit create or update via AJAX
                     $.ajax({
                         url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
                         type: 'POST',
-                        data: formData,
+                        data: $('#crud-form').serialize(),
                         dataType: 'json',
                         success: function(response) {
                             if (response.success) {
@@ -1071,8 +1409,87 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
         }
 
         function closeConfirmModal() {
-            $('#confirm-modal').hide();
+            $('#confirm-modal').removeClass('show');
+            setTimeout(() => {
+                $('#confirm-modal').hide();
+            }, 300);
         }
+        
+        // Job Status Change Functions
+        let selectedJobId = null;
+        let selectedCompletion = null;
+        
+        function openStatusChangeModal(jobId, currentCompletion) {
+            selectedJobId = jobId;
+            selectedCompletion = currentCompletion;
+            
+            // Reset all buttons
+            $('.status-option-btn').removeClass('selected');
+            $('#status-change-confirm-btn').prop('disabled', true);
+            
+            // Show the modal
+            $('#status-change-modal').addClass('show');
+            setTimeout(() => {
+                $('#status-change-modal').show();
+            }, 10);
+            
+            // Highlight current status if it exists
+            if (currentCompletion !== null && currentCompletion !== undefined) {
+                $('.status-option-btn[data-value="' + currentCompletion + '"]').addClass('selected');
+            }
+        }
+        
+        function closeStatusChangeModal() {
+            $('#status-change-modal').removeClass('show');
+            setTimeout(() => {
+                $('#status-change-modal').hide();
+            }, 300);
+        }
+        
+        // Handle status option selection
+        $(document).on('click', '.status-option-btn', function() {
+            $('.status-option-btn').removeClass('selected');
+            $(this).addClass('selected');
+            selectedCompletion = $(this).data('value');
+            $('#status-change-confirm-btn').prop('disabled', false);
+        });
+        
+        // Handle status change confirmation
+        $('#status-change-confirm-btn').on('click', function() {
+            if (!selectedJobId || selectedCompletion === null) {
+                alert('Please select a status');
+                return;
+            }
+            
+            // Send AJAX request to update job status
+            $.ajax({
+                url: "<?php echo BASE_PATH; ?>/admin/manageTable/jobs",
+                type: 'POST',
+                data: {
+                    action: 'update_status',
+                    job_id: selectedJobId,
+                    completion: selectedCompletion
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        closeStatusChangeModal();
+                        // Refresh the table to show updated status
+                        table.ajax.reload(function() {
+                            updateRecordCount();
+                            updatePaginationInfo();
+                        }, false);
+                        alert('Job status updated successfully!');
+                    } else {
+                        alert('Error updating job status: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr, error) {
+                    console.error('Status update error:', error);
+                    alert('Error updating job status: ' + (xhr.responseJSON?.error || 'Server error'));
+                }
+            });
+        });
     </script>
 </body>
 </html>

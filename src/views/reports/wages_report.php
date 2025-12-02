@@ -10,12 +10,24 @@ if (!defined('FULL_BASE_URL')) {
 function buildEmployeeDetails($emp) {
     $html = "<div class='p-3 bg-blue-50/50 rounded-lg mt-2'>";
     $paid = $emp['paid_amount'] ?? ['Monthly Salary' => 0, 'Advance' => 0, 'Other' => 0];
+    $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+    $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+    $advance_total = $advance_paid + $advance_deduction;
 
     $html .= "<h4 class='font-medium text-gray-800 mb-2'>Payment Breakdown</h4><ul class='list-disc pl-5'>";
     foreach (['Monthly Salary', 'Advance', 'Other'] as $key) {
         $html .= "<li><strong>$key:</strong> LKR " . number_format($paid[$key] ?? 0, 2) . "</li>";
     }
     $html .= "</ul>";
+    
+    // Add advance payment details
+    if ($advance_total > 0) {
+        $html .= "<h4 class='font-medium text-gray-800 mt-3 mb-2'>Advance Payment Details</h4><ul class='list-disc pl-5'>";
+        $html .= "<li><strong>Paid Amount:</strong> LKR " . number_format($advance_paid, 2) . "</li>";
+        $html .= "<li><strong>Deduction Amount:</strong> LKR " . number_format($advance_deduction, 2) . "</li>";
+        $html .= "<li><strong>Total Advance:</strong> LKR " . number_format($advance_total, 2) . "</li>";
+        $html .= "</ul>";
+    }
 
     $html .= "<h4 class='font-medium text-gray-800 mt-3 mb-2'>Attendance Records</h4>";
     if (!empty($emp['attendance_details'])) {
@@ -50,7 +62,6 @@ function buildEmployeeDetails($emp) {
             <div class="header-controls flex gap-3 z-10">
                 <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
                 <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
-                <button class="btn bg-transparent text-blue-900 border-2 border-blue-900 px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:bg-blue-900 hover:text-white hover:translate-y-[-2px]" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
                 <?php if (empty($filters['emp_id'])): ?>
                     <button class="btn bg-gradient-to-br from-green-600 to-green-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-green-900/30" onclick="generatePDF()"><i class="ri-file-pdf-line"></i> PDF Slips</button>
                 <?php endif; ?>
@@ -73,7 +84,8 @@ function buildEmployeeDetails($emp) {
                 if ($selectedEmp):
                     $isFixed   = strtoupper($selectedEmp['rate_type'] ?? 'DAILY') === 'FIXED';
                     $basic     = $isFixed ? floatval($selectedEmp['basic_salary'] ?? $selectedEmp['rate_amount'] ?? 0) : 0;
-                    $days      = $selectedEmp['attendance_summary']['presence_count'] ?? 0;
+                    // Use total_presence for correct day calculation including half days
+                    $days      = $selectedEmp['attendance_summary']['total_presence'] ?? 0;
                     $rate      = $isFixed ? 0 : floatval($selectedEmp['rate_amount'] ?? 0);
                     $earned    = $isFixed ? $basic : $days * $rate;
                     $etf       = $isFixed ? $basic * 0.03 : 0;
@@ -82,7 +94,18 @@ function buildEmployeeDetails($emp) {
                     $payable   = $earned + $epfComp;
                     $paidArr   = $selectedEmp['paid_amount'] ?? ['Monthly Salary'=>0, 'Advance'=>0, 'Other'=>0];
                     $paid      = array_sum($paidArr);
-                    $net       = $payable - $etf - $epfEmp - $paid;
+                    $advance_paid = $selectedEmp['advance_details']['paid_amount'] ?? 0;
+                    $advance_deduction = $selectedEmp['advance_details']['deduction_amount'] ?? 0;
+                    $advance_total = $advance_paid + $advance_deduction;
+                    
+                    // Net Payable calculation
+                    if ($isFixed) {
+                        // For fixed salary: Net Payable = Payable - ETF - EPF Emp - Advance - Other Payments
+                        $net_payable = $payable - $etf - $epfEmp - $advance_total - $paid;
+                    } else {
+                        // For daily wage: Net Payable = Earned - Advance - Other Payments
+                        $net_payable = $earned - $advance_total - $paid;
+                    }
             ?>
                 <div class="salary-slip bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl mb-10">
                     <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Salary Slip</h2>
@@ -118,6 +141,13 @@ function buildEmployeeDetails($emp) {
                                     <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($epfComp, 2); ?></td>
                                     <td class="p-3 border-b border-gray-200 text-right">-</td>
                                 </tr>
+                                <?php if ($advance_total > 0): ?>
+                                <tr>
+                                    <td class="p-3 border-b border-gray-200">Advance Payments</td>
+                                    <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($advance_total, 2); ?></td>
+                                    <td class="p-3 border-b border-gray-200 text-right">-</td>
+                                </tr>
+                                <?php endif; ?>
                                 <tr>
                                     <td class="p-3 border-b border-gray-200">Advances & Other Payments</td>
                                     <td class="p-3 border-b border-gray-200 text-right">-</td>
@@ -125,7 +155,7 @@ function buildEmployeeDetails($emp) {
                                 </tr>
                                 <tr class="bg-blue-50 font-bold">
                                     <td class="p-3 text-center">NET PAYABLE</td>
-                                    <td class="p-3 text-right text-green-600"><?php echo number_format($net, 2); ?></td>
+                                    <td class="p-3 text-right text-green-600"><?php echo number_format($net_payable, 2); ?></td>
                                     <td class="p-3"></td>
                                 </tr>
                             </tbody>
@@ -206,6 +236,10 @@ function buildEmployeeDetails($emp) {
                         <h3 class="text-base text-gray-500 mb-2">EPF Cost</h3>
                         <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($epf_costs, 2); ?></p>
                     </div>
+                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-yellow-500">
+                        <h3 class="text-base text-gray-500 mb-2">Advance Payments</h3>
+                        <p class="text-lg font-semibold text-gray-900">LKR <?php echo number_format($total_advance_payments, 2); ?></p>
+                    </div>
                     <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-indigo-500">
                         <h3 class="text-base text-gray-500 mb-2">Employees</h3>
                         <p class="text-lg font-semibold text-gray-900"><?php echo $employee_count; ?></p>
@@ -249,17 +283,23 @@ function buildEmployeeDetails($emp) {
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-center">Days</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Rate</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Earned</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Advance</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Paid</th>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net Payable</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($daily_wage_employees as $emp):
-                            $days   = $emp['attendance_summary']['presence_count'] ?? 0;
+                            // Use total_presence which includes half days (0.5) correctly
+                            $days   = $emp['attendance_summary']['total_presence'] ?? 0;
                             $rate   = floatval($emp['rate_amount'] ?? 0);
                             $earned = $days * $rate;
+                            $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+                            $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+                            $advance_total = $advance_paid + $advance_deduction;
                             $paid   = array_sum($emp['paid_amount'] ?? [0,0,0]);
-                            $net    = $earned - $paid;
+                            // Net Payable = Earned - Advance - Other Payments
+                            $net_payable = $earned - $advance_total - $paid;
                         ?>
                             <tr>
                                 <td class="p-3 border-b border-gray-200 align-top">
@@ -272,9 +312,10 @@ function buildEmployeeDetails($emp) {
                                 <td class="p-3 border-b border-gray-200 text-center font-medium"><?php echo $days; ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($rate, 2); ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right font-medium">LKR <?php echo number_format($earned, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($advance_total, 2); ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($paid, 2); ?></td>
-                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
-                                    LKR <?php echo number_format($net, 2); ?>
+                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net_payable >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
+                                    LKR <?php echo number_format($net_payable, 2); ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -294,8 +335,9 @@ function buildEmployeeDetails($emp) {
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">EPF Emp (8%)</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">EPF Comp (12%)</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Payable</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Advance</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Paid</th>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Net Payable</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -305,8 +347,14 @@ function buildEmployeeDetails($emp) {
                             $epfEmp    = $basic * 0.08;
                             $epfComp   = $basic * 0.12;
                             $payable   = $basic + $epfComp;
+                            // Use total_presence for consistency, though fixed salary employees don't typically have daily calculations
+                            $days      = $emp['attendance_summary']['total_presence'] ?? 0;
+                            $advance_paid = $emp['advance_details']['paid_amount'] ?? 0;
+                            $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
+                            $advance_total = $advance_paid + $advance_deduction;
                             $paid      = array_sum($emp['paid_amount'] ?? [0,0,0]);
-                            $net       = $payable - $etf - $epfEmp - $paid;
+                            // Net Payable = Payable - ETF - EPF Emp - Advance - Other Payments
+                            $net_payable = $payable - $etf - $epfEmp - $advance_total - $paid;
                         ?>
                             <tr>
                                 <td class="p-3 border-b border-gray-200 align-top">
@@ -321,9 +369,10 @@ function buildEmployeeDetails($emp) {
                                 <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($epfEmp, 2); ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($epfComp, 2); ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right font-medium">LKR <?php echo number_format($payable, 2); ?></td>
+                                <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($advance_total, 2); ?></td>
                                 <td class="p-3 border-b border-gray-200 text-right">LKR <?php echo number_format($paid, 2); ?></td>
-                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
-                                    LKR <?php echo number_format($net, 2); ?>
+                                <td class="p-3 border-b border-gray-200 text-right font-bold <?php echo $net_payable >= 0 ? 'text-green-500' : 'text-red-500'; ?>">
+                                    LKR <?php echo number_format($net_payable, 2); ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -338,7 +387,7 @@ function buildEmployeeDetails($emp) {
                     <thead>
                         <tr>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-left">Labor Name</th>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-center">Total Days</th>
+                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-center">Total Work Days</th>
                             <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Total Amount</th>
                         </tr>
                     </thead>
@@ -384,10 +433,10 @@ function buildEmployeeDetails($emp) {
             new Chart(document.getElementById('financialChart'), {
                 type: 'bar',
                 data: {
-                    labels: ['Total', 'Daily', 'Fixed', 'EPF'],
+                    labels: ['Total', 'Daily', 'Fixed', 'EPF', 'Advance'],
                     datasets: [{
                         label: 'Amount (LKR)',
-                        data: [<?php echo $total_wages; ?>, <?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>],
+                        data: [<?php echo $total_wages; ?>, <?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>, <?php echo $total_advance_payments; ?>],
                         backgroundColor: 'rgba(30, 144, 255, 0.7)'
                     }]
                 },
@@ -397,10 +446,10 @@ function buildEmployeeDetails($emp) {
             new Chart(document.getElementById('distributionChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['Daily Wages', 'Fixed Wages', 'EPF Cost'],
+                    labels: ['Daily Wages', 'Fixed Wages', 'EPF Cost', 'Advance Payments'],
                     datasets: [{
-                        data: [<?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>],
-                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                        data: [<?php echo $total_daily_wages; ?>, <?php echo $total_fixed_wages; ?>, <?php echo $epf_costs; ?>, <?php echo $total_advance_payments; ?>],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#fbbf24']
                     }]
                 }
             });
@@ -410,21 +459,14 @@ function buildEmployeeDetails($emp) {
                 data: {
                     labels: <?php echo json_encode(array_column(array_slice($top_earners, 0, 10), 'emp_name')); ?>,
                     datasets: [{
-                        label: 'Total Payment',
-                        data: <?php echo json_encode(array_column(array_slice($top_earners, 0, 10), 'total_payment')); ?>,
+                        label: 'Net Payable',
+                        data: <?php echo json_encode(array_column(array_slice($top_earners, 0, 10), 'net_payable')); ?>,
                         backgroundColor: '#1d4ed8'
                     }]
                 },
                 options: { indexAxis: 'y', scales: { x: { beginAtZero: true } } }
             });
         });
-
-        function downloadCSV() {
-            const form = document.getElementById('filterForm');
-            const params = new URLSearchParams(new FormData(form));
-            params.set('download_csv', '1');
-            location.href = location.pathname + '?' + params.toString();
-        }
 
         function generatePDF() {
             const form = document.getElementById('filterForm');
