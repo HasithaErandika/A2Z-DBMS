@@ -545,6 +545,71 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             border-top: 1px solid #e5e7eb;
             margin-top: 16px;
         }
+        
+        /* Paid field action buttons */
+        .paid-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+        }
+        
+        .paid-cell.pending-status {
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .paid-cell.paid-status,
+        .paid-cell.unpaid-status {
+            justify-content: center;
+        }
+        
+        .btn-paid-action,
+        .btn-unpaid-action {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            background-color: white;
+            min-width: fit-content;
+            margin-right: 6px;
+        }
+        
+        .btn-paid-action {
+            color: #10b981;
+            border-color: #10b981;
+        }
+        
+        .btn-paid-action:hover {
+            background-color: #ecfdf5;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .btn-paid-action:active {
+            background-color: #d1fae5;
+        }
+        
+        .btn-unpaid-action {
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+        
+        .btn-unpaid-action:hover {
+            background-color: #fef2f2;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .btn-unpaid-action:active {
+            background-color: #fee2e2;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -803,8 +868,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                             <?php elseif ($column === 'paid'): ?>
                                 <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
                                 <div class="button-group">
-                                    <button type="button" class="btn-option btn-green" data-value="Yes" onclick="selectOption('<?php echo $column; ?>', 'Yes')">Yes</button>
-                                    <button type="button" class="btn-option btn-red" data-value="No" onclick="selectOption('<?php echo $column; ?>', 'No')">No</button>
+                                    <button type="button" class="btn-option btn-green" data-value="1" onclick="selectOption('<?php echo $column; ?>', '1')"><i class="fas fa-check mr-1"></i>Yes</button>
+                                    <button type="button" class="btn-option btn-red" data-value="0" onclick="selectOption('<?php echo $column; ?>', '0')"><i class="fas fa-times mr-1"></i>No</button>
                                 </div>
                             <?php elseif (($column === 'rate_type' && $data['table'] === 'employee_payment_rates') || ($column === 'payment_type' && $data['table'] === 'employees')): ?>
                                 <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
@@ -1001,7 +1066,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         name: "<?php echo htmlspecialchars($column); ?>",
                         <?php if ($column === 'paid' && $data['table'] === 'operational_expenses'): ?>
                         render: function(data, type, row) {
-                            return data == '1' ? 'Yes' : (data == '0' ? 'No' : data);
+                            if (data == '1' || data === 1) {
+                                return '<div class="paid-cell paid-status"><i class="fas fa-check" style="color: #10B981; font-size: 20px;"></i></div>';
+                            } else if (data == '0' || data === 0) {
+                                return '<div class="paid-cell unpaid-status"><i class="fas fa-times" style="color: #EF4444; font-size: 20px;"></i></div>';
+                            }
+                            return '<div class="paid-cell pending-status"><span style="color: #9ca3af;">—</span></div>';
                         }
                         <?php endif; ?>
                     },
@@ -1056,7 +1126,16 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     render: function(data, type, row) {
                         var buttons = '<button class="action-btn edit mr-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i> Edit</button>' +
                                       '<button class="action-btn delete" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i> Delete</button>';
-                        <?php if ($data['table'] === 'jobs'): ?>
+                        <?php if ($data['table'] === 'operational_expenses'): ?>
+                            // Add paid status buttons for operational expenses
+                            var paidStatus = row.paid;
+                            if (paidStatus !== '1' && paidStatus !== 1) {
+                                buttons = '<button class="btn-paid-action" onclick="markAsPaid(this, ' + row.expense_id + ')" title="Mark as Paid"><i class="fas fa-check"></i> Paid</button>' +
+                                          '<button class="btn-unpaid-action" onclick="markAsNotPaid(this, ' + row.expense_id + ')" title="Mark as Not Paid"><i class="fas fa-times"></i> Not Paid</button>';
+                            } else {
+                                buttons = '<span style="color: #10b981; font-weight: 600;"><i class="fas fa-check"></i> Paid</span>';
+                            }
+                        <?php elseif ($data['table'] === 'jobs'): ?>
                             if (row.has_invoice) {
                                 buttons += '<button class="action-btn invoice ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i> Invoice</button>';
                             }
@@ -1306,6 +1385,49 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             buttons.forEach(btn => btn.classList.remove('active'));
             const selectedButton = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="${fieldId}"]`);
             if (selectedButton) selectedButton.classList.add('active');
+        }
+
+        function markAsPaid(button, expenseId) {
+            updatePaidStatus(button, expenseId, 1, 'paid');
+        }
+
+        function markAsNotPaid(button, expenseId) {
+            updatePaidStatus(button, expenseId, 0, 'unpaid');
+        }
+
+        function updatePaidStatus(button, expenseId, status, statusClass) {
+            const originalHtml = button.outerHTML;
+            const actionCell = button.closest('td');
+            
+            // Show loading state
+            actionCell.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #3b82f6; font-size: 18px;"></i>';
+            
+            // AJAX request to update
+            $.ajax({
+                url: "<?php echo BASE_PATH; ?>/admin/manageTable/operational_expenses",
+                type: "POST",
+                dataType: "json",
+                data: {
+                    action: 'update',
+                    id: expenseId,
+                    paid: status
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Reload table to refresh all cells for this row
+                        table.ajax.reload(function() {
+                            showToast('Status updated successfully', 'success');
+                        }, false);
+                    } else {
+                        actionCell.innerHTML = originalHtml;
+                        showToast('Error updating status', 'error');
+                    }
+                },
+                error: function() {
+                    actionCell.innerHTML = originalHtml;
+                    showToast('Error updating status', 'error');
+                }
+            });
         }
 
         function openInvoiceModal(jobId) {

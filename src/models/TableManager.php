@@ -26,7 +26,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['attendance_date', 'presence', 'remarks', 'job_id'],
+            'searchFields' => ['attendance_date', 'presence', 'remarks', 'emp_id', 'job_id', 'start_time', 'end_time'],
             'dateField' => 'attendance_date'
         ],
         'employees' => [
@@ -35,7 +35,7 @@ class TableManager extends Model {
                 'emp_name' => ['required'],
                 'emp_nic' => ['required']
             ],
-            'searchFields' => ['emp_name', 'emp_nic', 'designation'],
+            'searchFields' => ['emp_name', 'emp_nic', 'designation', 'address', 'date_of_joined', 'date_of_resigned', 'etf_number'],
             'dateField' => 'date_of_joined'
         ],
         'employee_bank_details' => [
@@ -48,7 +48,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['emp_name', 'acc_no', 'bank', 'job_id'],
+            'searchFields' => ['emp_name', 'acc_no', 'bank', 'branch', 'emp_id', 'job_id'],
             'dateField' => null
         ],
         'projects' => [
@@ -61,7 +61,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['project_description', 'company_reference', 'job_id'],
+            'searchFields' => ['project_description', 'company_reference', 'remarks', 'emp_id', 'job_id'],
             'dateField' => null
         ],
         'jobs' => [
@@ -75,7 +75,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'completion' => 'getCompletionStatus'
             ],
-            'searchFields' => ['engineer', 'location', 'customer_reference', 'date_started', 'job_capacity'],
+            'searchFields' => ['engineer', 'location', 'customer_reference', 'date_started', 'date_completed', 'job_capacity', 'remarks', 'emp_id', 'project_id'],
             'dateField' => 'date_started'
         ],
         'operational_expenses' => [
@@ -89,7 +89,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'expense_amount', 'job_id'],
+            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'emp_id', 'job_id'],
             'dateField' => 'expensed_date'
         ],
         'invoice_data' => [
@@ -101,7 +101,7 @@ class TableManager extends Model {
             'formatters' => [
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['invoice_no', 'invoice_date', 'job_id', 'invoice_value'],
+            'searchFields' => ['invoice_no', 'invoice_date', 'invoice_value', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks', 'job_id'],
             'dateField' => 'invoice_date'
         ],
         'employee_payments' => [
@@ -114,7 +114,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['payment_date', 'payment_type', 'job_id', 'paid_amount'],
+            'searchFields' => ['payment_date', 'payment_type', 'paid_amount', 'remarks', 'emp_id', 'job_id'],
             'dateField' => 'payment_date'
         ],
         'salary_increments' => [
@@ -127,7 +127,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['increment_type', 'increment_date', 'job_id', 'increment_amount'],
+            'searchFields' => ['increment_type', 'increment_date', 'increment_amount', 'reason', 'emp_id', 'job_id'],
             'dateField' => 'increment_date'
         ],
         'employee_payment_rates' => [
@@ -142,7 +142,7 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'rate_amount' => 'formatCurrency'
             ],
-            'searchFields' => ['rate_type', 'effective_date', 'rate_amount'],
+            'searchFields' => ['rate_type', 'effective_date', 'end_date', 'rate_amount', 'emp_id'],
             'dateField' => 'effective_date'
         ],
         'cash_hand' => [
@@ -159,7 +159,7 @@ class TableManager extends Model {
                 'amount' => 'formatCurrency',
                 'transaction_type' => 'getTransactionTypeDisplay'
             ],
-            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type', 'amount'],
+            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type', 'amount', 'given_by', 'received_by'],
             'dateField' => 'txn_date'
         ],
         'maintenance_schedule' => [
