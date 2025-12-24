@@ -567,6 +567,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     <button class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-base" onclick="openModal('create')">
                         <i class="fas fa-plus"></i> Add Record
                     </button>
+                    <?php if ($data['table'] === 'jobs'): ?>
+                        <button id="generate-maintenance" class="bg-white border-2 border-gray-200 text-gray-700 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center gap-3 text-base" title="Generate maintenance cycles for completed jobs">
+                            <i class="fas fa-tools"></i> Generate Maintenance
+                        </button>
+                    <?php endif; ?>
                     <button class="bg-white border-2 border-gray-200 text-gray-700 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center gap-3 text-base shadow hover:shadow-md" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
@@ -744,7 +749,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         'employees' => 'emp_id', 'employee_payment_rates' => 'rate_id', 'attendance' => 'attendance_id',
                         'salary_increments' => 'increment_id', 'employee_payments' => 'payment_id', 'invoice_data' => 'invoice_id',
                         'operational_expenses' => 'expense_id', 'projects' => 'project_id', 'employee_bank_details' => 'id',
-                        'jobs' => 'job_id', 'cash_hand' => 'cash_id'
+                        'jobs' => 'job_id', 'cash_hand' => 'cash_id', 'maintenance_schedule' => 'schedule_id'
                     ];
                     $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
                     $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date', 'payment_received_date'];
@@ -829,6 +834,16 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                                     <button type="button" class="btn-option btn-yellow" data-value="Annual" onclick="selectOption('<?php echo $column; ?>', 'Annual')">Annual</button>
                                     <button type="button" class="btn-option btn-purple" data-value="Other" onclick="selectOption('<?php echo $column; ?>', 'Other')">Other</button>
                                 </div>
+                            <?php elseif ($column === 'status' && $data['table'] === 'maintenance_schedule'): ?>
+                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
+                                <div class="button-group grid grid-cols-2 gap-3">
+                                    <button type="button" class="btn-option btn-blue" data-value="scheduled" onclick="selectOption('<?php echo $column; ?>', 'scheduled')"><i class="fas fa-calendar-alt mr-1"></i> Scheduled</button>
+                                    <button type="button" class="btn-option btn-green" data-value="completed" onclick="selectOption('<?php echo $column; ?>', 'completed')"><i class="fas fa-check mr-1"></i> Completed</button>
+                                    <button type="button" class="btn-option btn-yellow" data-value="overdue" onclick="selectOption('<?php echo $column; ?>', 'overdue')"><i class="fas fa-exclamation mr-1"></i> Overdue</button>
+                                    <button type="button" class="btn-option btn-red" data-value="cancelled" onclick="selectOption('<?php echo $column; ?>', 'cancelled')"><i class="fas fa-times mr-1"></i> Cancelled</button>
+                                </div>
+                            <?php elseif (($column === 'scheduled_date' || $column === 'actual_date') && $data['table'] === 'maintenance_schedule'): ?>
+                                <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
                             <?php elseif (in_array($column, $dateColumns)): ?>
                                 <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
                             <?php elseif (in_array($column, $timeColumns)): ?>
@@ -1196,6 +1211,28 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     updateRecordCount();
                     updatePaginationInfo();
                 }, false);
+            });
+            // Generate maintenance cycles (jobs)
+            $('#generate-maintenance').on('click', function() {
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generating...');
+                fetch('<?php echo BASE_PATH; ?>/admin/manageTable/' + encodeURIComponent('<?php echo $data['table']; ?>'), {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ action: 'generate_maintenance' })
+                }).then(function(resp) { return resp.json(); }).then(function(json) {
+                    if (json.success) {
+                        alert('Maintenance schedules generated. Inserted: ' + (json.inserted || 0));
+                        $('#refresh-table').click();
+                    } else {
+                        alert('Error: ' + (json.error || 'Unknown error'));
+                    }
+                }).catch(function(err) {
+                    console.error(err);
+                    alert('Request failed');
+                }).finally(function() {
+                    btn.prop('disabled', false).html('<i class="fas fa-tools"></i> Generate Maintenance');
+                });
             });
         });
 

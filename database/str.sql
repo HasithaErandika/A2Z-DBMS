@@ -130,3 +130,15 @@ CREATE TABLE jobs (
     completion DECIMAL(10,2) NULL,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE SET NULL
 );
+
+-- Create Maintenance Schedule Table
+CREATE TABLE maintenance_schedule (
+    schedule_id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    job_id INT(11) NOT NULL,
+    cycle_number INT(2) NOT NULL,
+    scheduled_date DATE NOT NULL,
+    actual_date DATE NULL,
+    status ENUM('scheduled', 'completed', 'overdue', 'cancelled') DEFAULT 'scheduled',
+    description TEXT COLLATE utf8mb4_general_ci NULL,
+    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+);

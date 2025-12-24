@@ -662,4 +662,74 @@ public function getEPFCosts($start_date = null) {
     }
 }
 
+
+
+    /**
+     * Retrieves jobs with maintenance data for the maintenance report
+     * @param array $filters Associative array of filters (job_id, customer_reference, company_reference, completion)
+     * @return array An array of job data with completion status mapping
+     */
+    public function getJobsWithMaintenanceData($filters = []) {
+        $query = "
+            SELECT 
+                j.job_id, j.date_completed, j.customer_reference, j.location, j.job_capacity, j.engineer,
+                p.company_reference,
+                CASE j.completion
+                    WHEN 0.0 THEN 'Not Started'
+                    WHEN 0.1 THEN 'Cancelled'
+                    WHEN 0.2 THEN 'Started'
+                    WHEN 0.5 THEN 'Ongoing'
+                    WHEN 1.0 THEN 'Completed'
+                    ELSE 'Unknown'
+                END AS completion_status
+            FROM jobs j
+            LEFT JOIN projects p ON j.project_id = p.project_id
+            WHERE j.job_id != 1
+        ";
+
+        $conditions = [];
+        $params = [];
+
+        if (!empty($filters['job_id'])) {
+            $conditions[] = "j.job_id = :job_id";
+            $params[':job_id'] = $filters['job_id'];
+        }
+        if (!empty($filters['customer_reference'])) {
+            // Allow partial matches for customer search
+            $conditions[] = "j.customer_reference LIKE :customer_reference";
+            $params[':customer_reference'] = "%" . $filters['customer_reference'] . "%";
+        }
+        if (!empty($filters['company_reference'])) {
+            $conditions[] = "p.company_reference = :company_reference";
+            $params[':company_reference'] = $filters['company_reference'];
+        }
+        if (!empty($filters['project_id'])) {
+            $conditions[] = "j.project_id = :project_id";
+            $params[':project_id'] = $filters['project_id'];
+        }
+        if (isset($filters['completion'])) {
+            $conditions[] = "j.completion = :completion";
+            $params[':completion'] = $filters['completion'];
+        }
+
+        if ($conditions) {
+            $query .= " AND " . implode(" AND ", $conditions);
+        }
+
+        $query .= " ORDER BY j.job_id DESC";
+
+        try {
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getJobsWithMaintenanceData: " . $e->getMessage());
+            return [];
+        }
+    }
+
+
 }

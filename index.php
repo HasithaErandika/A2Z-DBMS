@@ -60,6 +60,7 @@ $routes = [
     '/reports/wages_report' => ['AdminController', 'wagesReport'], // Added for consistency with reports.php
     '/reports/material_find' => ['AdminController', 'materialFind'], // Added from reports.php
     '/reports/a2z_engineering_jobs' => ['AdminController', 'a2zEngineeringJobs'], // Added from reports.php
+    '/reports/maintenance_report' => ['AdminController', 'maintenanceReport'], // Added maintenance report
     '/user/dashboard' => ['UserController', 'dashboard'],
 ];
 

@@ -10,7 +10,7 @@ class TableManager extends Model {
     private $allowedTables = [
         'attendance', 'employees', 'employee_bank_details', 'projects', 'jobs',
         'operational_expenses', 'invoice_data', 'employee_payments', 'salary_increments',
-        'employee_payment_rates', 'cash_hand'
+        'employee_payment_rates', 'cash_hand', 'maintenance_schedule'
     ];
 
     private $tableConfigs = [
@@ -162,6 +162,18 @@ class TableManager extends Model {
             'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type', 'amount'],
             'dateField' => 'txn_date'
         ],
+        'maintenance_schedule' => [
+            'editableFields' => ['job_id', 'cycle_number', 'scheduled_date', 'actual_date', 'status', 'description'],
+            'validation' => [
+                'job_id' => ['required'],
+                'cycle_number' => ['required']
+            ],
+            'formatters' => [
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['job_id', 'scheduled_date', 'actual_date', 'status', 'description'],
+            'dateField' => 'scheduled_date'
+        ],
     ];
 
     public function getAllowedTables() {
@@ -199,6 +211,7 @@ class TableManager extends Model {
             'projects' => 'project_id',
             'employee_bank_details' => 'id',
             'jobs' => 'job_id',
+            'maintenance_schedule' => 'schedule_id',
             'cash_hand' => 'cash_id'
         ];
         return $primaryKeys[$table] ?? $this->getColumns($table)[0];
@@ -884,6 +897,49 @@ class TableManager extends Model {
         } catch (PDOException $e) {
             error_log("Error in calculateTotalJobCapacity: " . $e->getMessage());
             return 0.0;
+        }
+    }
+
+    public function generateMaintenanceSchedulesFromJobs() {
+        try {
+            // Only generate maintenance schedules for A2Z Engineering (project_id = 5)
+            $stmt = $this->db->query("SELECT job_id, DATE_FORMAT(date_completed, '%Y-%m-%d') AS end_date FROM jobs WHERE date_completed IS NOT NULL AND project_id = 5");
+            $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $inserted = 0;
+
+            $this->db->beginTransaction();
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM maintenance_schedule WHERE job_id = ? AND cycle_number = ?");
+            $insertStmt = $this->db->prepare("INSERT INTO maintenance_schedule (job_id, cycle_number, scheduled_date, status, description) VALUES (?, ?, ?, 'scheduled', ?)");
+
+            foreach ($jobs as $job) {
+                if (empty($job['end_date'])) continue;
+                try {
+                    $base = new DateTime($job['end_date']);
+                } catch (Exception $e) {
+                    continue;
+                }
+
+                for ($cycle = 1; $cycle <= 4; $cycle++) {
+                    $cycleDate = clone $base;
+                    $months = 6 * $cycle;
+                    $cycleDate->modify("+{$months} months");
+                    $scheduled = $cycleDate->format('Y-m-d');
+
+                    $checkStmt->execute([$job['job_id'], $cycle]);
+                    if ($checkStmt->fetchColumn() == 0) {
+                        $desc = "Auto-generated maintenance cycle {$cycle} from end_date {$job['end_date']}";
+                        $insertStmt->execute([$job['job_id'], $cycle, $scheduled, $desc]);
+                        $inserted += $insertStmt->rowCount();
+                    }
+                }
+            }
+
+            $this->db->commit();
+            return ['success' => true, 'inserted' => $inserted, 'jobs_processed' => count($jobs)];
+        } catch (PDOException $e) {
+            try { $this->db->rollBack(); } catch (Exception $ex) {}
+            error_log("Error in generateMaintenanceSchedulesFromJobs: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 

@@ -87,6 +87,7 @@ class AdminController extends Controller {
                 ['link' => '/admin/manageTable/employee_payment_rates', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payment Rates', 'desc' => 'Fixed or Daily Wage'],
                 ['link' => '/admin/manageTable/projects', 'icon' => 'fa-project-diagram', 'title' => 'Projects', 'desc' => 'Project management'],
                 ['link' => '/admin/manageTable/jobs', 'icon' => 'fa-briefcase', 'title' => 'Jobs', 'desc' => 'Job assignments'],
+                ['link' => '/admin/manageTable/maintenance_schedule', 'icon' => 'fa-tools', 'title' => 'Maintenance Schedule', 'desc' => 'Scheduled maintenance cycles'],
                 ['link' => '/admin/manageTable/operational_expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
                 ['link' => '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],
                 ['link' => '/admin/manageTable/employee_payments', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payments', 'desc' => 'Payment history'],
@@ -121,6 +122,7 @@ class AdminController extends Controller {
                 ['link' => FULL_BASE_URL . '/reports/cost_calculation', 'icon' => 'fa-chart-pie', 'title' => 'Site Cost Calculation', 'desc' => 'Cost breakdown'],
                 ['link' => FULL_BASE_URL . '/reports/material_find', 'icon' => 'fa-cogs', 'title' => 'Material Cost Calculation', 'desc' => 'Material expenses'],
                 ['link' => FULL_BASE_URL . '/reports/a2z_engineering_jobs', 'icon' => 'fa-cogs', 'title' => 'A2Z Engineering Jobs', 'desc' => 'Job overview'],
+                ['link' => FULL_BASE_URL . '/reports/maintenance_report', 'icon' => 'fa-tools', 'title' => 'A2Z Maintenance', 'desc' => 'Maintenance schedule and tracking'],
             ]
         ];
 
@@ -151,6 +153,54 @@ class AdminController extends Controller {
             $columns = $this->tableManager->getColumns($table);
             $idColumn = $this->tableManager->getPrimaryKey($table);
 
+            // Handle maintenance schedule status updates (AJAX)
+            if ($action === 'set_maintenance_status') {
+                try {
+                    $jobId = $_POST['job_id'] ?? '';
+                    $cycle = intval($_POST['cycle_number'] ?? 0);
+                    $scheduledDate = $_POST['scheduled_date'] ?? null;
+                    $status = $_POST['status'] ?? 'scheduled';
+                    $description = $_POST['description'] ?? null;
+
+                    if (empty($jobId) || $cycle <= 0) {
+                        throw new Exception('Job ID and cycle number are required');
+                    }
+
+                    $pdo = $db->getConnection();
+                    // Check existing
+                    $check = $pdo->prepare("SELECT schedule_id FROM maintenance_schedule WHERE job_id = ? AND cycle_number = ? LIMIT 1");
+                    $check->execute([$jobId, $cycle]);
+                    $existing = $check->fetch(PDO::FETCH_ASSOC);
+
+                    if ($existing) {
+                        // Update
+                        $updateFields = [];
+                        $params = [];
+                        if ($scheduledDate !== null) { $updateFields[] = 'scheduled_date = ?'; $params[] = $scheduledDate; }
+                        if ($status !== null) { $updateFields[] = 'status = ?'; $params[] = $status; }
+                        if ($description !== null) { $updateFields[] = 'description = ?'; $params[] = $description; }
+                        if ($status === 'completed') { $updateFields[] = 'actual_date = ?'; $params[] = date('Y-m-d'); }
+                        if (!empty($updateFields)) {
+                            $params[] = $existing['schedule_id'];
+                            $sql = "UPDATE maintenance_schedule SET " . implode(', ', $updateFields) . " WHERE schedule_id = ?";
+                            $stmt = $pdo->prepare($sql);
+                            $stmt->execute($params);
+                        }
+                        echo json_encode(['success' => true, 'action' => 'updated']);
+                    } else {
+                        // Insert
+                        $actualDate = $status === 'completed' ? date('Y-m-d') : null;
+                        $stmt = $pdo->prepare("INSERT INTO maintenance_schedule (job_id, cycle_number, scheduled_date, actual_date, status, description) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$jobId, $cycle, $scheduledDate, $actualDate, $status, $description]);
+                        echo json_encode(['success' => true, 'action' => 'inserted', 'id' => $pdo->lastInsertId()]);
+                    }
+                } catch (Exception $e) {
+                    error_log('Error in set_maintenance_status: ' . $e->getMessage());
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
+            }
+
             if ($action === 'get_records') {
                 $searchTerms = isset($_POST['search']['terms']) && is_array($_POST['search']['terms']) ? array_map('trim', $_POST['search']['terms']) : [];
                 $sortColumn = $_POST['sortColumn'] ?? '';
@@ -165,6 +215,16 @@ class AdminController extends Controller {
                 } catch (Exception $e) {
                     header('Content-Type: application/json');
                     echo json_encode(['error' => $e->getMessage()]);
+                }
+                exit;
+            } elseif ($action === 'generate_maintenance') {
+                try {
+                    $result = $this->tableManager->generateMaintenanceSchedulesFromJobs();
+                    header('Content-Type: application/json');
+                    echo json_encode($result);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
                 }
                 exit;
             } elseif ($action === 'create') {
@@ -982,5 +1042,206 @@ private function buildSlipHTML($title, $employees, $forDompdf = true) {
             exit;
         }
         echo "A2Z Engineering Jobs";
+    }
+
+    public function maintenanceReport() {
+        if (!isset($_SESSION['db_username']) || !isset($_SESSION['db_password'])) {
+            header("Location: " . FULL_BASE_URL . "/login");
+            exit;
+        }
+
+        try {
+            $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
+            
+            // Define filters (only show completed jobs for A2Z Engineering - project_id = 5)
+            $filters = [
+                'job_id' => $_GET['job_id'] ?? '',
+                'customer_reference' => $_GET['customer_name'] ?? '',
+                'company_reference' => $_GET['client_ref'] ?? '',
+                'completion' => '1.0', // force completed jobs only
+                'project_id' => 5 // A2Z Engineering
+            ];
+            
+            // Fetch jobs with maintenance data
+            $jobs = $this->reportManager->getJobsWithMaintenanceData($filters);
+
+            // Selected year/month filters for cycles
+            $selectedYear = isset($_GET['year']) && $_GET['year'] !== '' ? intval($_GET['year']) : null;
+            $selectedMonth = isset($_GET['month']) && $_GET['month'] !== '' ? intval($_GET['month']) : null;
+
+            // Fetch maintenance schedule entries for these jobs (if any)
+            $jobIds = array_map(function($j){ return $j['job_id']; }, $jobs);
+            $maintenanceByJob = [];
+            if (!empty($jobIds)) {
+                $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
+                $pdo = $db->getConnection();
+                $stmt = $pdo->prepare("SELECT job_id, cycle_number, DATE_FORMAT(scheduled_date, '%Y-%m-%d') AS scheduled_date, DATE_FORMAT(actual_date, '%Y-%m-%d') AS actual_date, status, description FROM maintenance_schedule WHERE job_id IN ($placeholders) ORDER BY job_id, cycle_number");
+                $stmt->execute($jobIds);
+                $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($schedules as $s) {
+                    // If year/month filter provided, only include cycles matching scheduled_date
+                    if ($selectedYear || $selectedMonth) {
+                        $include = false;
+                        if (!empty($s['scheduled_date']) && $s['scheduled_date'] !== '0000-00-00') {
+                            try {
+                                $dt = new DateTime($s['scheduled_date']);
+                                if ($selectedYear && $selectedMonth) {
+                                    if ((int)$dt->format('Y') === $selectedYear && (int)$dt->format('n') === $selectedMonth) {
+                                        $include = true;
+                                    }
+                                } elseif ($selectedYear) {
+                                    if ((int)$dt->format('Y') === $selectedYear) $include = true;
+                                } elseif ($selectedMonth) {
+                                    if ((int)$dt->format('n') === $selectedMonth) $include = true;
+                                }
+                            } catch (Exception $e) { /* ignore parse errors */ }
+                        }
+                        if (!$include) continue;
+                    }
+                    $maintenanceByJob[$s['job_id']][] = $s;
+                }
+            }
+
+            // If year/month filter applied, only include jobs that have matching cycles
+            if (($selectedYear || $selectedMonth) && !empty($jobs)) {
+                $filteredJobs = [];
+                foreach ($jobs as $j) {
+                    if (!empty($maintenanceByJob[$j['job_id']])) {
+                        $filteredJobs[] = $j;
+                    }
+                }
+                $jobs = $filteredJobs;
+            }
+            
+            // Calculate maintenance metrics
+            $completed_jobs_count = 0;
+            $scheduled_maintenance_count = 0;
+            $due_maintenance_count = 0;
+            
+            foreach ($jobs as $job) {
+                if ($job['completion_status'] === 'Completed') {
+                    $completed_jobs_count++;
+                }
+                
+                // Calculate maintenance cycles and count due/scheduled
+                if (!empty($maintenanceByJob[$job['job_id']])) {
+                        foreach ($maintenanceByJob[$job['job_id']] as $ms) {
+                            $status = $ms['status'] ?? '';
+                            $scheduledDateStr = $ms['scheduled_date'] ?? null;
+                            $scheduledDate = null;
+                            if ($scheduledDateStr) {
+                                try { $scheduledDate = new DateTime($scheduledDateStr); } catch (Exception $e) { $scheduledDate = null; }
+                            }
+
+                            // If a scheduled entry's date is past today, treat it as overdue
+                            if ($status === 'scheduled' && $scheduledDate && $scheduledDate < new DateTime()) {
+                                $status = 'overdue';
+                            }
+
+                            if ($status === 'scheduled') {
+                                $scheduled_maintenance_count++;
+                            } elseif ($status === 'completed') {
+                                // completed: do not count as scheduled
+                            } elseif ($status === 'overdue') {
+                                $due_maintenance_count++;
+                            } else {
+                                // cancelled or other statuses treat as due/attention
+                                $due_maintenance_count++;
+                            }
+                        }
+                } else {
+                    $installation_date = $job['date_completed'];
+                    if ($installation_date && $installation_date !== '0000-00-00') {
+                        $install_date = new DateTime($installation_date);
+                        for ($i = 1; $i <= 4; $i++) {
+                            $cycle_date = clone $install_date;
+                            $cycle_date->add(new DateInterval('P' . (6 * $i) . 'M'));
+                            if ($cycle_date > new DateTime()) {
+                                $scheduled_maintenance_count++;
+                            } else {
+                                $due_maintenance_count++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Get customer and company references for filters
+            $customerRefs = $this->reportManager->getCustomerRefs();
+            $companyRefs = $this->reportManager->getCompanyRefs();
+            
+            $data = [
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
+                'jobs' => $jobs,
+                'completed_jobs_count' => $completed_jobs_count,
+                'scheduled_maintenance_count' => $scheduled_maintenance_count,
+                'due_maintenance_count' => $due_maintenance_count,
+                'customer_refs' => $customerRefs,
+                'company_refs' => $companyRefs,
+                'maintenance_by_job' => $maintenanceByJob,
+                'filters' => $filters
+            ];
+            
+            // Handle CSV download
+            if (isset($_GET['download_csv'])) {
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="maintenance_report_' . date('Y-m-d') . '.csv"');
+                $output = fopen('php://output', 'w');
+                
+                fputcsv($output, ['A2Z Maintenance Report']);
+                fputcsv($output, ['']);
+                fputcsv($output, [
+                    'Job ID', 'Customer', 'Location', 'Company Reference', 'Engineer', 
+                    'Installation Date', 'Completion Status', 'Maintenance Cycle 1', 
+                    'Maintenance Cycle 2', 'Maintenance Cycle 3', 'Maintenance Cycle 4'
+                ]);
+                
+                foreach ($jobs as $job) {
+                    $installation_date = $job['date_completed'];
+                    $maintenance_cycles = [];
+                    
+                    if ($installation_date && $installation_date !== '0000-00-00') {
+                        $install_date = new DateTime($installation_date);
+                        
+                        for ($i = 1; $i <= 4; $i++) {
+                            $cycle_date = clone $install_date;
+                            $cycle_date->add(new DateInterval('P' . (6 * $i) . 'M'));
+                            $maintenance_cycles[] = $cycle_date->format('Y-m-d');
+                        }
+                    } else {
+                        for ($i = 0; $i < 4; $i++) {
+                            $maintenance_cycles[] = 'N/A';
+                        }
+                    }
+                    
+                    fputcsv($output, [
+                        $job['job_id'],
+                        $job['customer_reference'],
+                        $job['location'],
+                        $job['company_reference'],
+                        $job['engineer'],
+                        $installation_date !== '0000-00-00' ? $installation_date : 'Not Set',
+                        $job['completion_status'],
+                        $maintenance_cycles[0],
+                        $maintenance_cycles[1],
+                        $maintenance_cycles[2],
+                        $maintenance_cycles[3]
+                    ]);
+                }
+                
+                fclose($output);
+                exit;
+            }
+            
+            $this->render('reports/maintenance_report', $data);
+        } catch (Exception $e) {
+            error_log("Error in maintenanceReport: " . $e->getMessage());
+            $this->render('reports/maintenance_report', [
+                'username' => $_SESSION['db_username'] ?? 'Admin',
+                'dbname' => 'suramalr_a2zOperationalDB',
+                'error' => "Error generating report: " . $e->getMessage()
+            ]);
+        }
     }
 }
