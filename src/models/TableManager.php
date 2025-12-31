@@ -217,6 +217,80 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
+    
+    public function getActiveJobs() {
+        try {
+            $stmt = $this->db->query("SELECT COUNT(*) FROM jobs WHERE completion < 1.0");
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error in getActiveJobs: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
+    public function getTotalProjects() {
+        try {
+            $stmt = $this->db->query("SELECT COUNT(*) FROM projects");
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error in getTotalProjects: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
+    public function getTotalExpenses() {
+        try {
+            $stmt = $this->db->query("SELECT SUM(expense_amount) FROM operational_expenses");
+            return $stmt->fetchColumn() ?: 0;
+        } catch (PDOException $e) {
+            error_log("Error in getTotalExpenses: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
+    public function getTotalPayments() {
+        try {
+            $stmt = $this->db->query("SELECT SUM(paid_amount) FROM employee_payments");
+            return $stmt->fetchColumn() ?: 0;
+        } catch (PDOException $e) {
+            error_log("Error in getTotalPayments: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
+    public function getTodaysJobs() {
+        try {
+            $today = date('Y-m-d');
+            $stmt = $this->db->prepare("SELECT COUNT(*) FROM jobs WHERE DATE(date_started) = ?");
+            $stmt->execute([$today]);
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error in getTodaysJobs: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
+    public function getTodaysExpenses() {
+        try {
+            $today = date('Y-m-d');
+            $stmt = $this->db->prepare("SELECT SUM(expense_amount) FROM operational_expenses WHERE DATE(expensed_date) = ?");
+            $stmt->execute([$today]);
+            return $stmt->fetchColumn() ?: 0;
+        } catch (PDOException $e) {
+            error_log("Error in getTodaysExpenses: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    public function getTotalEmployees() {
+        try {
+            $stmt = $this->db->query("SELECT COUNT(*) FROM employees");
+            return $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log("Error in getTotalEmployees: " . $e->getMessage());
+            return 'N/A';
+        }
+    }
+    
     public function getTodaysAttendance() {
         try {
             $today = date('Y-m-d');
@@ -247,6 +321,17 @@ class TableManager extends Model {
         } catch (PDOException $e) {
             error_log("Error in getPendingPayments: " . $e->getMessage());
             return 'N/A';
+        }
+    }
+    
+    public function getMySQLVersion() {
+        try {
+            $stmt = $this->db->query("SELECT VERSION() AS mysql_version");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['mysql_version'] ?? 'Unknown';
+        } catch (PDOException $e) {
+            error_log("Error in getMySQLVersion: " . $e->getMessage());
+            return 'Unknown';
         }
     }
     public function calculateTotalJobCapacity() {
