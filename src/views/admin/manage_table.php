@@ -1,5 +1,5 @@
 <?php
-if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app's actual base path
+if (!defined('BASE_PATH')) define('BASE_PATH', '/');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +11,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Include Select2 for searchable dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         :root {
@@ -19,12 +18,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             --secondary-gradient: linear-gradient(135deg, #10b981, #3b82f6);
             --accent-gradient: linear-gradient(135deg, #f59e0b, #ef4444);
         }
-        
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
         }
-        
         .modal {
             display: none;
             position: fixed;
@@ -38,11 +35,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
         .modal.show {
             opacity: 1;
         }
-        
         .modal-content {
             background-color: #fff;
             margin: 5% auto;
@@ -57,33 +52,33 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             overflow-y: auto;
             opacity: 0;
         }
-        
         .modal.show .modal-content {
             transform: translateY(0);
             opacity: 1;
         }
-        
         .btn {
             transition: all 0.2s ease-in-out;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 0 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        
         .btn:active {
             transform: translateY(0);
         }
-        
         .tooltip {
             position: relative;
         }
-        
         .tooltip::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -101,12 +96,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             transition: opacity 0.2s;
             z-index: 1000;
         }
-        
         .tooltip:hover::after {
             opacity: 1;
             visibility: visible;
         }
-        
         .status-select {
             padding: 8px 12px;
             border-radius: 8px;
@@ -116,39 +109,33 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             width: 100%;
             transition: all 0.2s ease;
         }
-        
         .status-select:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
-        
         .spinner {
             display: none;
             text-align: center;
             padding: 20px;
         }
-        
         .table-wrapper {
             overflow-x: auto;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             background: white;
         }
-        
         #data-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
         }
-        
         #data-table th,
         #data-table td {
             padding: 16px 15px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
         }
-        
         #data-table th {
             background-color: #f9fafb;
             font-weight: 600;
@@ -157,26 +144,21 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             top: 0;
             z-index: 10;
         }
-        
         #data-table tr:hover {
             background-color: #f9fafb;
         }
-        
         .btn-option.active {
             box-shadow: 0 0 0 2px #3b82f6;
         }
-        
         .form-group {
             margin-bottom: 24px;
         }
-        
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #374151;
         }
-        
         .form-group input,
         .form-group select {
             width: 100%;
@@ -186,25 +168,21 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             font-size: 15px;
             transition: all 0.2s ease;
         }
-        
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
-        
         .primary-key-field {
             background-color: #f3f4f6;
             cursor: not-allowed;
         }
-        
         .button-group {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
-        
         .btn-option {
             flex: 1;
             min-width: 100px;
@@ -218,66 +196,55 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             transition: all 0.2s;
             font-weight: 500;
         }
-        
         .btn-option:hover {
             opacity: 0.9;
             transform: translateY(-1px);
         }
-        
         .btn-green {
             background-color: #10b981;
             color: white;
             border-color: #059669;
         }
-        
         .btn-yellow {
             background-color: #f59e0b;
             color: white;
             border-color: #d97706;
         }
-        
         .btn-red {
             background-color: #ef4444;
             color: white;
             border-color: #dc2626;
         }
-        
         .btn-blue {
             background-color: #3b82f6;
             color: white;
             border-color: #2563eb;
         }
-        
         .btn-orange {
             background-color: #f97316;
             color: white;
             border-color: #ea580c;
         }
-        
         .btn-purple {
             background-color: #8b5cf6;
             color: white;
             border-color: #7c3aed;
         }
-        
         .invoice-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             margin-bottom: 24px;
         }
-        
         .invoice-item {
             padding: 16px;
             background-color: #f9fafb;
             border-radius: 10px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        
         .invoice-item.full-width {
             grid-column: 1 / -1;
         }
-        
         .label {
             display: block;
             font-weight: 600;
@@ -285,7 +252,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             margin-bottom: 6px;
             font-size: 14px;
         }
-        
         .stat-box {
             display: inline-flex;
             align-items: center;
@@ -298,7 +264,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             color: white;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
         .search-input {
             width: 100%;
             padding: 14px 20px;
@@ -308,18 +273,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             transition: all 0.2s ease;
         }
-        
         .search-input:focus {
             outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
         }
-        
-        /* Custom design elements */
         .custom-design-element {
             position: relative;
         }
-        
         .custom-design-element::before {
             content: '';
             position: absolute;
@@ -332,7 +293,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             z-index: 1;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
         .custom-design-element::after {
             content: '';
             position: absolute;
@@ -345,8 +305,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             z-index: 1;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
-        /* Custom styles for DataTables pagination */
         .dataTables_wrapper .dataTables_paginate .paginate_button {
             padding: 0.6rem 0.9rem;
             margin-left: 0.3rem;
@@ -357,23 +315,19 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             transition: all 0.2s;
             font-weight: 500;
         }
-        
         .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
             background-color: #f3f4f6;
             color: #1f2937 !important;
         }
-        
         .dataTables_wrapper .dataTables_paginate .paginate_button.current {
             background: var(--primary-gradient);
             color: #fff !important;
             border-color: transparent;
         }
-        
         .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
             opacity: 0.5;
             pointer-events: none;
         }
-        
         .dataTables_wrapper .dataTables_length select {
             border-radius: 0.5rem;
             border: 1px solid #d1d5db;
@@ -381,23 +335,18 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             background-color: #fff;
             color: #374151;
         }
-        
         .dataTables_wrapper .dataTables_filter input {
             border-radius: 0.5rem;
             border: 1px solid #d1d5db;
             padding: 0.3rem 0.6rem;
         }
-        
         .dataTables_info {
             color: #6b7280;
             font-size: 0.9rem;
         }
-        
-        /* Clock picker styling */
         .clock-picker {
             position: relative;
         }
-        
         .clock-picker .clock-icon {
             position: absolute;
             right: 12px;
@@ -406,23 +355,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             color: #9ca3af;
             pointer-events: none;
         }
-        
-        /* Enhanced pagination info */
-        .pagination-info {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1.2rem 0;
-            flex-wrap: wrap;
-            gap: 1.2rem;
-        }
-        
         .entries-control {
             display: flex;
             align-items: center;
             gap: 0.6rem;
         }
-        
         .entries-control select {
             border-radius: 0.5rem;
             border: 1px solid #d1d5db;
@@ -430,8 +367,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             background-color: #fff;
             color: #374151;
         }
-        
-        /* Action buttons */
         .action-btn {
             padding: 8px 12px;
             border-radius: 8px;
@@ -441,129 +376,103 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            margin: 0 4px;
         }
-        
         .action-btn.edit {
             background-color: #dbeafe;
             color: #1d4ed8;
             border: 1px solid #bfdbfe;
         }
-        
         .action-btn.edit:hover {
             background-color: #bfdbfe;
         }
-        
         .action-btn.delete {
             background-color: #fee2e2;
             color: #dc2626;
             border: 1px solid #fecaca;
         }
-        
         .action-btn.delete:hover {
             background-color: #fecaca;
         }
-        
         .action-btn.invoice {
             background-color: #dcfce7;
             color: #16a34a;
             border: 1px solid #bbf7d0;
         }
-        
         .action-btn.invoice:hover {
             background-color: #bbf7d0;
         }
-        
         .action-btn.status-change {
             background-color: #dbeafe;
             color: #2563eb;
             border: 1px solid #bfdbfe;
         }
-        
         .action-btn.status-change:hover {
             background-color: #bfdbfe;
         }
-        
         .status-option-btn.selected {
             border-color: #3b82f6;
             background-color: #dbeafe;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
-        
-        /* Status badges */
         .status-badge {
             padding: 6px 12px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 500;
         }
-        
         .status-not-started {
             background-color: #e5e7eb;
             color: #374151;
         }
-        
         .status-cancelled {
             background-color: #fecaca;
             color: #dc2626;
         }
-        
         .status-started {
             background-color: #fef3c7;
             color: #d97706;
         }
-        
         .status-ongoing {
             background-color: #dbeafe;
             color: #1d4ed8;
         }
-        
         .status-completed {
             background-color: #d1fae5;
             color: #059669;
         }
-        
         .status-postponed {
             background-color: #ddd6fe;
             color: #7c3aed;
         }
-        
-        /* Card styling */
         .card {
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             transition: all 0.3s ease;
         }
-        
         .card:hover {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        
-        /* Form actions */
         .form-actions {
             padding-top: 24px;
             border-top: 1px solid #e5e7eb;
             margin-top: 16px;
         }
-        
-        /* Paid field action buttons */
         .paid-cell {
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 40px;
         }
-        
         .paid-cell.pending-status {
             gap: 8px;
             flex-wrap: wrap;
         }
-        
         .paid-cell.paid-status,
         .paid-cell.unpaid-status {
             justify-content: center;
         }
-        
         .btn-paid-action,
         .btn-unpaid-action {
             padding: 8px 12px;
@@ -580,40 +489,34 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             min-width: fit-content;
             margin-right: 6px;
         }
-        
         .btn-paid-action {
             color: #10b981;
             border-color: #10b981;
         }
-        
         .btn-paid-action:hover {
             background-color: #ecfdf5;
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
             transform: translateY(-1px);
         }
-        
         .btn-paid-action:active {
             background-color: #d1fae5;
         }
-        
         .btn-unpaid-action {
             color: #ef4444;
             border-color: #ef4444;
         }
-        
         .btn-unpaid-action:hover {
             background-color: #fef2f2;
             box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
             transform: translateY(-1px);
         }
-        
         .btn-unpaid-action:active {
             background-color: #fee2e2;
         }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <!-- Enhanced Header with Custom Design Elements -->
+    <!-- Header Section -->
     <div class="bg-white shadow-xl">
         <div class="px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between py-6 gap-6">
@@ -629,24 +532,18 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <button class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-3 text-base" onclick="openModal('create')">
+                    <button class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl" onclick="openModal('create')">
                         <i class="fas fa-plus"></i> Add Record
                     </button>
-                    <?php if ($data['table'] === 'jobs'): ?>
-                        <button id="generate-maintenance" class="bg-white border-2 border-gray-200 text-gray-700 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center gap-3 text-base" title="Generate maintenance cycles for completed jobs">
-                            <i class="fas fa-tools"></i> Generate Maintenance
-                        </button>
-                    <?php endif; ?>
-                    <button class="bg-white border-2 border-gray-200 text-gray-700 px-5 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center gap-3 text-base shadow hover:shadow-md" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
+                    <button class="btn bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 shadow hover:shadow-md" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <!-- Enhanced Stats Section -->
+        <!-- Stats Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
                 <div class="card p-6">
@@ -723,8 +620,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 </div>
             <?php endif; ?>
         </div>
-
-        <!-- Enhanced Filters Section -->
+        <!-- Filters Section -->
         <div class="card p-6 mb-8">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="flex flex-col sm:flex-row gap-4">
@@ -732,24 +628,22 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
                         </div>
-                        <input class="w-full sm:w-80 pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm text-base" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
+                        <input class="search-input sm:w-96 pl-10 pr-4 py-3" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
                     </div>
                 </div>
-                
                 <form class="flex flex-col sm:flex-row gap-4 export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                     <input type="hidden" name="action" value="export_csv">
                     <div class="flex gap-3">
                         <input type="date" name="start_date" required aria-label="Start Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
                         <input type="date" name="end_date" required aria-label="End Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
                     </div>
-                    <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base">
+                    <button type="submit" class="btn bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-md hover:shadow-lg">
                         <i class="fas fa-download"></i> Export CSV
                     </button>
                 </form>
             </div>
         </div>
-
-        <!-- Enhanced Pagination Info -->
+        <!-- Pagination Info Section -->
         <div class="card p-4 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -768,48 +662,43 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="refresh-table" class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-700 transition-all duration-300 flex items-center gap-2">
+                    <button id="refresh-table" class="btn bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700">
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 </div>
             </div>
         </div>
-
-        <!-- Full Width Table Wrapper -->
-        <div class="card overflow-hidden">
+        <!-- Table Section -->
+        <div class="card overflow-hidden w-full">
             <div class="overflow-x-auto">
                 <table id="data-table" class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <?php foreach ($data['columns'] as $column): ?>
+                                <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
                                 <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap"><?php echo htmlspecialchars($column); ?></th>
                             <?php endforeach; ?>
-                            <?php if ($data['table'] === 'jobs'): ?>
-                                <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
-                            <?php endif; ?>
                             <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <!-- Data will be populated by DataTables -->
                     </tbody>
                 </table>
                 <div class="spinner" id="loading-spinner"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>
             </div>
         </div>
     </div>
-
-    <!-- Enhanced CRUD Modal -->
+    <!-- CRUD Modal -->
     <div class="modal" id="crud-modal">
         <div class="modal-content">
             <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
-                <h2 id="modal-title" class="text-2xl font-bold text-white" aria-live="polite"></h2>
+                <h2 id="modal-title" class="text-2xl font-bold text-white text-center" aria-live="polite"></h2>
             </div>
             <div class="p-6">
                 <form id="crud-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
                     <input type="hidden" name="action" id="form-action">
                     <input type="hidden" name="id" id="form-id">
-                    <?php 
+                    <?php
                     $primaryKeys = [
                         'employees' => 'emp_id', 'employee_payment_rates' => 'rate_id', 'attendance' => 'attendance_id',
                         'salary_increments' => 'increment_id', 'employee_payments' => 'payment_id', 'invoice_data' => 'invoice_id',
@@ -819,8 +708,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
                     $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date', 'payment_received_date'];
                     $timeColumns = ['start_time', 'end_time'];
-                    foreach ($data['columns'] as $column): 
-                        if ($column === 'completion') continue; // Skip completion column
+                    foreach ($data['columns'] as $column):
+                        if ($column === 'completion') continue;
+                        if ($data['table'] === 'jobs' && $column === 'status') continue;
                         ?>
                         <div class="form-group">
                             <label for="<?php echo $column; ?>" class="block text-sm font-semibold text-gray-800 mb-2"><?php echo htmlspecialchars($column); ?></label>
@@ -924,10 +814,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         </div>
                     <?php endforeach; ?>
                     <div class="form-actions flex justify-end space-x-4 pt-6">
-                        <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeModal()">
+                        <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeModal()">
                             <i class="fas fa-times"></i> Cancel
                         </button>
-                        <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" onclick="openConfirmModal('update')">
+                        <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" onclick="openConfirmModal('update')">
                             <i class="fas fa-save"></i> Save Changes
                         </button>
                     </div>
@@ -935,12 +825,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             </div>
         </div>
     </div>
-
-    <!-- Enhanced Invoice Modal -->
+    <!-- Invoice Modal -->
     <div class="modal" id="invoice-modal">
         <div class="modal-content">
             <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-t-xl">
-                <h2 class="text-2xl font-bold text-white"><i class="fas fa-file-invoice"></i> Invoice Details</h2>
+                <h2 class="text-2xl font-bold text-white text-center"><i class="fas fa-file-invoice"></i> Invoice Details</h2>
             </div>
             <div class="p-6">
                 <div id="invoice-details" class="invoice-details">
@@ -955,7 +844,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         <div class="invoice-item full-width"><span class="label">Remarks:</span><span id="invoice-remarks" class="font-medium">-</span></div>
                     </div>
                     <div class="form-actions flex justify-end pt-6">
-                        <button class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeInvoiceModal()">
+                        <button class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeInvoiceModal()">
                             <i class="fas fa-times"></i> Close
                         </button>
                     </div>
@@ -964,35 +853,33 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             </div>
         </div>
     </div>
-
-    <!-- Enhanced Confirmation Modal -->
+    <!-- Confirmation Modal -->
     <div class="modal" id="confirm-modal">
         <div class="modal-content">
             <div class="bg-gradient-to-r from-amber-500 to-orange-600 p-6 rounded-t-xl">
-                <h2 id="confirm-title" class="text-2xl font-bold text-white" aria-live="polite"></h2>
+                <h2 id="confirm-title" class="text-2xl font-bold text-white text-center" aria-live="polite"></h2>
             </div>
             <div class="p-6">
-                <p id="confirm-message" class="text-gray-700 mb-8 text-lg"></p>
+                <p id="confirm-message" class="text-gray-700 mb-8 text-lg text-center"></p>
                 <div class="form-actions flex justify-end space-x-4">
-                    <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeConfirmModal()">
+                    <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeConfirmModal()">
                         <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" id="confirm-action-btn">
+                    <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" id="confirm-action-btn">
                         <i class="fas fa-check"></i> Confirm
                     </button>
                 </div>
             </div>
         </div>
     </div>
-    
     <!-- Job Status Change Modal -->
     <div class="modal" id="status-change-modal">
         <div class="modal-content">
             <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
-                <h2 class="text-2xl font-bold text-white">Change Job Status</h2>
+                <h2 class="text-2xl font-bold text-white text-center">Change Job Status</h2>
             </div>
             <div class="p-6">
-                <p class="text-gray-700 mb-6">Select the new status for this job:</p>
+                <p class="text-gray-700 mb-6 text-center">Select the new status for this job:</p>
                 <div class="status-options grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                     <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.0">
                         <div class="font-semibold text-gray-900">Not Started</div>
@@ -1020,105 +907,57 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     </button>
                 </div>
                 <div class="form-actions flex justify-end space-x-4">
-                    <button type="button" class="bg-gray-200 text-gray-800 px-5 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all duration-300 flex items-center gap-2 text-base" onclick="closeStatusChangeModal()">
+                    <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeStatusChangeModal()">
                         <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button type="button" class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-md hover:shadow-lg flex items-center gap-2 text-base" id="status-change-confirm-btn" disabled>
+                    <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" id="status-change-confirm-btn" disabled>
                         <i class="fas fa-sync-alt"></i> Update Status
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
-    <!-- Include Select2 for searchable dropdowns -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             var columns = <?php echo json_encode($data['columns']); ?>;
             var dateColumns = <?php echo json_encode($dateColumns); ?>;
             var table;
-
-            // Initialize spinner and hide table
             $('#loading-spinner').show();
             $('#data-table').hide();
-
-            // Ensure modals are hidden on page load
             $('#crud-modal').hide();
             $('#invoice-modal').hide();
             $('#confirm-modal').hide();
-
-            // Initialize Select2 dropdowns
             $('.select2-dropdown').select2({
                 placeholder: "Search and select...",
                 allowClear: true,
                 width: '100%'
             });
-
-            // Define column definitions for DataTables
             var columnDefs = [
                 <?php foreach ($data['columns'] as $column): ?>
-                    { 
+                    <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
+                    {
                         data: "<?php echo htmlspecialchars($column); ?>",
                         title: "<?php echo htmlspecialchars($column); ?>",
                         name: "<?php echo htmlspecialchars($column); ?>",
                         <?php if ($column === 'paid' && $data['table'] === 'operational_expenses'): ?>
                         render: function(data, type, row) {
-                            if (data == '1' || data === 1) {
-                                return '<div class="paid-cell paid-status"><i class="fas fa-check" style="color: #10B981; font-size: 20px;"></i></div>';
-                            } else if (data == '0' || data === 0) {
-                                return '<div class="paid-cell unpaid-status"><i class="fas fa-times" style="color: #EF4444; font-size: 20px;"></i></div>';
+                            if (data === null || data === undefined || data === '') {
+                                return '<div class="paid-cell pending-status"><span style="color: #9ca3af;">—</span></div>';
+                            }
+                            var v = String(data).toLowerCase();
+                            if (v === '1' || v === 'true' || v === 'yes' || v === 'y') {
+                                return '<div class="paid-cell paid-status"><i class="fas fa-check" style="color: #10B981; font-size: 18px;"></i></div>';
+                            } else if (v === '0' || v === 'false' || v === 'no' || v === 'n') {
+                                return '<div class="paid-cell unpaid-status"><i class="fas fa-times" style="color: #EF4444; font-size: 18px;"></i></div>';
                             }
                             return '<div class="paid-cell pending-status"><span style="color: #9ca3af;">—</span></div>';
                         }
                         <?php endif; ?>
                     },
                 <?php endforeach; ?>
-                <?php if ($data['table'] === 'jobs'): ?>
-                    {
-                        data: "completion",
-                        title: "Status",
-                        name: "completion",
-                        render: function(data, type, row) {
-                            var statusText = '';
-                            var statusClass = '';
-                            
-                            switch(data) {
-                                case '0.0':
-                                    statusText = 'Not Started';
-                                    statusClass = 'status-not-started';
-                                    break;
-                                case '0.1':
-                                    statusText = 'Cancelled';
-                                    statusClass = 'status-cancelled';
-                                    break;
-                                case '0.2':
-                                    statusText = 'Started';
-                                    statusClass = 'status-started';
-                                    break;
-                                case '0.3':
-                                    statusText = 'Postponed';
-                                    statusClass = 'status-postponed';
-                                    break;
-                                case '0.5':
-                                    statusText = 'Ongoing';
-                                    statusClass = 'status-ongoing';
-                                    break;
-                                case '1.0':
-                                    statusText = 'Completed';
-                                    statusClass = 'status-completed';
-                                    break;
-                                default:
-                                    statusText = 'Unknown';
-                                    statusClass = 'status-not-started';
-                            }
-                            
-                            return '<span class="status-badge ' + statusClass + '" data-job-id="' + row.job_id + '" data-completion="' + data + '">' + statusText + '</span>';
-                        }
-                    },
-                <?php endif; ?>
                 {
                     data: null,
                     title: "Actions",
@@ -1127,26 +966,27 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         var buttons = '<button class="action-btn edit mr-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i> Edit</button>' +
                                       '<button class="action-btn delete" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i> Delete</button>';
                         <?php if ($data['table'] === 'operational_expenses'): ?>
-                            // Add paid status buttons for operational expenses
                             var paidStatus = row.paid;
                             if (paidStatus !== '1' && paidStatus !== 1) {
-                                buttons = '<button class="btn-paid-action" onclick="markAsPaid(this, ' + row.expense_id + ')" title="Mark as Paid"><i class="fas fa-check"></i> Paid</button>' +
-                                          '<button class="btn-unpaid-action" onclick="markAsNotPaid(this, ' + row.expense_id + ')" title="Mark as Not Paid"><i class="fas fa-times"></i> Not Paid</button>';
-                            } else {
-                                buttons = '<span style="color: #10b981; font-weight: 600;"><i class="fas fa-check"></i> Paid</span>';
+                                buttons += '<button class="action-btn mark-paid ml-2" onclick="markAsPaid(this, ' + row.expense_id + ')" title="Mark as Paid"><i class="fas fa-check"></i> Mark as Paid</button>';
                             }
                         <?php elseif ($data['table'] === 'jobs'): ?>
                             if (row.has_invoice) {
                                 buttons += '<button class="action-btn invoice ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i> Invoice</button>';
                             }
-                            // Add status changer button
-                            buttons += '<button class="action-btn status-change ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '" data-completion="' + (row.completion || '0.0') + '"><i class="fas fa-sync-alt"></i> Change Status</button>';
+                            var statusVal = String(row.completion || '0.0');
+                            buttons += '<button class="action-btn status-change ml-2' + '" ' +
+                                       'data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '" ' +
+                                       'data-completion="' + statusVal + '">' +
+                                       '<i class="fas fa-sync-alt"></i> Change Status</button>';
+                            if (row.company_reference && /a2z/i.test(row.company_reference)) {
+                                buttons += '<button class="action-btn generate-maintenance ml-2" data-job-id="' + row.job_id + '"><i class="fas fa-tools"></i> Generate Maintenance</button>';
+                            }
                         <?php endif; ?>
                         return buttons;
                     }
                 }
             ];
-
             table = $('#data-table').DataTable({
                 paging: true,
                 pageLength: 10,
@@ -1158,7 +998,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 scrollX: false,
                 autoWidth: false,
                 order: [[0, 'desc']],
-                dom: 'rtip', // Remove default pagination and use our custom one
+                dom: 'rtip',
                 ajax: {
                     url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
                     type: "POST",
@@ -1199,7 +1039,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     updatePaginationInfo();
                 },
                 initComplete: function() {
-                    // Event delegation for edit button
                     $('#data-table tbody').on('click', '.edit', function() {
                         var id = $(this).data('id');
                         var rowData = table.row($(this).closest('tr')).data();
@@ -1207,20 +1046,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                             openModal('update', id, rowData);
                         }
                     });
-
-                    // Event delegation for delete button
                     $('#data-table tbody').on('click', '.delete', function() {
                         var id = $(this).data('id');
                         openConfirmModal('delete', id);
                     });
-
-                    // Event delegation for invoice button
                     $('#data-table tbody').on('click', '.invoice', function() {
                         var id = $(this).data('id');
                         openInvoiceModal(id);
                     });
-                    
-                    // Event delegation for status change button
                     $('#data-table tbody').on('click', '.status-change', function() {
                         var jobId = $(this).data('id');
                         var currentCompletion = $(this).data('completion');
@@ -1228,8 +1061,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     });
                 }
             });
-
-            // Function to update record count display
             function updateRecordCount() {
                 var info = table.ajax.json() || {};
                 var totalRecords = info.recordsTotal || 0;
@@ -1240,31 +1071,23 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     displayText += ' (' + filteredRecords + ' Filtered)';
                 }
                 $('#record-count').text(displayText);
-                        
-                // Also update the pagination info in the top section
                 updatePaginationInfo();
             }
-
-            // Function to update pagination info
             function updatePaginationInfo() {
                 var info = table.page.info();
                 var totalRecords = info.recordsTotal;
                 var start = info.start + 1;
                 var end = info.end;
                 var paginationText = 'Showing ' + start + ' to ' + end + ' of ' + totalRecords + ' entries';
-                $('.dataTables_info').text(paginationText);
+                $('#pagination-info').text(paginationText);
             }
-
-            // Custom search bar functionality
             $('#searchInput').on('keyup', function(e) {
                 var searchValue = $(this).val().trim();
-                // Normalize date formats (e.g., DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD)
                 if (/^\d{2}[-\\/]\d{2}[-\\/]\d{4}$/.test(searchValue)) {
                     var parts = searchValue.split(/[-\\/]/);
                     searchValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
                     $(this).val(searchValue);
                 }
-                // Trigger search on Enter key or after typing delay
                 if (e.key === 'Enter' || searchValue.length >= 3 || searchValue === '') {
                     table.ajax.reload(function() {
                         updateRecordCount();
@@ -1272,52 +1095,40 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     }, false);
                 }
             });
-
-            // Adjust table on window resize
             $(window).on('resize', function() {
                 table.columns.adjust();
             });
-
-            // Entries per page change
             $('#entries-per-page').on('change', function() {
                 var length = parseInt($(this).val());
                 table.page.len(length).draw();
             });
-            
-            // Refresh table button
             $('#refresh-table').on('click', function() {
                 table.ajax.reload(function() {
                     updateRecordCount();
                     updatePaginationInfo();
                 }, false);
             });
-            // Generate maintenance cycles (jobs)
-            $('#generate-maintenance').on('click', function() {
+            $('#data-table tbody').on('click', '.generate-maintenance', function() {
                 var btn = $(this);
+                var jobId = btn.data('job-id');
+                if (!jobId) return alert('Job ID missing');
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generating...');
-                fetch('<?php echo BASE_PATH; ?>/admin/manageTable/' + encodeURIComponent('<?php echo $data['table']; ?>'), {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ action: 'generate_maintenance' })
-                }).then(function(resp) { return resp.json(); }).then(function(json) {
-                    if (json.success) {
-                        alert('Maintenance schedules generated. Inserted: ' + (json.inserted || 0));
+                $.post('<?php echo BASE_PATH; ?>/admin/manageTable/jobs', { action: 'generate_maintenance_for_job', job_id: jobId }, function(resp) {
+                    if (resp && resp.success) {
+                        alert('Maintenance generated. Inserted: ' + (resp.inserted || 0));
                         $('#refresh-table').click();
                     } else {
-                        alert('Error: ' + (json.error || 'Unknown error'));
+                        alert('Error: ' + (resp.error || 'Unknown error'));
                     }
-                }).catch(function(err) {
-                    console.error(err);
+                }, 'json').fail(function() {
                     alert('Request failed');
-                }).finally(function() {
+                }).always(function() {
                     btn.prop('disabled', false).html('<i class="fas fa-tools"></i> Generate Maintenance');
                 });
             });
         });
-
         function openModal(action, id = null, data = null) {
             if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying modal open');
                 setTimeout(() => openModal(action, id, data), 100);
                 return;
             }
@@ -1327,21 +1138,18 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             }, 10);
             $('#form-action').val(action);
             $('#modal-title').text(action === 'create' ? 'Add New Record' : 'Edit Record');
-            
-            // Reset form
             $('.primary-key-field').closest('.form-group').show();
             $('#crud-form')[0].reset();
             $('#form-id').val(id || '');
             $('.btn-option').removeClass('active');
             $('.select2-dropdown').val('').trigger('change');
-            
             if (action === 'create') {
                 $('.primary-key-field').closest('.form-group').hide();
             } else if (action === 'update' && data) {
                 $('.primary-key-field').closest('.form-group').show();
                 var dateColumns = <?php echo json_encode($dateColumns); ?>;
-                <?php foreach ($data['columns'] as $column): 
-                    if ($column === 'completion') continue; // Skip completion column
+                <?php foreach ($data['columns'] as $column):
+                    if ($column === 'completion') continue;
                     ?>
                     if (dateColumns.includes('<?php echo $column; ?>') && data.<?php echo htmlspecialchars($column); ?>) {
                         let dateValue = data.<?php echo htmlspecialchars($column); ?>;
@@ -1357,11 +1165,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     } else if (data.<?php echo htmlspecialchars($column); ?> !== undefined) {
                         let value = data.<?php echo htmlspecialchars($column); ?> || '';
                         $('#<?php echo $column; ?>').val(value);
-                        // Update Select2 dropdowns
                         if ($('#<?php echo $column; ?>').hasClass('select2-dropdown')) {
                             $('#<?php echo $column; ?>').val(value).trigger('change');
                         }
-                        // Update button groups
                         var button = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('<?php echo $column; ?>')"]`);
                         if (button) {
                             document.querySelectorAll(`#crud-form .form-group button[onclick*="selectOption('<?php echo $column; ?>')"]`).forEach(btn => btn.classList.remove('active'));
@@ -1371,14 +1177,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 <?php endforeach; ?>
             }
         }
-
         function closeModal() {
             $('#crud-modal').removeClass('show');
             setTimeout(() => {
                 $('#crud-modal').hide();
             }, 300);
         }
-
         function selectOption(fieldId, value) {
             document.getElementById(fieldId).value = value;
             const buttons = document.querySelectorAll(`#crud-form .form-group button[data-value][onclick*="${fieldId}"]`);
@@ -1386,23 +1190,13 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             const selectedButton = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="${fieldId}"]`);
             if (selectedButton) selectedButton.classList.add('active');
         }
-
         function markAsPaid(button, expenseId) {
             updatePaidStatus(button, expenseId, 1, 'paid');
         }
-
-        function markAsNotPaid(button, expenseId) {
-            updatePaidStatus(button, expenseId, 0, 'unpaid');
-        }
-
         function updatePaidStatus(button, expenseId, status, statusClass) {
             const originalHtml = button.outerHTML;
             const actionCell = button.closest('td');
-            
-            // Show loading state
             actionCell.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #3b82f6; font-size: 18px;"></i>';
-            
-            // AJAX request to update
             $.ajax({
                 url: "<?php echo BASE_PATH; ?>/admin/manageTable/operational_expenses",
                 type: "POST",
@@ -1414,7 +1208,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 },
                 success: function(response) {
                     if (response.success) {
-                        // Reload table to refresh all cells for this row
                         table.ajax.reload(function() {
                             showToast('Status updated successfully', 'success');
                         }, false);
@@ -1429,10 +1222,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 }
             });
         }
-
         function openInvoiceModal(jobId) {
             if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying invoice modal open');
                 setTimeout(() => openInvoiceModal(jobId), 100);
                 return;
             }
@@ -1440,20 +1231,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             setTimeout(() => {
                 $('#invoice-modal').show();
             }, 10);
-            
-            // Show loading spinner
             $('#invoice-spinner').show();
             $('#invoice-details').hide();
-            
-            // Fetch invoice details
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
                 action: 'get_invoice_details',
                 job_id: jobId
             }, function(data) {
                 $('#invoice-spinner').hide();
                 $('#invoice-details').show();
-                
-                // Helper function to format dates
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '-';
                     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -1466,8 +1251,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                     }
                     return dateStr;
                 };
-                
-                // Populate invoice details
                 $('#invoice-no').text(data.invoice_no || '-');
                 $('#invoice-date').text(formatDate(data.invoice_date));
                 $('#invoice-value').text(data.invoice_value || '-');
@@ -1482,17 +1265,14 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 alert('Error loading invoice details: ' + error);
             });
         }
-
         function closeInvoiceModal() {
             $('#invoice-modal').removeClass('show');
             setTimeout(() => {
                 $('#invoice-modal').hide();
             }, 300);
         }
-
         function openConfirmModal(action, id = null) {
             if (!$('#data-table').is(':visible')) {
-                console.warn('Table not loaded yet, delaying confirm modal open');
                 setTimeout(() => openConfirmModal(action, id), 100);
                 return;
             }
@@ -1500,26 +1280,20 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
             setTimeout(() => {
                 $('#confirm-modal').show();
             }, 10);
-            
-            // Set modal content based on action
             const titles = {
                 'create': 'Confirm Add',
                 'update': 'Confirm Update',
                 'delete': 'Confirm Delete'
             };
-            
             const messages = {
                 'create': 'Are you sure you want to add this new record?',
                 'update': 'Are you sure you want to save changes to this record?',
                 'delete': 'Are you sure you want to delete this record? This action cannot be undone.'
             };
-            
             $('#confirm-title').text(titles[action]);
             $('#confirm-message').text(messages[action]);
-            
             $('#confirm-action-btn').off('click').on('click', function() {
                 if (action === 'create' || action === 'update') {
-                    // Submit create or update via AJAX
                     $.ajax({
                         url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
                         type: 'POST',
@@ -1544,7 +1318,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                         }
                     });
                 } else if (action === 'delete') {
-                    // Perform the delete action
                     $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
                         action: 'delete',
                         id: id
@@ -1566,61 +1339,44 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 }
             });
         }
-
         function closeConfirmModal() {
             $('#confirm-modal').removeClass('show');
             setTimeout(() => {
                 $('#confirm-modal').hide();
             }, 300);
         }
-        
-        // Job Status Change Functions
         let selectedJobId = null;
         let selectedCompletion = null;
-        
         function openStatusChangeModal(jobId, currentCompletion) {
             selectedJobId = jobId;
             selectedCompletion = currentCompletion;
-            
-            // Reset all buttons
             $('.status-option-btn').removeClass('selected');
             $('#status-change-confirm-btn').prop('disabled', true);
-            
-            // Show the modal
             $('#status-change-modal').addClass('show');
             setTimeout(() => {
                 $('#status-change-modal').show();
             }, 10);
-            
-            // Highlight current status if it exists
             if (currentCompletion !== null && currentCompletion !== undefined) {
                 $('.status-option-btn[data-value="' + currentCompletion + '"]').addClass('selected');
             }
         }
-        
         function closeStatusChangeModal() {
             $('#status-change-modal').removeClass('show');
             setTimeout(() => {
                 $('#status-change-modal').hide();
             }, 300);
         }
-        
-        // Handle status option selection
         $(document).on('click', '.status-option-btn', function() {
             $('.status-option-btn').removeClass('selected');
             $(this).addClass('selected');
             selectedCompletion = $(this).data('value');
             $('#status-change-confirm-btn').prop('disabled', false);
         });
-        
-        // Handle status change confirmation
         $('#status-change-confirm-btn').on('click', function() {
             if (!selectedJobId || selectedCompletion === null) {
                 alert('Please select a status');
                 return;
             }
-            
-            // Send AJAX request to update job status
             $.ajax({
                 url: "<?php echo BASE_PATH; ?>/admin/manageTable/jobs",
                 type: 'POST',
@@ -1633,7 +1389,6 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/'); // Adjust this to your app'
                 success: function(response) {
                     if (response.success) {
                         closeStatusChangeModal();
-                        // Refresh the table to show updated status
                         table.ajax.reload(function() {
                             updateRecordCount();
                             updatePaginationInfo();

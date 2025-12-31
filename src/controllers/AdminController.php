@@ -227,6 +227,17 @@ class AdminController extends Controller {
                     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
                 }
                 exit;
+            } elseif ($action === 'generate_maintenance_for_job') {
+                try {
+                    $jobId = $_POST['job_id'] ?? '';
+                    $result = $this->tableManager->generateMaintenanceSchedulesForJob($jobId);
+                    header('Content-Type: application/json');
+                    echo json_encode($result);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
             } elseif ($action === 'create') {
                 $data = [];
                 foreach ($columns as $column) {
