@@ -7,697 +7,262 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage <?php echo htmlspecialchars($data['table']); ?> - A2Z Engineering</title>
+    <!-- Fonts & Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa',
+                            500: '#2563eb', 600: '#1d4ed8', 700: '#1e40af', 800: '#1e3a8a', 900: '#172554', // Deep Blue
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            --secondary-gradient: linear-gradient(135deg, #10b981, #3b82f6);
-            --accent-gradient: linear-gradient(135deg, #f59e0b, #ef4444);
+        /* Custom Overrides */
+        body { background-color: #f1f5f9; } /* Slate 100 - Ashy background */
+        
+        /* Select2 Tailwind Integration */
+        .select2-container .select2-selection--single {
+            height: 46px !important;
+            border-color: #cbd5e1 !important; /* Slate 300 */
+            border-radius: 0.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #f8fafc !important; /* Slate 50 */
         }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            top: 10px !important;
         }
+
+        /* Modal Transitions */
         .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            opacity: 0;
             transition: opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
         }
         .modal.show {
             opacity: 1;
+            pointer-events: auto;
         }
         .modal-content {
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 0;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 700px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transform: translateY(-50px);
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-            opacity: 0;
+            transition: transform 0.3s ease-out;
+            transform: scale(0.95);
         }
         .modal.show .modal-content {
-            transform: translateY(0);
-            opacity: 1;
+            transform: scale(1);
         }
-        .btn {
-            transition: all 0.2s ease-in-out;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            margin: 0 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .btn:active {
-            transform: translateY(0);
-        }
-        .tooltip {
-            position: relative;
-        }
-        .tooltip::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #1f2937;
-            color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s;
-            z-index: 1000;
-        }
-        .tooltip:hover::after {
-            opacity: 1;
-            visibility: visible;
-        }
-        .status-select {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            background-color: white;
-            font-size: 14px;
-            width: 100%;
-            transition: all 0.2s ease;
-        }
-        .status-select:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .spinner {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            background: white;
-        }
-        #data-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-        #data-table th,
-        #data-table td {
-            padding: 16px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        #data-table th {
-            background-color: #f9fafb;
-            font-weight: 600;
-            color: #374151;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        #data-table tr:hover {
-            background-color: #f9fafb;
-        }
-        .btn-option.active {
-            box-shadow: 0 0 0 2px #3b82f6;
-        }
-        .form-group {
-            margin-bottom: 24px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #374151;
-        }
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            font-size: 15px;
-            transition: all 0.2s ease;
-        }
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .primary-key-field {
-            background-color: #f3f4f6;
-            cursor: not-allowed;
-        }
-        .button-group {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .btn-option {
-            flex: 1;
-            min-width: 100px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border: 1px solid #d1d5db;
-            background-color: white;
-            font-size: 14px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .btn-option:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-        .btn-green {
-            background-color: #10b981;
-            color: white;
-            border-color: #059669;
-        }
-        .btn-yellow {
-            background-color: #f59e0b;
-            color: white;
-            border-color: #d97706;
-        }
-        .btn-red {
-            background-color: #ef4444;
-            color: white;
-            border-color: #dc2626;
-        }
-        .btn-blue {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #2563eb;
-        }
-        .btn-orange {
-            background-color: #f97316;
-            color: white;
-            border-color: #ea580c;
-        }
-        .btn-purple {
-            background-color: #8b5cf6;
-            color: white;
-            border-color: #7c3aed;
-        }
-        .invoice-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-        .invoice-item {
-            padding: 16px;
-            background-color: #f9fafb;
-            border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .invoice-item.full-width {
-            grid-column: 1 / -1;
-        }
-        .label {
-            display: block;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
-            font-size: 14px;
-        }
-        .stat-box {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            background: var(--secondary-gradient);
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 500;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .search-input {
-            width: 100%;
-            padding: 14px 20px;
-            border-radius: 10px;
-            border: 1px solid #d1d5db;
-            font-size: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-        .search-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
-        }
-        .custom-design-element {
-            position: relative;
-        }
-        .custom-design-element::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            width: 28px;
-            height: 28px;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            z-index: 1;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .custom-design-element::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background: var(--secondary-gradient);
-            border-radius: 50%;
-            z-index: 1;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            padding: 0.6rem 0.9rem;
-            margin-left: 0.3rem;
-            border-radius: 0.5rem;
-            border: 1px solid #e5e7eb;
-            background-color: #fff;
-            color: #374151 !important;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background-color: #f3f4f6;
-            color: #1f2937 !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-            background: var(--primary-gradient);
-            color: #fff !important;
-            border-color: transparent;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
+
+        /* DataTables Customization */
         .dataTables_wrapper .dataTables_length select {
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db;
-            padding: 0.3rem 0.6rem;
-            background-color: #fff;
-            color: #374151;
+            padding-right: 2rem;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
         }
-        .dataTables_wrapper .dataTables_filter input {
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db;
-            padding: 0.3rem 0.6rem;
+        
+        /* Custom Scrollbar for heavy tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 10px;
+            width: 10px;
         }
-        .dataTables_info {
-            color: #6b7280;
-            font-size: 0.9rem;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
         }
-        .clock-picker {
-            position: relative;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8; 
+            border-radius: 5px;
         }
-        .clock-picker .clock-icon {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            pointer-events: none;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
         }
-        .entries-control {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
+
+        /* Table Row Styling */
+        table.dataTable tbody tr {
+            background-color: #f8fafc; /* Very light ash/slate */
         }
-        .entries-control select {
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db;
-            padding: 0.3rem 0.6rem;
-            background-color: #fff;
-            color: #374151;
-        }
-        .action-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin: 0 4px;
-        }
-        .action-btn.edit {
-            background-color: #dbeafe;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
-        .action-btn.edit:hover {
-            background-color: #bfdbfe;
-        }
-        .action-btn.delete {
-            background-color: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-        .action-btn.delete:hover {
-            background-color: #fecaca;
-        }
-        .action-btn.invoice {
-            background-color: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-        .action-btn.invoice:hover {
-            background-color: #bbf7d0;
-        }
-        .action-btn.status-change {
-            background-color: #dbeafe;
-            color: #2563eb;
-            border: 1px solid #bfdbfe;
-        }
-        .action-btn.status-change:hover {
-            background-color: #bfdbfe;
-        }
-        .status-option-btn.selected {
-            border-color: #3b82f6;
-            background-color: #dbeafe;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 500;
-        }
-        .status-not-started {
-            background-color: #e5e7eb;
-            color: #374151;
-        }
-        .status-cancelled {
-            background-color: #fecaca;
-            color: #dc2626;
-        }
-        .status-started {
-            background-color: #fef3c7;
-            color: #d97706;
-        }
-        .status-ongoing {
-            background-color: #dbeafe;
-            color: #1d4ed8;
-        }
-        .status-completed {
-            background-color: #d1fae5;
-            color: #059669;
-        }
-        .status-postponed {
-            background-color: #ddd6fe;
-            color: #7c3aed;
-        }
-        .card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
-        }
-        .card:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        .form-actions {
-            padding-top: 24px;
-            border-top: 1px solid #e5e7eb;
-            margin-top: 16px;
-        }
-        .paid-cell {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 40px;
-        }
-        .paid-cell.pending-status {
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .paid-cell.paid-status,
-        .paid-cell.unpaid-status {
-            justify-content: center;
-        }
-        .btn-paid-action,
-        .btn-unpaid-action {
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            transition: all 0.2s ease;
-            background-color: white;
-            min-width: fit-content;
-            margin-right: 6px;
-        }
-        .btn-paid-action {
-            color: #10b981;
-            border-color: #10b981;
-        }
-        .btn-paid-action:hover {
-            background-color: #ecfdf5;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-            transform: translateY(-1px);
-        }
-        .btn-paid-action:active {
-            background-color: #d1fae5;
-        }
-        .btn-unpaid-action {
-            color: #ef4444;
-            border-color: #ef4444;
-        }
-        .btn-unpaid-action:hover {
-            background-color: #fef2f2;
-            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-            transform: translateY(-1px);
-        }
-        .btn-unpaid-action:active {
-            background-color: #fee2e2;
+        table.dataTable tbody tr:hover {
+            background-color: #e2e8f0; /* Slightly darker ash on hover */
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header Section -->
-    <div class="bg-white shadow-xl">
-        <div class="px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between py-6 gap-6">
-                <div class="flex items-center space-x-5">
-                    <div class="custom-design-element">
-                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 w-14 h-14 rounded-xl flex items-center justify-center shadow-lg">
-                            <i class="fas fa-table text-white text-2xl"></i>
+<body class="text-slate-800 antialiased">
+    
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div class="w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-18 py-2">
+                <div class="flex items-center gap-4">
+                    <a href="<?php echo BASE_PATH; ?>/admin/tables" class="p-2 -ml-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-blue-600 text-white p-2.5 rounded-lg shadow-md shadow-blue-200">
+                            <i class="fas fa-table text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 leading-tight tracking-tight">
+                                <?php echo ucfirst(str_replace('_', ' ', $data['table'])); ?>
+                            </h1>
+                            <p class="text-xs text-blue-600 font-semibold uppercase tracking-wide">Admin Console</p>
                         </div>
                     </div>
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Manage <?php echo htmlspecialchars($data['table']); ?></h1>
-                        <p class="text-base text-gray-600 mt-1">Internal Database Management System</p>
-                    </div>
                 </div>
-                <div class="flex flex-wrap gap-3">
-                    <button class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl" onclick="openModal('create')">
-                        <i class="fas fa-plus"></i> Add Record
-                    </button>
-                    <button class="btn bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 shadow hover:shadow-md" onclick="window.location.href='<?php echo BASE_PATH; ?>/admin/tables'">
-                        <i class="fas fa-arrow-left"></i> Back
+                <div class="flex items-center gap-3">
+                    <button onclick="openModal('create')" class="inline-flex items-center px-5 py-2.5 bg-blue-600 border border-transparent rounded-lg font-semibold text-sm text-white shadow-md hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105">
+                        <i class="fas fa-plus mr-2"></i> New Record
                     </button>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <!-- Stats Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    </nav>
+
+    <!-- Main Content -->
+    <main class="w-full px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+             <div class="bg-white hover:bg-slate-50 overflow-hidden shadow-sm rounded-xl border border-slate-200 p-5 flex items-center justify-between transition-all duration-200 group">
+                <div>
+                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Records</p>
+                     <p class="text-3xl font-extrabold text-blue-600 mt-1" id="record-count"><?php echo $data['totalRecords']; ?></p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 group-hover:bg-blue-100 transition-colors">
+                    <i class="fas fa-database text-xl"></i>
+                </div>
+            </div>
+            
             <?php if ($data['table'] === 'jobs' && isset($data['totalCapacity'])): ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
-                            <i class="fas fa-bolt text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">PV Capacity</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo number_format($data['totalCapacity'], 2); ?> kW</p>
-                        </div>
-                    </div>
+            <div class="bg-white hover:bg-slate-50 overflow-hidden shadow-sm rounded-xl border border-slate-200 p-5 flex items-center justify-between transition-all duration-200 group">
+                <div>
+                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Capacity</p>
+                     <p class="text-3xl font-extrabold text-blue-600 mt-1"><?php echo number_format($data['totalCapacity'], 2); ?> <span class="text-lg text-slate-400 font-medium">kW</span></p>
                 </div>
-            <?php endif; ?>
-            <?php if ($data['table'] === 'employees'): ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white mr-4">
-                            <i class="fas fa-users text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Active Employees</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['activeEmployees'] ?? 'N/A'; ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php elseif ($data['table'] === 'attendance'): ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white mr-4">
-                            <i class="fas fa-calendar-check text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Today's Attendance</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['todaysAttendance'] ?? 'N/A'; ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php elseif ($data['table'] === 'operational_expenses'): ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-red-500 to-orange-600 text-white mr-4">
-                            <i class="fas fa-money-bill-wave text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">This Month Expenses</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['monthlyExpenses'] ?? 'N/A'; ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php elseif ($data['table'] === 'employee_payments'): ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white mr-4">
-                            <i class="fas fa-rupee-sign text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Pending Payments</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo $data['pendingPayments'] ?? 'N/A'; ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="card p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white mr-4">
-                            <i class="fas fa-database text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-600">Total Records</p>
-                            <p class="text-2xl font-bold text-gray-900" id="record-count"><?php echo $data['totalRecords']; ?></p>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-        <!-- Filters Section -->
-        <div class="card p-6 mb-8">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-search text-gray-400"></i>
-                        </div>
-                        <input class="search-input sm:w-96 pl-10 pr-4 py-3" id="searchInput" type="text" placeholder="Search table (e.g., '2025-08-04 Meals 2310')" aria-label="Search table data">
-                    </div>
-                </div>
-                <form class="flex flex-col sm:flex-row gap-4 export-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
-                    <input type="hidden" name="action" value="export_csv">
-                    <div class="flex gap-3">
-                        <input type="date" name="start_date" required aria-label="Start Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
-                        <input type="date" name="end_date" required aria-label="End Date" class="px-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="YYYY-MM-DD">
-                    </div>
-                    <button type="submit" class="btn bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-md hover:shadow-lg">
-                        <i class="fas fa-download"></i> Export CSV
-                    </button>
-                </form>
-            </div>
-        </div>
-        <!-- Pagination Info Section -->
-        <div class="card p-4 mb-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <label for="entries-per-page" class="text-gray-700 font-medium">Show</label>
-                        <select id="entries-per-page" class="border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                        <span class="text-gray-700 font-medium">entries</span>
-                    </div>
-                    <div class="dataTables_info text-gray-600" id="pagination-info">
-                        Showing 1 to 10 of <?php echo $data['totalRecords']; ?> entries
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="refresh-table" class="btn bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
+                <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 group-hover:bg-amber-100 transition-colors">
+                    <i class="fas fa-bolt text-xl"></i>
                 </div>
             </div>
+            <?php endif; ?>
+
+            <?php if ($data['table'] === 'operational_expenses'): ?>
+            <div class="bg-white hover:bg-slate-50 overflow-hidden shadow-sm rounded-xl border border-slate-200 p-5 flex items-center justify-between transition-all duration-200 group">
+                <div>
+                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Month's Expenses</p>
+                     <p class="text-3xl font-extrabold text-red-600 mt-1"><?php echo $data['monthlyExpenses'] ?? '0.00'; ?></p>
+                </div>
+                <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                    <i class="fas fa-money-bill-wave text-xl"></i>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
-        <!-- Table Section -->
-        <div class="card overflow-hidden w-full">
-            <div class="overflow-x-auto">
-                <table id="data-table" class="w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+
+        <!-- Controls & Filters -->
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 mb-6 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="w-full sm:w-1/2 xl:w-1/3 relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    </div>
+                    <input type="text" id="searchInput" 
+                        class="block w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg leading-5 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 shadow-sm"
+                        placeholder="Search...">
+                </div>
+                
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button id="refresh-table" class="inline-flex items-center px-4 py-2.5 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">
+                         <i class="fas fa-sync-alt mr-2"></i> Refresh
+                    </button>
+                    
+                    <form class="flex gap-2" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
+                        <input type="hidden" name="action" value="export_csv">
+                        <div class="hidden sm:flex gap-2">
+                            <input type="date" name="start_date" required class="block w-36 pl-3 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <input type="date" name="end_date" required class="block w-36 pl-3 pr-3 py-2 border border-slate-300 rounded-lg text-sm bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all">
+                            <i class="fas fa-file-csv mr-2"></i> Export
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Table Container -->
+            <div class="overflow-x-auto custom-scrollbar">
+                <table id="data-table" class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-blue-600 text-white">
                         <tr>
                             <?php foreach ($data['columns'] as $column): ?>
                                 <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
-                                <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap"><?php echo htmlspecialchars($column); ?></th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                                    <?php echo str_replace('_', ' ', $column); ?>
+                                </th>
                             <?php endforeach; ?>
-                            <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider whitespace-nowrap sticky right-0 bg-blue-600 shadow-xl z-10 w-32">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-slate-50 divide-y divide-slate-200 text-sm text-slate-700">
+                        <!-- Data populated by DataTables -->
                     </tbody>
                 </table>
-                <div class="spinner" id="loading-spinner"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i></div>
+            </div>
+            
+            <!-- Pagination Footer (Customized) -->
+             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between" id="custom-pagination-footer">
+                <div class="text-sm font-medium text-slate-500" id="pagination-info">
+                    Loading records...
+                </div>
             </div>
         </div>
-    </div>
+    </main>
+
     <!-- CRUD Modal -->
-    <div class="modal" id="crud-modal">
-        <div class="modal-content">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
-                <h2 id="modal-title" class="text-2xl font-bold text-white text-center" aria-live="polite"></h2>
+    <div id="crud-modal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col relative z-20 border border-slate-100">
+            <!-- Modal Header -->
+            <div class="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2" id="modal-title">
+                        New Record
+                    </h3>
+                    <p class="text-sm text-slate-500 mt-1">Fill in the details below.</p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="p-6">
-                <form id="crud-form" method="POST" action="<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>">
+            
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/50">
+                <form id="crud-form">
                     <input type="hidden" name="action" id="form-action">
                     <input type="hidden" name="id" id="form-id">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     <?php
                     $primaryKeys = [
                         'employees' => 'emp_id', 'employee_payment_rates' => 'rate_id', 'attendance' => 'attendance_id',
@@ -706,704 +271,488 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                         'jobs' => 'job_id', 'cash_hand' => 'cash_id', 'maintenance_schedule' => 'schedule_id'
                     ];
                     $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
-                    $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date', 'payment_received_date'];
-                    $timeColumns = ['start_time', 'end_time'];
+                    $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date', 'payment_received_date', 'scheduled_date', 'actual_date'];
+                    
                     foreach ($data['columns'] as $column):
                         if ($column === 'completion') continue;
                         if ($data['table'] === 'jobs' && $column === 'status') continue;
-                        ?>
-                        <div class="form-group">
-                            <label for="<?php echo $column; ?>" class="block text-sm font-semibold text-gray-800 mb-2"><?php echo htmlspecialchars($column); ?></label>
+                        
+                        $label = ucfirst(str_replace('_', ' ', $column));
+                        $isFullWidth = in_array($column, ['remarks', 'description', 'project_description', 'reason']);
+                        $colSpanClass = $isFullWidth ? 'md:col-span-2' : '';
+                    ?>
+                        <div class="form-group <?php echo $colSpanClass; ?>">
+                            <label for="<?php echo $column; ?>" class="block text-sm font-semibold text-slate-700 mb-2"><?php echo $label; ?></label>
+                            
                             <?php if ($column === $primaryKey): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly aria-label="<?php echo htmlspecialchars($column); ?>" class="primary-key-field">
-                            <?php elseif (($column === 'emp_id' && $data['table'] !== 'employees') || ($data['table'] === 'cash_hand' && in_array($column, ['given_by', 'received_by']))): ?>
-                                <select class="select2-dropdown" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Select Employee">
-                                    <option value="">Select Employee</option>
-                                    <?php echo $data['tableManager']->getEmployeeOptions(); ?>
-                                </select>
-                            <?php elseif ($column === 'job_id' && $data['table'] !== 'jobs'): ?>
-                                <select class="select2-dropdown" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Select Job">
-                                    <option value="">Select Job</option>
-                                    <?php echo $data['tableManager']->getJobDetails(); ?>
-                                </select>
-                            <?php elseif ($column === 'project_id' && $data['table'] !== 'projects'): ?>
-                                <select class="select2-dropdown" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Select Project">
-                                    <option value="">Select Project</option>
-                                    <?php echo $data['tableManager']->getProjectDetailsForJobs(); ?>
-                                </select>
-                            <?php elseif ($column === 'project_id' && $data['table'] === 'jobs'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Project ID">
-                            <?php elseif ($column === 'expenses_category' && $data['table'] === 'operational_expenses'): ?>
-                                <select class="select2-dropdown" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="Expenses Category">
-                                    <option value="">Select Category</option>
-                                    <option value="Meals">Meals</option>
-                                    <option value="Tools">Tools</option>
-                                    <option value="Fuel">Fuel</option>
-                                    <option value="Materials">Materials</option>
-                                    <option value="Hiring of labor">Hiring of labor</option>
-                                    <option value="Hiring of vehicle">Hiring of vehicle</option>
-                                    <option value="Mobile">Mobile</option>
-                                    <option value="Professional Charges">Professional Charges</option>
-                                    <option value="Clearance Charges">Clearance Charges</option>
-                                    <option value="Documentation">Documentation</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            <?php elseif ($column === 'presence'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-green" data-value="1.0" onclick="selectOption('<?php echo $column; ?>', '1.0')">Full Day</button>
-                                    <button type="button" class="btn-option btn-yellow" data-value="0.5" onclick="selectOption('<?php echo $column; ?>', '0.5')">Half Day</button>
-                                    <button type="button" class="btn-option btn-red" data-value="0.0" onclick="selectOption('<?php echo $column; ?>', '0.0')">Not Attended</button>
-                                </div>
-                            <?php elseif ($column === 'paid'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-green" data-value="1" onclick="selectOption('<?php echo $column; ?>', '1')"><i class="fas fa-check mr-1"></i>Yes</button>
-                                    <button type="button" class="btn-option btn-red" data-value="0" onclick="selectOption('<?php echo $column; ?>', '0')"><i class="fas fa-times mr-1"></i>No</button>
-                                </div>
-                            <?php elseif (($column === 'rate_type' && $data['table'] === 'employee_payment_rates') || ($column === 'payment_type' && $data['table'] === 'employees')): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-blue" data-value="Fixed" onclick="selectOption('<?php echo $column; ?>', 'Fixed')">Fixed</button>
-                                    <button type="button" class="btn-option btn-orange" data-value="Daily" onclick="selectOption('<?php echo $column; ?>', 'Daily')">Daily</button>
-                                </div>
-                            <?php elseif ($column === 'payment_type' && $data['table'] === 'employee_payments'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-green" data-value="Monthly Salary" onclick="selectOption('<?php echo $column; ?>', 'Monthly Salary')">Monthly Salary</button>
-                                    <button type="button" class="btn-option btn-yellow" data-value="Daily Wage" onclick="selectOption('<?php echo $column; ?>', 'Daily Wage')">Daily Wage</button>
-                                    <button type="button" class="btn-option btn-orange" data-value="Advance" onclick="selectOption('<?php echo $column; ?>', 'Advance')">Advance</button>
-                                    <button type="button" class="btn-option btn-purple" data-value="Other" onclick="selectOption('<?php echo $column; ?>', 'Other')">Other</button>
-                                </div>
-                            <?php elseif ($column === 'transaction_type' && $data['table'] === 'cash_hand'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-green" data-value="In" onclick="selectOption('<?php echo $column; ?>', 'In')">In</button>
-                                    <button type="button" class="btn-option btn-red" data-value="Out" onclick="selectOption('<?php echo $column; ?>', 'Out')">Out</button>
-                                </div>
-                            <?php elseif ($column === 'increment_type' && $data['table'] === 'salary_increments'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group">
-                                    <button type="button" class="btn-option btn-blue" data-value="Promotion" onclick="selectOption('<?php echo $column; ?>', 'Promotion')">Promotion</button>
-                                    <button type="button" class="btn-option btn-green" data-value="Merit" onclick="selectOption('<?php echo $column; ?>', 'Merit')">Merit</button>
-                                    <button type="button" class="btn-option btn-yellow" data-value="Annual" onclick="selectOption('<?php echo $column; ?>', 'Annual')">Annual</button>
-                                    <button type="button" class="btn-option btn-purple" data-value="Other" onclick="selectOption('<?php echo $column; ?>', 'Other')">Other</button>
-                                </div>
-                            <?php elseif ($column === 'status' && $data['table'] === 'maintenance_schedule'): ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="hidden">
-                                <div class="button-group grid grid-cols-2 gap-3">
-                                    <button type="button" class="btn-option btn-blue" data-value="scheduled" onclick="selectOption('<?php echo $column; ?>', 'scheduled')"><i class="fas fa-calendar-alt mr-1"></i> Scheduled</button>
-                                    <button type="button" class="btn-option btn-green" data-value="completed" onclick="selectOption('<?php echo $column; ?>', 'completed')"><i class="fas fa-check mr-1"></i> Completed</button>
-                                    <button type="button" class="btn-option btn-yellow" data-value="overdue" onclick="selectOption('<?php echo $column; ?>', 'overdue')"><i class="fas fa-exclamation mr-1"></i> Overdue</button>
-                                    <button type="button" class="btn-option btn-red" data-value="cancelled" onclick="selectOption('<?php echo $column; ?>', 'cancelled')"><i class="fas fa-times mr-1"></i> Cancelled</button>
-                                </div>
-                            <?php elseif (($column === 'scheduled_date' || $column === 'actual_date') && $data['table'] === 'maintenance_schedule'): ?>
-                                <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
-                            <?php elseif (in_array($column, $dateColumns)): ?>
-                                <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
-                            <?php elseif (in_array($column, $timeColumns)): ?>
-                                <div class="clock-picker">
-                                    <input type="time" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>" class="w-full">
-                                    <div class="clock-icon">
-                                        <i class="fas fa-clock"></i>
+                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" readonly class="block w-full rounded-lg border-slate-200 bg-slate-100 text-slate-500 shadow-sm sm:text-sm cursor-not-allowed">
+                            
+                            <?php elseif (in_array($column, ['emp_id', 'job_id', 'project_id', 'expenses_category', 'given_by', 'received_by']) || ($column === 'rate_type' && $data['table'] === 'employee_payment_rates')): ?>
+                                <!-- Dynamic Select Handling -->
+                                <?php if ($column === 'emp_id' || in_array($column, ['given_by', 'received_by'])): ?>
+                                    <select class="select2-dropdown block w-full" name="<?php echo $column; ?>" id="<?php echo $column; ?>">
+                                        <option value="">Select Employee</option>
+                                        <?php echo $data['tableManager']->getEmployeeOptions(); ?>
+                                    </select>
+                                <?php elseif ($column === 'job_id'): ?>
+                                    <select class="select2-dropdown block w-full" name="<?php echo $column; ?>" id="<?php echo $column; ?>">
+                                        <option value="">Select Job</option>
+                                        <?php echo $data['tableManager']->getJobDetails(); ?>
+                                    </select>
+                                <?php elseif ($column === 'project_id' && $data['table'] !== 'projects'): ?>
+                                    <select class="select2-dropdown block w-full" name="<?php echo $column; ?>" id="<?php echo $column; ?>">
+                                        <option value="">Select Project</option>
+                                        <?php echo $data['tableManager']->getProjectDetailsForJobs(); ?>
+                                    </select>
+                                <?php elseif ($column === 'expenses_category'): ?>
+                                    <select class="block w-full rounded-lg border-slate-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5" name="<?php echo $column; ?>" id="<?php echo $column; ?>">
+                                        <option value="">Select Category</option>
+                                        <?php 
+                                        $cats = ['Meals', 'Tools', 'Fuel', 'Materials', 'Hiring of labor', 'Hiring of vehicle', 'Mobile', 'Professional Charges', 'Clearance Charges', 'Documentation', 'Other'];
+                                        foreach($cats as $cat) echo "<option value='$cat'>$cat</option>"; 
+                                        ?>
+                                    </select>
+                                <?php else: ?>
+                                    <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5">
+                                <?php endif; ?>
+
+                            <?php elseif ($column === 'presence' || $column === 'paid' || $column === 'payment_type' || $column === 'transaction_type' || $column === 'increment_type' || ($column === 'status' && $data['table'] === 'maintenance_schedule')): ?>
+                                <div class="relative">
+                                    <select class="block w-full rounded-lg border-slate-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 appearance-none" name="<?php echo $column; ?>" id="<?php echo $column; ?>">
+                                        <option value="">Select Option</option>
+                                        <?php if ($column === 'presence'): ?>
+                                            <option value="1.0">Full Day</option><option value="0.5">Half Day</option><option value="0.0">Not Attended</option>
+                                        <?php elseif ($column === 'paid'): ?>
+                                            <option value="1">Yes</option><option value="0">No</option>
+                                        <?php elseif ($column === 'payment_type'): ?>
+                                            <option value="Monthly Salary">Monthly Salary</option><option value="Daily Wage">Daily Wage</option><option value="Advance">Advance</option><option value="Other">Other</option>
+                                        <?php elseif ($column === 'transaction_type'): ?>
+                                            <option value="In">In (Received)</option><option value="Out">Out (Paid)</option>
+                                        <?php elseif ($column === 'status'): ?>
+                                            <option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="overdue">Overdue</option><option value="cancelled">Cancelled</option>
+                                        <?php endif; ?>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                                     </div>
                                 </div>
+
+                            <?php elseif (in_array($column, $dateColumns)): ?>
+                                <input type="date" name="<?php echo $column; ?>" id="<?php echo $column; ?>" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5">
+                            
+                            <?php elseif (strpos($column, 'time') !== false): ?>
+                                <input type="time" name="<?php echo $column; ?>" id="<?php echo $column; ?>" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5">
+                            
                             <?php else: ?>
-                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" aria-label="<?php echo htmlspecialchars($column); ?>">
+                                <input type="text" name="<?php echo $column; ?>" id="<?php echo $column; ?>" class="block w-full rounded-lg border-slate-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2.5 placeholder-slate-400" placeholder="Type here...">
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-                    <div class="form-actions flex justify-end space-x-4 pt-6">
-                        <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeModal()">
-                            <i class="fas fa-times"></i> Cancel
-                        </button>
-                        <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" onclick="openConfirmModal('update')">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
                     </div>
                 </form>
             </div>
+            
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50 rounded-b-2xl">
+                <button onclick="closeModal()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition">Cancel</button>
+                <button onclick="saveRecord()" class="px-4 py-2 bg-brand-600 border border-transparent text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition">Save Record</button>
+            </div>
         </div>
     </div>
-    <!-- Invoice Modal -->
-    <div class="modal" id="invoice-modal">
-        <div class="modal-content">
-            <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-t-xl">
-                <h2 class="text-2xl font-bold text-white text-center"><i class="fas fa-file-invoice"></i> Invoice Details</h2>
+    
+    <!-- Change Status Modal -->
+    <div id="status-modal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeStatusModal()"></div>
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-20 border border-slate-100">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl">
+                <h3 class="text-lg font-bold text-slate-900">Update Job Status</h3>
+                <button onclick="closeStatusModal()" class="text-slate-400 hover:text-slate-600 transition p-1">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <div class="p-6">
-                <div id="invoice-details" class="invoice-details">
-                    <div class="invoice-grid">
-                        <div class="invoice-item"><span class="label">Invoice Number:</span><span id="invoice-no" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Invoice Date:</span><span id="invoice-date" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Invoice Value:</span><span id="invoice-value" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Job Details:</span><span id="invoice-job" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Receiving Payment:</span><span id="invoice-receiving" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Received Amount:</span><span id="invoice-received" class="font-medium">-</span></div>
-                        <div class="invoice-item"><span class="label">Payment Received Date:</span><span id="invoice-payment-date" class="font-medium">-</span></div>
-                        <div class="invoice-item full-width"><span class="label">Remarks:</span><span id="invoice-remarks" class="font-medium">-</span></div>
+                <form id="status-form">
+                    <input type="hidden" name="job_id" id="status-job-id">
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-slate-700 mb-3">Select New Status</label>
+                        <div class="grid grid-cols-1 gap-3">
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                                <input type="radio" name="completion" value="0.0" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm font-medium text-slate-700">Not Started (0%)</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                                <input type="radio" name="completion" value="0.2" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm font-medium text-slate-700">Started / In Progress (20%)</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                                <input type="radio" name="completion" value="0.5" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                                <span class="ml-3 text-sm font-medium text-slate-700">Half Way (50%)</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                                <input type="radio" name="completion" value="1.0" class="h-4 w-4 text-green-600 focus:ring-green-500 border-slate-300">
+                                <span class="ml-3 text-sm font-medium text-slate-700">Completed (100%)</span>
+                            </label>
+                            <label class="flex items-center p-3 border border-red-200 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition">
+                                <input type="radio" name="completion" value="0.1" class="h-4 w-4 text-red-600 focus:ring-red-500 border-red-300">
+                                <span class="ml-3 text-sm font-medium text-red-700">Cancelled / Hold</span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-actions flex justify-end pt-6">
-                        <button class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeInvoiceModal()">
-                            <i class="fas fa-times"></i> Close
-                        </button>
-                    </div>
-                </div>
-                <div class="spinner" id="invoice-spinner"><i class="fas fa-spinner fa-spin text-3xl text-green-500"></i></div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                <button onclick="closeStatusModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="saveStatus()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition">Update Status</button>
             </div>
         </div>
     </div>
-    <!-- Confirmation Modal -->
-    <div class="modal" id="confirm-modal">
-        <div class="modal-content">
-            <div class="bg-gradient-to-r from-amber-500 to-orange-600 p-6 rounded-t-xl">
-                <h2 id="confirm-title" class="text-2xl font-bold text-white text-center" aria-live="polite"></h2>
-            </div>
-            <div class="p-6">
-                <p id="confirm-message" class="text-gray-700 mb-8 text-lg text-center"></p>
-                <div class="form-actions flex justify-end space-x-4">
-                    <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeConfirmModal()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" id="confirm-action-btn">
-                        <i class="fas fa-check"></i> Confirm
-                    </button>
+    
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-sm relative z-20 border border-slate-100 overflow-hidden transform transition-all">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-500"></i>
                 </div>
-            </div>
-        </div>
-    </div>
-    <!-- Job Status Change Modal -->
-    <div class="modal" id="status-change-modal">
-        <div class="modal-content">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-t-xl">
-                <h2 class="text-2xl font-bold text-white text-center">Change Job Status</h2>
-            </div>
-            <div class="p-6">
-                <p class="text-gray-700 mb-6 text-center">Select the new status for this job:</p>
-                <div class="status-options grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.0">
-                        <div class="font-semibold text-gray-900">Not Started</div>
-                        <div class="text-sm text-gray-600 mt-1">Job has not been started yet</div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Delete Record?</h3>
+                <p class="text-sm text-slate-500 mb-6">Are you sure you want to delete this record? This action cannot be undone.</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="closeDeleteModal()" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
+                        Cancel
                     </button>
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.2">
-                        <div class="font-semibold text-gray-900">Started</div>
-                        <div class="text-sm text-gray-600 mt-1">Job has been started</div>
-                    </button>
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.5">
-                        <div class="font-semibold text-gray-900">Ongoing</div>
-                        <div class="text-sm text-gray-600 mt-1">Job is currently in progress</div>
-                    </button>
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="1.0">
-                        <div class="font-semibold text-gray-900">Completed</div>
-                        <div class="text-sm text-gray-600 mt-1">Job has been completed</div>
-                    </button>
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.1">
-                        <div class="font-semibold text-gray-900">Cancelled</div>
-                        <div class="text-sm text-gray-600 mt-1">Job has been cancelled</div>
-                    </button>
-                    <button type="button" class="status-option-btn p-4 rounded-lg border-2 border-gray-200 text-left hover:border-blue-500 hover:bg-blue-50 transition-all duration-200" data-value="0.3">
-                        <div class="font-semibold text-gray-900">Postponed</div>
-                        <div class="text-sm text-gray-600 mt-1">Job has been postponed</div>
-                    </button>
-                </div>
-                <div class="form-actions flex justify-end space-x-4">
-                    <button type="button" class="btn bg-gray-200 text-gray-800 hover:bg-gray-300" onclick="closeStatusChangeModal()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" class="btn bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg" id="status-change-confirm-btn" disabled>
-                        <i class="fas fa-sync-alt"></i> Update Status
+                    <button onclick="confirmDelete()" class="px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all transform hover:scale-105">
+                        Yes, Delete It
                     </button>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-24 right-5 z-[60] flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     <script>
+        let table; 
+        const tableId = '#data-table';
+        const modalId = '#crud-modal';
+        const primaryKey = '<?php echo $primaryKey; ?>';
+        const tableName = '<?php echo $data['table']; ?>';
+        let deleteId = null;
+        
+        // Add Generate Button for Maintenance
+        <?php if ($data['table'] === 'maintenance_schedule'): ?>
         $(document).ready(function() {
-            var columns = <?php echo json_encode($data['columns']); ?>;
-            var dateColumns = <?php echo json_encode($dateColumns); ?>;
-            var table;
-            $('#loading-spinner').show();
-            $('#data-table').hide();
-            $('#crud-modal').hide();
-            $('#invoice-modal').hide();
-            $('#confirm-modal').hide();
+             $('.flex.items-center.gap-3').eq(1).prepend(`
+                <button onclick="generateSchedule()" class="inline-flex items-center px-4 py-2.5 bg-amber-500 border border-transparent rounded-lg font-semibold text-sm text-white shadow-md hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all mr-2">
+                    <i class="fas fa-magic mr-2"></i> Generate Schedule
+                </button>
+             `);
+        });
+        <?php endif; ?>
+
+        $(document).ready(function() {
+            // Initialize Select2
             $('.select2-dropdown').select2({
-                placeholder: "Search and select...",
-                allowClear: true,
-                width: '100%'
+                dropdownParent: $(modalId),
+                width: '100%',
+                placeholder: 'Search and Select...',
+                allowClear: true
             });
-            var columnDefs = [
-                <?php foreach ($data['columns'] as $column): ?>
-                    <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
-                    {
-                        data: "<?php echo htmlspecialchars($column); ?>",
-                        title: "<?php echo htmlspecialchars($column); ?>",
-                        name: "<?php echo htmlspecialchars($column); ?>",
-                        <?php if ($column === 'paid' && $data['table'] === 'operational_expenses'): ?>
-                        render: function(data, type, row) {
-                            if (data === null || data === undefined || data === '') {
-                                return '<div class="paid-cell pending-status"><span style="color: #9ca3af;">—</span></div>';
-                            }
-                            var v = String(data).toLowerCase();
-                            if (v === '1' || v === 'true' || v === 'yes' || v === 'y') {
-                                return '<div class="paid-cell paid-status"><i class="fas fa-check" style="color: #10B981; font-size: 18px;"></i></div>';
-                            } else if (v === '0' || v === 'false' || v === 'no' || v === 'n') {
-                                return '<div class="paid-cell unpaid-status"><i class="fas fa-times" style="color: #EF4444; font-size: 18px;"></i></div>';
-                            }
-                            return '<div class="paid-cell pending-status"><span style="color: #9ca3af;">—</span></div>';
-                        }
-                        <?php endif; ?>
-                    },
-                <?php endforeach; ?>
-                {
-                    data: null,
-                    title: "Actions",
-                    name: "actions",
-                    render: function(data, type, row) {
-                        var buttons = '<button class="action-btn edit mr-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-edit"></i> Edit</button>' +
-                                      '<button class="action-btn delete" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-trash"></i> Delete</button>';
-                        <?php if ($data['table'] === 'operational_expenses'): ?>
-                            var paidStatus = row.paid;
-                            if (paidStatus !== '1' && paidStatus !== 1) {
-                                buttons += '<button class="action-btn mark-paid ml-2" onclick="markAsPaid(this, ' + row.expense_id + ')" title="Mark as Paid"><i class="fas fa-check"></i> Mark as Paid</button>';
-                            }
-                        <?php elseif ($data['table'] === 'jobs'): ?>
-                            if (row.has_invoice) {
-                                buttons += '<button class="action-btn invoice ml-2" data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '"><i class="fas fa-file-invoice"></i> Invoice</button>';
-                            }
-                            var statusVal = String(row.completion || '0.0');
-                            buttons += '<button class="action-btn status-change ml-2' + '" ' +
-                                       'data-id="' + row.<?php echo htmlspecialchars($primaryKey); ?> + '" ' +
-                                       'data-completion="' + statusVal + '">' +
-                                       '<i class="fas fa-sync-alt"></i> Change Status</button>';
-                            if (row.company_reference && /a2z/i.test(row.company_reference)) {
-                                buttons += '<button class="action-btn generate-maintenance ml-2" data-job-id="' + row.job_id + '"><i class="fas fa-tools"></i> Generate Maintenance</button>';
-                            }
-                        <?php endif; ?>
-                        return buttons;
-                    }
-                }
-            ];
-            table = $('#data-table').DataTable({
-                paging: true,
-                pageLength: 10,
-                lengthChange: true,
-                lengthMenu: [10, 25, 50, 100],
-                processing: true,
+
+            // Initialize DataTable
+            table = $(tableId).DataTable({
                 serverSide: true,
-                searching: false,
-                scrollX: false,
-                autoWidth: false,
-                order: [[0, 'desc']],
-                dom: 'rtip',
+                processing: true,
                 ajax: {
-                    url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
+                    url: "<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName,
                     type: "POST",
                     data: function(d) {
-                        var searchValue = $('#searchInput').val().trim();
-                        var searchTerms = searchValue ? searchValue.split(/\s+/) : [];
-                        d.action = 'get_records';
-                        d.search = {
-                            terms: searchTerms,
-                            isDate: /^\d{4}-\d{2}-\d{2}$/.test(searchValue)
-                        };
-                        d.sortColumn = d.columns[d.order[0].column].name || d.columns[d.order[0].column].data;
-                        d.sortOrder = d.order[0].dir;
-                        d.page = Math.floor(d.start / d.length) + 1;
-                        d.perPage = d.length;
-                    },
-                    beforeSend: function() {
-                        $('#loading-spinner').show();
-                        $('#data-table').hide();
-                    },
-                    complete: function() {
-                        $('#loading-spinner').hide();
-                        $('#data-table').show();
-                        updateRecordCount();
-                        updatePaginationInfo();
-                    },
-                    error: function(xhr, error, thrown) {
-                        console.error('DataTable AJAX error:', error, thrown);
-                        $('#loading-spinner').hide();
-                        $('#data-table').show();
-                        $('#record-count').text('Error loading data');
+                         d.action = 'get_records';
+                         // Pass custom search input
+                         var searchVal = $('#searchInput').val();
+                         if(searchVal) {
+                             d.search = { terms: searchVal.split(' ') };
+                         }
                     }
                 },
-                columns: columnDefs,
-                drawCallback: function() {
-                    table.columns.adjust();
-                    updateRecordCount();
-                    updatePaginationInfo();
-                },
-                initComplete: function() {
-                    $('#data-table tbody').on('click', '.edit', function() {
-                        var id = $(this).data('id');
-                        var rowData = table.row($(this).closest('tr')).data();
-                        if (rowData) {
-                            openModal('update', id, rowData);
-                        }
-                    });
-                    $('#data-table tbody').on('click', '.delete', function() {
-                        var id = $(this).data('id');
-                        openConfirmModal('delete', id);
-                    });
-                    $('#data-table tbody').on('click', '.invoice', function() {
-                        var id = $(this).data('id');
-                        openInvoiceModal(id);
-                    });
-                    $('#data-table tbody').on('click', '.status-change', function() {
-                        var jobId = $(this).data('id');
-                        var currentCompletion = $(this).data('completion');
-                        openStatusChangeModal(jobId, currentCompletion);
-                    });
-                }
-            });
-            function updateRecordCount() {
-                var info = table.ajax.json() || {};
-                var totalRecords = info.recordsTotal || 0;
-                var filteredRecords = info.recordsFiltered !== undefined ? info.recordsFiltered : totalRecords;
-                var searchValue = $('#searchInput').val();
-                var displayText = totalRecords;
-                if (searchValue && filteredRecords !== totalRecords) {
-                    displayText += ' (' + filteredRecords + ' Filtered)';
-                }
-                $('#record-count').text(displayText);
-                updatePaginationInfo();
-            }
-            function updatePaginationInfo() {
-                var info = table.page.info();
-                var totalRecords = info.recordsTotal;
-                var start = info.start + 1;
-                var end = info.end;
-                var paginationText = 'Showing ' + start + ' to ' + end + ' of ' + totalRecords + ' entries';
-                $('#pagination-info').text(paginationText);
-            }
-            $('#searchInput').on('keyup', function(e) {
-                var searchValue = $(this).val().trim();
-                if (/^\d{2}[-\\/]\d{2}[-\\/]\d{4}$/.test(searchValue)) {
-                    var parts = searchValue.split(/[-\\/]/);
-                    searchValue = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    $(this).val(searchValue);
-                }
-                if (e.key === 'Enter' || searchValue.length >= 3 || searchValue === '') {
-                    table.ajax.reload(function() {
-                        updateRecordCount();
-                        updatePaginationInfo();
-                    }, false);
-                }
-            });
-            $(window).on('resize', function() {
-                table.columns.adjust();
-            });
-            $('#entries-per-page').on('change', function() {
-                var length = parseInt($(this).val());
-                table.page.len(length).draw();
-            });
-            $('#refresh-table').on('click', function() {
-                table.ajax.reload(function() {
-                    updateRecordCount();
-                    updatePaginationInfo();
-                }, false);
-            });
-            $('#data-table tbody').on('click', '.generate-maintenance', function() {
-                var btn = $(this);
-                var jobId = btn.data('job-id');
-                if (!jobId) return alert('Job ID missing');
-                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Generating...');
-                $.post('<?php echo BASE_PATH; ?>/admin/manageTable/jobs', { action: 'generate_maintenance_for_job', job_id: jobId }, function(resp) {
-                    if (resp && resp.success) {
-                        alert('Maintenance generated. Inserted: ' + (resp.inserted || 0));
-                        $('#refresh-table').click();
-                    } else {
-                        alert('Error: ' + (resp.error || 'Unknown error'));
-                    }
-                }, 'json').fail(function() {
-                    alert('Request failed');
-                }).always(function() {
-                    btn.prop('disabled', false).html('<i class="fas fa-tools"></i> Generate Maintenance');
-                });
-            });
-        });
-        function openModal(action, id = null, data = null) {
-            if (!$('#data-table').is(':visible')) {
-                setTimeout(() => openModal(action, id, data), 100);
-                return;
-            }
-            $('#crud-modal').addClass('show');
-            setTimeout(() => {
-                $('#crud-modal').show();
-            }, 10);
-            $('#form-action').val(action);
-            $('#modal-title').text(action === 'create' ? 'Add New Record' : 'Edit Record');
-            $('.primary-key-field').closest('.form-group').show();
-            $('#crud-form')[0].reset();
-            $('#form-id').val(id || '');
-            $('.btn-option').removeClass('active');
-            $('.select2-dropdown').val('').trigger('change');
-            if (action === 'create') {
-                $('.primary-key-field').closest('.form-group').hide();
-            } else if (action === 'update' && data) {
-                $('.primary-key-field').closest('.form-group').show();
-                var dateColumns = <?php echo json_encode($dateColumns); ?>;
-                <?php foreach ($data['columns'] as $column):
-                    if ($column === 'completion') continue;
-                    ?>
-                    if (dateColumns.includes('<?php echo $column; ?>') && data.<?php echo htmlspecialchars($column); ?>) {
-                        let dateValue = data.<?php echo htmlspecialchars($column); ?>;
-                        if (dateValue && !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-                            try {
-                                let date = new Date(dateValue);
-                                dateValue = date.toISOString().split('T')[0];
-                            } catch (e) {
-                                dateValue = '';
-                            }
-                        }
-                        $('#<?php echo $column; ?>').val(dateValue || '');
-                    } else if (data.<?php echo htmlspecialchars($column); ?> !== undefined) {
-                        let value = data.<?php echo htmlspecialchars($column); ?> || '';
-                        $('#<?php echo $column; ?>').val(value);
-                        if ($('#<?php echo $column; ?>').hasClass('select2-dropdown')) {
-                            $('#<?php echo $column; ?>').val(value).trigger('change');
-                        }
-                        var button = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="selectOption('<?php echo $column; ?>')"]`);
-                        if (button) {
-                            document.querySelectorAll(`#crud-form .form-group button[onclick*="selectOption('<?php echo $column; ?>')"]`).forEach(btn => btn.classList.remove('active'));
-                            button.classList.add('active');
-                        }
-                    }
-                <?php endforeach; ?>
-            }
-        }
-        function closeModal() {
-            $('#crud-modal').removeClass('show');
-            setTimeout(() => {
-                $('#crud-modal').hide();
-            }, 300);
-        }
-        function selectOption(fieldId, value) {
-            document.getElementById(fieldId).value = value;
-            const buttons = document.querySelectorAll(`#crud-form .form-group button[data-value][onclick*="${fieldId}"]`);
-            buttons.forEach(btn => btn.classList.remove('active'));
-            const selectedButton = document.querySelector(`#crud-form .form-group button[data-value="${value}"][onclick*="${fieldId}"]`);
-            if (selectedButton) selectedButton.classList.add('active');
-        }
-        function markAsPaid(button, expenseId) {
-            updatePaidStatus(button, expenseId, 1, 'paid');
-        }
-        function updatePaidStatus(button, expenseId, status, statusClass) {
-            const originalHtml = button.outerHTML;
-            const actionCell = button.closest('td');
-            actionCell.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: #3b82f6; font-size: 18px;"></i>';
-            $.ajax({
-                url: "<?php echo BASE_PATH; ?>/admin/manageTable/operational_expenses",
-                type: "POST",
-                dataType: "json",
-                data: {
-                    action: 'update',
-                    id: expenseId,
-                    paid: status
-                },
-                success: function(response) {
-                    if (response.success) {
-                        table.ajax.reload(function() {
-                            showToast('Status updated successfully', 'success');
-                        }, false);
-                    } else {
-                        actionCell.innerHTML = originalHtml;
-                        showToast('Error updating status', 'error');
-                    }
-                },
-                error: function() {
-                    actionCell.innerHTML = originalHtml;
-                    showToast('Error updating status', 'error');
-                }
-            });
-        }
-        function openInvoiceModal(jobId) {
-            if (!$('#data-table').is(':visible')) {
-                setTimeout(() => openInvoiceModal(jobId), 100);
-                return;
-            }
-            $('#invoice-modal').addClass('show');
-            setTimeout(() => {
-                $('#invoice-modal').show();
-            }, 10);
-            $('#invoice-spinner').show();
-            $('#invoice-details').hide();
-            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
-                action: 'get_invoice_details',
-                job_id: jobId
-            }, function(data) {
-                $('#invoice-spinner').hide();
-                $('#invoice-details').show();
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return '-';
-                    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                        try {
-                            let date = new Date(dateStr);
-                            return date.toISOString().split('T')[0];
-                        } catch (e) {
-                            return dateStr;
-                        }
-                    }
-                    return dateStr;
-                };
-                $('#invoice-no').text(data.invoice_no || '-');
-                $('#invoice-date').text(formatDate(data.invoice_date));
-                $('#invoice-value').text(data.invoice_value || '-');
-                $('#invoice-job').text(data.job_details ? data.job_details.details : '-');
-                $('#invoice-receiving').text(data.receiving_payment || '-');
-                $('#invoice-received').text(data.received_amount || '-');
-                $('#invoice-payment-date').text(formatDate(data.payment_received_date));
-                $('#invoice-remarks').text(data.remarks || '-');
-            }, 'json').fail(function(xhr, error) {
-                $('#invoice-spinner').hide();
-                $('#invoice-details').show();
-                alert('Error loading invoice details: ' + error);
-            });
-        }
-        function closeInvoiceModal() {
-            $('#invoice-modal').removeClass('show');
-            setTimeout(() => {
-                $('#invoice-modal').hide();
-            }, 300);
-        }
-        function openConfirmModal(action, id = null) {
-            if (!$('#data-table').is(':visible')) {
-                setTimeout(() => openConfirmModal(action, id), 100);
-                return;
-            }
-            $('#confirm-modal').addClass('show');
-            setTimeout(() => {
-                $('#confirm-modal').show();
-            }, 10);
-            const titles = {
-                'create': 'Confirm Add',
-                'update': 'Confirm Update',
-                'delete': 'Confirm Delete'
-            };
-            const messages = {
-                'create': 'Are you sure you want to add this new record?',
-                'update': 'Are you sure you want to save changes to this record?',
-                'delete': 'Are you sure you want to delete this record? This action cannot be undone.'
-            };
-            $('#confirm-title').text(titles[action]);
-            $('#confirm-message').text(messages[action]);
-            $('#confirm-action-btn').off('click').on('click', function() {
-                if (action === 'create' || action === 'update') {
-                    $.ajax({
-                        url: "<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>",
-                        type: 'POST',
-                        data: $('#crud-form').serialize(),
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.success) {
-                                closeConfirmModal();
-                                closeModal();
-                                table.ajax.reload(function() {
-                                    updateRecordCount();
-                                    updatePaginationInfo();
-                                }, false);
-                                alert(action === 'create' ? 'Record added successfully!' : 'Record updated successfully!');
-                            } else {
-                                alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (response.error || 'Unknown error'));
+                columns: [
+                    <?php foreach ($data['columns'] as $column): ?>
+                        <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
+                        { 
+                            data: "<?php echo $column; ?>",
+                            render: function(data, type, row) {
+                                // Custom Renderers based on column name
+                                if('<?php echo $column; ?>' === 'paid') {
+                                    return (data == 1 || data === 'Yes') 
+                                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i> Paid</span>'
+                                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i> Unpaid</span>';
+                                }
+                                if('<?php echo $column; ?>' === 'completion') {
+                                    // Completion Progress Bar or Badge
+                                    let val = parseFloat(data) || 0;
+                                    let color = 'bg-slate-200';
+                                    let text = 'Not Started';
+                                    let width = val * 100;
+                                    
+                                    if(val >= 1.0) { color = 'bg-green-500'; text = 'Completed'; width=100; }
+                                    else if(val >= 0.5) { color = 'bg-blue-500'; text = 'In Progress'; }
+                                    else if(val >= 0.2) { color = 'bg-blue-400'; text = 'Started'; }
+                                    else if(val === 0.1) { color = 'bg-red-400'; text = 'Cancelled'; width=100; }
+                                    else { width = 0; }
+                                    
+                                    if(type === 'display') {
+                                        return `<div class="w-full max-w-[140px]">
+                                            <div class="flex justify-between text-xs mb-1">
+                                                <span class="font-medium text-slate-700">${text}</span>
+                                                <span class="text-slate-500">${Math.round(val*100)}%</span>
+                                            </div>
+                                            <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                <div class="h-full ${color} transition-all duration-500" style="width: ${width}%"></div>
+                                            </div>
+                                        </div>`;
+                                    }
+                                    return val;
+                                }
+                                return data ? String(data).substring(0, 50) + (String(data).length > 50 ? '...' : '') : '-';
                             }
                         },
-                        error: function(xhr, error) {
-                            console.error((action === 'create' ? 'Create' : 'Update') + ' error:', error);
-                            alert('Error ' + (action === 'create' ? 'adding' : 'updating') + ' record: ' + (xhr.responseJSON?.error || 'Server error'));
+                    <?php endforeach; ?>
+                    {
+                        data: null,
+                        orderable: false,
+                        className: 'text-right sticky right-0 bg-white shadow-l p-2',
+                        render: function(data, type, row) {
+                            let btns = `<div class="flex items-center justify-end gap-2">`;
+                            
+                            // Edit
+                            btns += `<button onclick='openModal("update", ${JSON.stringify(row)})' class="p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-all duration-200" title="Edit"><i class="fas fa-edit"></i></button>`;
+                            
+                            // Job Specifics
+                            if(tableName === 'jobs') {
+                                btns += `<button onclick='changeStatus("${row[primaryKey]}")' class="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-all duration-200" title="Change Status"><i class="fas fa-tasks"></i></button>`;
+                            }
+                            
+                            // Delete
+                            btns += `<button onclick='deleteRecord("${row[primaryKey]}")' class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200" title="Delete"><i class="fas fa-trash-alt"></i></button>`;
+                            
+                            btns += `</div>`;
+                            return btns;
                         }
-                    });
-                } else if (action === 'delete') {
-                    $.post("<?php echo BASE_PATH; ?>/admin/manageTable/<?php echo htmlspecialchars($data['table']); ?>", {
-                        action: 'delete',
-                        id: id
-                    }, function(response) {
-                        if (response.success) {
-                            closeConfirmModal();
-                            table.ajax.reload(function() {
-                                updateRecordCount();
-                                updatePaginationInfo();
-                            }, false);
-                            alert('Record deleted successfully!');
-                        } else {
-                            alert('Error deleting record: ' + (response.error || 'Unknown error'));
-                        }
-                    }, 'json').fail(function(xhr, error) {
-                        console.error('Delete error:', error);
-                        alert('Error deleting record: ' + (xhr.responseJSON?.error || 'Server error'));
-                    });
+                    }
+                ],
+                dom: 'rt<"bottom"p>',
+                language: {
+                    emptyTable: "No records found matching your search."
+                },
+                drawCallback: function(settings) {
+                    $('#record-count').text(settings._iRecordsTotal);
+                    var info = this.api().page.info();
+                    if(info.recordsTotal > 0) {
+                         $('#pagination-info').text(`Showing ${info.start+1} to ${info.end} of ${info.recordsTotal} entries`);
+                    } else {
+                         $('#pagination-info').text(`No records found`);
+                    }
                 }
             });
-        }
-        function closeConfirmModal() {
-            $('#confirm-modal').removeClass('show');
-            setTimeout(() => {
-                $('#confirm-modal').hide();
-            }, 300);
-        }
-        let selectedJobId = null;
-        let selectedCompletion = null;
-        function openStatusChangeModal(jobId, currentCompletion) {
-            selectedJobId = jobId;
-            selectedCompletion = currentCompletion;
-            $('.status-option-btn').removeClass('selected');
-            $('#status-change-confirm-btn').prop('disabled', true);
-            $('#status-change-modal').addClass('show');
-            setTimeout(() => {
-                $('#status-change-modal').show();
-            }, 10);
-            if (currentCompletion !== null && currentCompletion !== undefined) {
-                $('.status-option-btn[data-value="' + currentCompletion + '"]').addClass('selected');
-            }
-        }
-        function closeStatusChangeModal() {
-            $('#status-change-modal').removeClass('show');
-            setTimeout(() => {
-                $('#status-change-modal').hide();
-            }, 300);
-        }
-        $(document).on('click', '.status-option-btn', function() {
-            $('.status-option-btn').removeClass('selected');
-            $(this).addClass('selected');
-            selectedCompletion = $(this).data('value');
-            $('#status-change-confirm-btn').prop('disabled', false);
+            
+            // Custom Search Trigger
+            let searchTimeout;
+            $('#searchInput').on('keyup', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    table.draw();
+                }, 300);
+            });
+            
+            $('#refresh-table').on('click', function() {
+                table.draw();
+            });
         });
-        $('#status-change-confirm-btn').on('click', function() {
-            if (!selectedJobId || selectedCompletion === null) {
-                alert('Please select a status');
-                return;
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            let color = type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200';
+            let iconColor = type === 'success' ? 'text-emerald-500' : 'text-red-500';
+            
+            toast.className = `pointer-events-auto flex items-center w-full max-w-xs p-4 space-x-3 text-sm rounded-xl shadow-lg border ${color} transform translate-x-full transition-all duration-300 ease-out`;
+            toast.innerHTML = `
+                <i class="fas ${icon} ${iconColor} text-lg"></i>
+                <div class="flex-1 font-medium">${message}</div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full');
+            });
+            
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Modal Functions
+        function openModal(action, data = null) {
+            $('#form-action').val(action);
+            $('#modal-title').html(action === 'create' 
+                ? '<i class="fas fa-plus-circle text-blue-500 mr-2"></i> Create New Record' 
+                : '<i class="fas fa-edit text-blue-500 mr-2"></i> Edit Record');
+            
+            // Reset form
+            $('#crud-form')[0].reset();
+            $('.select2-dropdown').val(null).trigger('change');
+            
+            // ID Field Handling
+            let $idField = $(`[name="${primaryKey}"]`);
+            if(action === 'create') {
+                $idField.val('Auto-Generated').prop('disabled', true).addClass('bg-slate-50 text-slate-400 italic');
+            } else {
+                $idField.prop('disabled', false).removeClass('bg-slate-50 text-slate-400 italic').addClass('bg-slate-100').prop('readonly', true);
             }
+            
+            if(action === 'update' && data) {
+                $('#form-id').val(data[primaryKey]);
+                $.each(data, function(key, value) {
+                    let $el = $(`[name="${key}"]`);
+                    if($el.length) {
+                        if($el.is('select.select2-dropdown')) {
+                            $el.val(value).trigger('change');
+                        } else if($el.attr('type') === 'checkbox') {
+                             $el.prop('checked', value == 1);
+                        } else {
+                             if(key !== primaryKey) $el.val(value);
+                             else $el.val(value);
+                        }
+                         
+                         let $groupSelect = $(`#group-${key} select`);
+                         if($groupSelect.length) {
+                             $groupSelect.val(value);
+                             $el.val(value); 
+                         }
+                    }
+                });
+            }
+            $('#crud-modal').addClass('show');
+        }
+
+        function closeModal() {
+            $('#crud-modal').removeClass('show');
+        }
+
+        // Status Modal Functions
+        function changeStatus(id) {
+            $('#status-job-id').val(id);
+            $('input[name="completion"]').prop('checked', false);
+            
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
+                action: 'get_job_completion',
+                job_id: id
+            }, function(response) {
+                if(response.completion !== undefined) {
+                    $(`input[name="completion"][value="${response.completion}"]`).prop('checked', true);
+                }
+            }, 'json');
+
+            $('#status-modal').addClass('show');
+        }
+
+        function closeStatusModal() {
+            $('#status-modal').removeClass('show');
+        }
+
+        function saveStatus() {
+            const formData = $('#status-form').serialize();
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, formData + '&action=update_status', function(response) {
+                if(response.success) {
+                    closeStatusModal();
+                    table.draw();
+                    showToast('Job status updated successfully');
+                } else {
+                    showToast('Error: ' + response.error, 'error');
+                }
+            }, 'json');
+        }
+        
+        function generateSchedule() {
+            if(!confirm('This will generate maintenance schedules for all active jobs based on their started dates. Continue?')) return;
+            
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
+                action: 'generate_maintenance'
+            }, function(response) {
+                if(response.success) {
+                    showToast('Schedules generated successfully!');
+                    table.draw();
+                } else {
+                    showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+                }
+            }, 'json');
+        }
+        
+        function saveRecord() {
+            const formData = $('#crud-form').serialize();
+            
             $.ajax({
-                url: "<?php echo BASE_PATH; ?>/admin/manageTable/jobs",
-                type: 'POST',
-                data: {
-                    action: 'update_status',
-                    job_id: selectedJobId,
-                    completion: selectedCompletion
-                },
-                dataType: 'json',
+                url: "<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName,
+                type: "POST",
+                data: formData,
+                dataType: "json",
                 success: function(response) {
-                    if (response.success) {
-                        closeStatusChangeModal();
-                        table.ajax.reload(function() {
-                            updateRecordCount();
-                            updatePaginationInfo();
-                        }, false);
-                        alert('Job status updated successfully!');
+                    if(response.success) {
+                        closeModal();
+                        table.draw();
+                        showToast(response.message || 'Record saved successfully');
                     } else {
-                        alert('Error updating job status: ' + (response.error || 'Unknown error'));
+                        showToast('Error: ' + (response.error || 'Unknown error occurred'), 'error');
                     }
                 },
-                error: function(xhr, error) {
-                    console.error('Status update error:', error);
-                    alert('Error updating job status: ' + (xhr.responseJSON?.error || 'Server error'));
+                error: function(xhr) {
+                    showToast('Server Error. Check console.', 'error');
+                    console.error(xhr);
                 }
             });
-        });
+        }
+        
+        function deleteRecord(id) {
+            deleteId = id;
+            $('#delete-modal').addClass('show');
+        }
+        
+        function closeDeleteModal() {
+            $('#delete-modal').removeClass('show');
+            deleteId = null;
+        }
+        
+        function confirmDelete() {
+            if(!deleteId) return;
+            
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
+                action: 'delete',
+                id: deleteId
+            }, function(response) {
+                if(response.success) {
+                    closeDeleteModal();
+                    table.draw();
+                    showToast('Record deleted successfully');
+                } else {
+                    closeDeleteModal();
+                    showToast('Error deleting: ' + response.error, 'error');
+                }
+            }, 'json');
+        }
     </script>
 </body>
 </html>

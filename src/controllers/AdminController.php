@@ -761,11 +761,12 @@ private function buildSlipHTML($title, $employees, $forDompdf = true) {
             'to_date' => $_GET['to_date'] ?? '',
             'completion' => $_GET['completion'] ?? ''
         ];
-        // Set default date range for filtered data (current year if no dates provided)
+        /*
         if (empty($filters['from_date']) && empty($filters['to_date'])) {
             $filters['from_date'] = date('Y') . '-01-01';
             $filters['to_date'] = date('Y') . '-12-31';
         }
+        */
         // Fetch overall data with wide date range for all-time summary
         $allFilters = [
             'invoice_no' => '',

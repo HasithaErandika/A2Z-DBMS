@@ -518,11 +518,11 @@ public function getWageData($filters = []) {
                 ];
                 $labor_sums[$labor_name] = ($labor_sums[$labor_name] ?? 0) + $row['expense_amount'];
                 $labor_days[$labor_name][] = $row['expensed_date'];
-                error_log("getLaborWagesData - Labor: $labor_name, Amount: {$row['expense_amount']}, Job ID: {$row['job_id']}, Date: {$row['expensed_date']}");
+
             }
             foreach ($labor_sums as $name => $total) {
                 $unique_days = count(array_unique($labor_days[$name] ?? []));
-                error_log("getLaborWagesData - Total for $name: $total, Days: $unique_days");
+
             }
             return [
                 'details' => $labor_wages,

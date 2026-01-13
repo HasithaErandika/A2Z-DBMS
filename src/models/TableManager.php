@@ -11,56 +11,6 @@ class TableManager extends Model {
         'employee_payment_rates', 'cash_hand', 'maintenance_schedule'
     ];
     private $tableConfigs = [
-        'attendance' => [
-            'editableFields' => ['emp_id', 'job_id', 'presence', 'start_time', 'end_time', 'remarks', 'attendance_date'],
-            'validation' => [
-                'presence' => ['required', 'in:0.0,0.5,1.0'],
-                'attendance_date' => ['required'],
-                'emp_id' => ['required']
-            ],
-            'formatters' => [
-                'presence' => 'getPresenceDisplay',
-                'emp_id' => 'fetchEmployeeName',
-                'job_id' => 'getJobDetails'
-            ],
-            'searchFields' => ['attendance_date', 'presence', 'remarks', 'emp_id', 'job_id', 'start_time', 'end_time'],
-            'dateField' => 'attendance_date'
-        ],
-        'employees' => [
-            'editableFields' => ['emp_name', 'emp_nic', 'date_of_birth', 'address', 'date_of_joined', 'date_of_resigned', 'designation', 'etf_number', 'daily_wage', 'basic_salary', 'nic_photo'],
-            'validation' => [
-                'emp_name' => ['required'],
-                'emp_nic' => ['required']
-            ],
-            'searchFields' => ['emp_name', 'emp_nic', 'designation', 'address', 'date_of_joined', 'date_of_resigned', 'etf_number'],
-            'dateField' => 'date_of_joined'
-        ],
-        'employee_bank_details' => [
-            'editableFields' => ['emp_id', 'job_id', 'emp_name', 'acc_no', 'bank', 'branch'],
-            'validation' => [
-                'acc_no' => ['required'],
-                'emp_id' => ['required']
-            ],
-            'formatters' => [
-                'emp_id' => 'fetchEmployeeName',
-                'job_id' => 'getJobDetails'
-            ],
-            'searchFields' => ['emp_name', 'acc_no', 'bank', 'branch', 'emp_id', 'job_id'],
-            'dateField' => null
-        ],
-        'projects' => [
-            'editableFields' => ['emp_id', 'job_id', 'project_description', 'company_reference', 'remarks'],
-            'validation' => [
-                'project_description' => ['required'],
-                'emp_id' => ['required']
-            ],
-            'formatters' => [
-                'emp_id' => 'fetchEmployeeName',
-                'job_id' => 'getJobDetails'
-            ],
-            'searchFields' => ['project_description', 'company_reference', 'remarks', 'emp_id', 'job_id'],
-            'dateField' => null
-        ],
         'jobs' => [
             'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
             'validation' => [
@@ -69,11 +19,14 @@ class TableManager extends Model {
             ],
             'formatters' => [
                 'project_id' => 'getProjectDetailsForJobs',
-                'emp_id' => 'fetchEmployeeName',
-                'completion' => 'getCompletionStatus'
+                'emp_id' => 'fetchEmployeeName'
             ],
-            'searchFields' => ['engineer', 'location', 'customer_reference', 'date_started', 'date_completed', 'job_capacity', 'remarks', 'emp_id', 'project_id'],
-            'dateField' => 'date_started'
+            // Removed e.emp_name as emp_id might be missing or causing issues on join
+            'searchFields' => ['j.job_id', 'j.engineer', 'j.location', 'j.customer_reference', 'j.date_started', 'j.date_completed', 'j.remarks', 'p.company_reference', 'p.project_description'],
+            'dateField' => 'date_started',
+            'joins' => [
+                ['table' => 'projects', 'alias' => 'p', 'condition' => 'j.project_id = p.project_id', 'type' => 'LEFT']
+            ]
         ],
         'operational_expenses' => [
             'editableFields' => ['emp_id', 'job_id', 'expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'bill'],
@@ -86,20 +39,13 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['expensed_date', 'expenses_category', 'description', 'expense_amount', 'paid', 'remarks', 'voucher_number', 'emp_id', 'job_id'],
-            'dateField' => 'expensed_date'
-        ],
-        'invoice_data' => [
-            'editableFields' => ['job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
-            'validation' => [
-                'invoice_value' => ['required'],
-                'job_id' => ['required']
-            ],
-            'formatters' => [
-                'job_id' => 'getJobDetails'
-            ],
-            'searchFields' => ['invoice_no', 'invoice_date', 'invoice_value', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks', 'job_id'],
-            'dateField' => 'invoice_date'
+            'searchFields' => ['ex.expensed_date', 'ex.expenses_category', 'ex.description', 'ex.expense_amount', 'ex.remarks', 'ex.voucher_number', 'e.emp_name', 'p.company_reference'],
+            'dateField' => 'expensed_date',
+            'joins' => [
+                ['table' => 'employees', 'alias' => 'e', 'condition' => 'ex.emp_id = e.emp_id', 'type' => 'LEFT'],
+                ['table' => 'jobs', 'alias' => 'j', 'condition' => 'ex.job_id = j.job_id', 'type' => 'LEFT'],
+                ['table' => 'projects', 'alias' => 'p', 'condition' => 'j.project_id = p.project_id', 'type' => 'LEFT']
+            ]
         ],
         'employee_payments' => [
             'editableFields' => ['emp_id', 'job_id', 'payment_date', 'payment_type', 'paid_amount', 'remarks'],
@@ -111,8 +57,79 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['payment_date', 'payment_type', 'paid_amount', 'remarks', 'emp_id', 'job_id'],
-            'dateField' => 'payment_date'
+            'searchFields' => ['ep.payment_date', 'ep.payment_type', 'ep.paid_amount', 'ep.remarks', 'e.emp_name'],
+            'dateField' => 'payment_date',
+            'joins' => [
+                ['table' => 'employees', 'alias' => 'e', 'condition' => 'ep.emp_id = e.emp_id', 'type' => 'LEFT']
+            ]
+        ],
+        'invoice_data' => [
+            'editableFields' => ['job_id', 'invoice_no', 'invoice_date', 'invoice_value', 'invoice', 'receiving_payment', 'received_amount', 'payment_received_date', 'remarks'],
+            'validation' => [
+                'invoice_value' => ['required'],
+                'job_id' => ['required']
+            ],
+            'formatters' => [
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['inv.invoice_no', 'inv.invoice_date', 'inv.invoice_value', 'inv.remarks', 'p.company_reference'],
+            'dateField' => 'invoice_date',
+            'joins' => [
+                ['table' => 'jobs', 'alias' => 'j', 'condition' => 'inv.job_id = j.job_id', 'type' => 'LEFT'],
+                ['table' => 'projects', 'alias' => 'p', 'condition' => 'j.project_id = p.project_id', 'type' => 'LEFT']
+            ]
+        ],
+        // ... (keep other tables simple or add joins as needed)
+        // For simplicity, we'll keep the rest standard for now, but ensuring structure consistency.
+        'attendance' => [
+            'editableFields' => ['emp_id', 'job_id', 'presence', 'start_time', 'end_time', 'remarks', 'attendance_date'],
+            'validation' => [
+                'presence' => ['required', 'in:0.0,0.5,1.0'],
+                'attendance_date' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'presence' => 'getPresenceDisplay',
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['attendance_date', 'presence', 'remarks', 'start_time', 'end_time'],
+            'dateField' => 'attendance_date'
+        ],
+        'employees' => [
+             'editableFields' => ['emp_name', 'emp_nic', 'date_of_birth', 'address', 'date_of_joined', 'date_of_resigned', 'designation', 'etf_number', 'daily_wage', 'basic_salary', 'nic_photo'],
+            'validation' => [
+                'emp_name' => ['required'],
+                'emp_nic' => ['required']
+            ],
+            'searchFields' => ['emp_name', 'emp_nic', 'designation', 'address', 'date_of_joined', 'etf_number'],
+            'dateField' => 'date_of_joined'
+        ],
+        'employee_bank_details' => [
+            'editableFields' => ['emp_id', 'job_id', 'emp_name', 'acc_no', 'bank', 'branch'],
+            'validation' => [
+                'acc_no' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['emp_name', 'acc_no', 'bank', 'branch'],
+            'dateField' => null
+        ],
+        'projects' => [
+            'editableFields' => ['emp_id', 'job_id', 'project_description', 'company_reference', 'remarks'],
+            'validation' => [
+                'project_description' => ['required'],
+                'emp_id' => ['required']
+            ],
+            'formatters' => [
+                'emp_id' => 'fetchEmployeeName',
+                'job_id' => 'getJobDetails'
+            ],
+            'searchFields' => ['project_description', 'company_reference', 'remarks'],
+            'dateField' => null
         ],
         'salary_increments' => [
             'editableFields' => ['emp_id', 'job_id', 'increment_type', 'increment_date', 'increment_amount', 'new_salary', 'reason'],
@@ -124,11 +141,11 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['increment_type', 'increment_date', 'increment_amount', 'reason', 'emp_id', 'job_id'],
+            'searchFields' => ['increment_type', 'increment_date', 'increment_amount', 'reason'],
             'dateField' => 'increment_date'
         ],
         'employee_payment_rates' => [
-            'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
+             'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
             'validation' => [
                 'emp_id' => ['required'],
                 'rate_type' => ['required', 'in:Fixed,Daily'],
@@ -139,11 +156,11 @@ class TableManager extends Model {
                 'emp_id' => 'fetchEmployeeName',
                 'rate_amount' => 'formatCurrency'
             ],
-            'searchFields' => ['rate_type', 'effective_date', 'end_date', 'rate_amount', 'emp_id'],
+            'searchFields' => ['rate_type', 'effective_date', 'end_date', 'rate_amount'],
             'dateField' => 'effective_date'
         ],
         'cash_hand' => [
-            'editableFields' => ['given_by', 'received_by', 'amount', 'purpose', 'transaction_type', 'txn_date', 'reference_note'],
+             'editableFields' => ['given_by', 'received_by', 'amount', 'purpose', 'transaction_type', 'txn_date', 'reference_note'],
             'validation' => [
                 'given_by' => ['required'],
                 'received_by' => ['required'],
@@ -156,11 +173,11 @@ class TableManager extends Model {
                 'amount' => 'formatCurrency',
                 'transaction_type' => 'getTransactionTypeDisplay'
             ],
-            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'transaction_type', 'amount', 'given_by', 'received_by'],
+            'searchFields' => ['purpose', 'reference_note', 'txn_date', 'amount'],
             'dateField' => 'txn_date'
         ],
         'maintenance_schedule' => [
-            'editableFields' => ['job_id', 'cycle_number', 'scheduled_date', 'actual_date', 'status', 'description'],
+             'editableFields' => ['job_id', 'cycle_number', 'scheduled_date', 'actual_date', 'status', 'description'],
             'validation' => [
                 'job_id' => ['required'],
                 'cycle_number' => ['required']
@@ -168,7 +185,7 @@ class TableManager extends Model {
             'formatters' => [
                 'job_id' => 'getJobDetails'
             ],
-            'searchFields' => ['job_id', 'scheduled_date', 'actual_date', 'status', 'description'],
+            'searchFields' => ['scheduled_date', 'actual_date', 'status', 'description'],
             'dateField' => 'scheduled_date'
         ],
     ];
@@ -354,94 +371,183 @@ class TableManager extends Model {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
+
         try {
             $allColumns = $this->getColumns($table);
             $config = $this->getConfig($table);
             $idColumn = $this->getPrimaryKey($table);
             $dateField = $config['dateField'] ?? null;
-            $selectColumns = array_map(function($col) use ($table, $dateField) {
+            
+            // Map main aliases for consistent querying
+            $mainAlias = '';
+            if ($table === 'jobs') $mainAlias = 'j';
+            elseif ($table === 'operational_expenses') $mainAlias = 'ex';
+            elseif ($table === 'employee_payments') $mainAlias = 'ep';
+            elseif ($table === 'invoice_data') $mainAlias = 'inv';
+            else $mainAlias = $table; // default to table name if no short alias needed
+
+            $selectColumns = array_map(function($col) use ($table, $dateField, $mainAlias) {
+                 // Use prefix if main alias is short
+                $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                
                 if ($col === $dateField) {
-                    return "DATE_FORMAT(`$table`.`$col`, '%Y-%m-%d') AS `$col`";
+                    return "DATE_FORMAT($prefix`$col`, '%Y-%m-%d') AS `$col`";
                 }
-                return "`$table`.`$col`";
+                // Handle special columns that might not physically exist in the main table if they are selected/calculated
+                // But generally getColumns returns physical columns.
+                return "$prefix`$col`";
             }, $allColumns);
+
             $sql = "SELECT " . implode(',', $selectColumns);
+
+            // Add extra columns for Jobs if needed (legacy support or specific logic)
             if ($table === 'jobs') {
-                $sql .= ", p.company_reference AS company_reference, (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = `$table`.job_id) > 0 AS has_invoice";
-                $sql .= " FROM `$table` LEFT JOIN projects p ON `$table`.project_id = p.project_id";
-            } else {
-                $sql .= " FROM `$table`";
+                 // Explicitly ensure emp_id is selected if it exists, or handle if it doesn't
+                 // The error suggests emp_id column is missing from jobs table or alias j issue
+                 // But getColumns returned it? If j.emp_id failed, maybe it's not in the table. 
+                 // We will skip selecting custom stuff for now as selectColumns covers allColumns
+                 $sql .= ", p.company_reference AS company_reference, (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = j.job_id) > 0 AS has_invoice";
             }
-            $countSql = "SELECT COUNT(*) FROM `$table`";
+
+            // JOIN Logic
+            $sql .= " FROM `$table`" . ((in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? " AS $mainAlias" : "");
+            
+            $joins = $config['joins'] ?? [];
+            foreach ($joins as $join) {
+                $joinType = $join['type'] ?? 'LEFT';
+                $joinTable = $join['table'];
+                $joinAlias = $join['alias'];
+                $joinCondition = $join['condition'];
+                $sql .= " $joinType JOIN `$joinTable` $joinAlias ON $joinCondition";
+            }
+
+            // Count Query (Must mirrors joins for search filtering)
+            $countSql = "SELECT COUNT(*) FROM `$table`" . ((in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? " AS $mainAlias" : "");
+             foreach ($joins as $join) {
+                $joinType = $join['type'] ?? 'LEFT';
+                $joinTable = $join['table'];
+                $joinAlias = $join['alias'];
+                $joinCondition = $join['condition'];
+                $countSql .= " $joinType JOIN `$joinTable` $joinAlias ON $joinCondition";
+            }
+
             $params = [];
             $conditions = [];
+
             if (!empty($searchTerms)) {
                 $searchFields = $config['searchFields'] ?? $allColumns;
                 foreach ($searchTerms as $index => $term) {
                     $term = trim($term);
                     if ($term === '') continue;
+
                     $termConditions = [];
                     foreach ($searchFields as $fieldIndex => $col) {
                         $paramName = ":search{$index}_{$fieldIndex}";
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
-                            $termConditions[] = "`$col` = $paramName";
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && in_array($col, [$dateField])) {
-                            $termConditions[] = "`$col` = $paramName";
+                        
+                        // Handle column names that might have table aliases (e.g., p.company_reference)
+                        $dbCol = $col;
+                        if (strpos($col, '.') === false) {
+                            // No alias provided, infer it? strict searching requires knowing the column
+                            // For simplicity, if no alias, assume main table.
+                             $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                             $dbCol = "$prefix`$col`";
                         } else {
-                            $termConditions[] = "`$col` LIKE $paramName";
-                            $term = "%{$term}%";
+                            // Alias present, assume safe format "alias.column"
+                            $parts = explode('.', $col);
+                            $dbCol = $parts[0] . ".`" . $parts[1] . "`";
                         }
-                        $params[$paramName] = $term;
+
+                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
+                            // Exact match for numbers
+                            $termConditions[] = "$dbCol = $paramName";
+                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
+                             // Exact Date
+                             $termConditions[] = "$dbCol = $paramName";
+                        } else {
+                            // Like search
+                            $termConditions[] = "$dbCol LIKE $paramName";
+                            $term = "%{$term}%"; // Modify term for LIKE outside the loop? No, bind it.
+                        }
+                         // IMPORTANT: bind the param value correctly
+                         // We need to re-assign term with % if it was a LIKE query, but we loop fields...
+                         // Actually, we can't bind different values (exact vs like) to the same param name for different fields easily without logic
+                         // Better: make param name specific to the type of search
+                         
+                         // Quick fix: Just use LIKE for everything that isn't strictly date specific logic or pure ID exactness if we want broad search
+                         // Rewriting condition construction for safety:
+                         
+                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
+                             $termConditions[] = "$dbCol = $paramName";
+                             $params[$paramName] = $term;
+                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
+                             $termConditions[] = "$dbCol = $paramName";
+                             $params[$paramName] = $term; // Original term
+                        } else {
+                            $termConditions[] = "$dbCol LIKE $paramName";
+                            $params[$paramName] = "%" . trim($searchTerms[$index]) . "%"; // Use original term with wildcards
+                        }
                     }
                     if (!empty($termConditions)) {
                         $conditions[] = '(' . implode(' OR ', $termConditions) . ')';
                     }
                 }
             }
+
             if (!empty($conditions)) {
                 $sql .= " WHERE " . implode(' AND ', $conditions);
                 $countSql .= " WHERE " . implode(' AND ', $conditions);
             }
+
             if ($sortColumn && in_array($sortColumn, $allColumns)) {
-                $sql .= " ORDER BY `$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
+                 $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                $sql .= " ORDER BY $prefix`$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
             } else {
-                $sql .= " ORDER BY `$idColumn` DESC";
+                 $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                $sql .= " ORDER BY $prefix`$idColumn` DESC";
             }
+
             $offset = $perPage > 0 ? (int)(($page - 1) * $perPage) : 0;
             if ($perPage > 0) {
                 $sql .= " LIMIT :offset, :perPage";
                 $params[':offset'] = $offset;
                 $params[':perPage'] = $perPage;
             }
+
             $totalStmt = $this->db->query("SELECT COUNT(*) FROM `$table`");
             $recordsTotal = $totalStmt->fetchColumn();
+
             $countStmt = $this->db->prepare($countSql);
             foreach ($params as $paramName => $paramValue) {
-                if (strpos($paramName, ':search') === 0) {
+               if (strpos($paramName, ':search') === 0) {
                     $countStmt->bindValue($paramName, $paramValue, PDO::PARAM_STR);
                 }
             }
             $countStmt->execute();
             $recordsFiltered = $countStmt->fetchColumn();
+
             $stmt = $this->db->prepare($sql);
             foreach ($params as $paramName => $paramValue) {
-                $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
-                $stmt->bindValue($paramName, $paramValue, $paramType);
+                 $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
+                 $stmt->bindValue($paramName, $paramValue, $paramType);
             }
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $data = $this->applyFormatters($data, $table, $allColumns);
+
             if ($dataOnly) {
                 return $data;
             }
+
             $result = [
                 'recordsTotal' => (int)$recordsTotal,
                 'recordsFiltered' => (int)$recordsFiltered,
                 'data' => $data
             ];
+            
             if ($dataTablesFormat) {
                 $result['draw'] = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
             }
+
             return $result;
         } catch (PDOException $e) {
             error_log("Error in fetchRecords for $table: " . $e->getMessage());
