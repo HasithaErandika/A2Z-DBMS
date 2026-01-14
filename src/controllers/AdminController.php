@@ -205,8 +205,11 @@ class AdminController extends Controller {
                 $searchTerms = isset($_POST['search']['terms']) && is_array($_POST['search']['terms']) ? array_map('trim', $_POST['search']['terms']) : [];
                 $sortColumn = $_POST['sortColumn'] ?? '';
                 $sortOrder = strtoupper($_POST['sortOrder'] ?? 'DESC');
-                $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
-                $perPage = isset($_POST['perPage']) ? (int)$_POST['perPage'] : 10;
+                
+                // DATA TABLES PAGINATION FIX
+                $perPage = isset($_POST['length']) ? (int)$_POST['length'] : 10;
+                $start = isset($_POST['start']) ? (int)$_POST['start'] : 0;
+                $page = ($perPage > 0) ? floor($start / $perPage) + 1 : 1;
 
                 try {
                     $result = $this->tableManager->fetchRecords($table, $page, $perPage, $searchTerms, $sortColumn, $sortOrder, true, false);
@@ -296,6 +299,20 @@ class AdminController extends Controller {
             } elseif ($action === 'export_csv') {
                 $this->tableManager->exportRecordsToCSV($table, $_POST['start_date'], $_POST['end_date']);
                 exit;
+            } elseif ($action === 'mark_as_paid' && $table === 'operational_expenses') {
+                try {
+                    $id = $_POST['id'] ?? '';
+                    if (empty($id)) throw new Exception("ID is required");
+                    
+                    $this->tableManager->update('operational_expenses', ['paid' => 1], 'expense_id', $id);
+                    
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message' => 'Expense marked as paid']);
+                } catch (Exception $e) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+                }
+                exit;
             } elseif ($action === 'update_status' && $table === 'jobs') {
                 try {
                     $jobId = $_POST['job_id'] ?? '';
@@ -355,6 +372,10 @@ class AdminController extends Controller {
 
         if ($table === 'jobs') {
             $data['totalCapacity'] = $this->tableManager->calculateTotalJobCapacity();
+        }
+        
+        if ($table === 'operational_expenses') {
+            $data['monthlyExpenses'] = $this->tableManager->getMonthlyExpenses();
         }
 
         $this->render('admin/manage_table', $data);

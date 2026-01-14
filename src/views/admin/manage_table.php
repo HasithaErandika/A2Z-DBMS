@@ -99,8 +99,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
         }
 
         /* Table Row Styling */
-        table.dataTable tbody tr {
-            background-color: #f8fafc; /* Very light ash/slate */
+        /* Table Row Styling */
+        table.dataTable tbody tr, table.dataTable tbody tr.odd, table.dataTable tbody tr.even {
+            background-color: #ffffff !important; /* Force White background */
         }
         table.dataTable tbody tr:hover {
             background-color: #e2e8f0; /* Slightly darker ash on hover */
@@ -215,25 +216,28 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                         <tr>
                             <?php foreach ($data['columns'] as $column): ?>
                                 <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
                                     <?php echo str_replace('_', ' ', $column); ?>
                                 </th>
                             <?php endforeach; ?>
-                            <th scope="col" class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider whitespace-nowrap sticky right-0 bg-blue-600 shadow-xl z-10 w-32">
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider sticky right-0 bg-blue-600 shadow-xl z-10 w-32">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-slate-50 divide-y divide-slate-200 text-sm text-slate-700">
+                    <tbody class="bg-white divide-y divide-slate-200 text-sm text-slate-700">
                         <!-- Data populated by DataTables -->
                     </tbody>
                 </table>
             </div>
             
             <!-- Pagination Footer (Customized) -->
-             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between" id="custom-pagination-footer">
+             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4" id="custom-pagination-footer">
                 <div class="text-sm font-medium text-slate-500" id="pagination-info">
                     Loading records...
+                </div>
+                <div id="pagination-controls" class="flex items-center gap-2">
+                    <!-- Controls injected by JS -->
                 </div>
             </div>
         </div>
@@ -490,9 +494,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                             render: function(data, type, row) {
                                 // Custom Renderers based on column name
                                 if('<?php echo $column; ?>' === 'paid') {
-                                    return (data == 1 || data === 'Yes') 
-                                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i> Paid</span>'
-                                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i> Unpaid</span>';
+                                    // Check if data is explicitly 1/Yes OR if it contains the check icon (from backend formatter)
+                                    if (data == 1 || data === 'Yes' || String(data).includes('fa-check')) {
+                                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i> Paid</span>';
+                                    } else {
+                                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i> Unpaid</span>';
+                                    }
                                 }
                                 if('<?php echo $column; ?>' === 'completion') {
                                     // Completion Progress Bar or Badge
@@ -537,9 +544,19 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                             // Job Specifics
                             if(tableName === 'jobs') {
                                 btns += `<button onclick='changeStatus("${row[primaryKey]}")' class="p-2 text-amber-600 hover:bg-amber-50 hover:text-amber-700 rounded-lg transition-all duration-200" title="Change Status"><i class="fas fa-tasks"></i></button>`;
+                                if(row.has_invoice) {
+                                    btns += `<button onclick='viewInvoice("${row[primaryKey]}")' class="p-2 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-all duration-200" title="See Invoice"><i class="fas fa-file-invoice-dollar"></i></button>`;
+                                }
+                            }
+                            
+                            // Operational Expenses Specifics
+                            // The backend returns formatted HTML for 'paid' (fa-times icon for No/0)
+                            if(tableName === 'operational_expenses' && String(row.paid).includes('fa-times')) {
+                                btns += `<button onclick='markAsPaid("${row[primaryKey]}")' class="p-2 text-green-600 hover:bg-green-50 hover:text-green-700 rounded-lg transition-all duration-200" title="Mark as Paid"><i class="fas fa-check-double"></i></button>`;
                             }
                             
                             // Delete
+
                             btns += `<button onclick='deleteRecord("${row[primaryKey]}")' class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all duration-200" title="Delete"><i class="fas fa-trash-alt"></i></button>`;
                             
                             btns += `</div>`;
@@ -547,19 +564,84 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                         }
                     }
                 ],
-                dom: 'rt<"bottom"p>',
+                dom: 'rt', // Custom pagination handling
                 language: {
-                    emptyTable: "No records found matching your search."
+                    emptyTable: "No records found matching your search.",
+                    paginate: {
+                        previous: '<i class="fas fa-chevron-left"></i>',
+                        next: '<i class="fas fa-chevron-right"></i>'
+                    }
                 },
                 drawCallback: function(settings) {
                     $('#record-count').text(settings._iRecordsTotal);
                     var info = this.api().page.info();
+                    
+                    // Update Info Text
                     if(info.recordsTotal > 0) {
-                         $('#pagination-info').text(`Showing ${info.start+1} to ${info.end} of ${info.recordsTotal} entries`);
+                         $('#pagination-info').html(`Showing <span class="font-bold text-slate-700">${info.start+1}</span> to <span class="font-bold text-slate-700">${info.end}</span> of <span class="font-bold text-slate-700">${info.recordsTotal}</span> entries`);
                     } else {
                          $('#pagination-info').text(`No records found`);
                     }
+
+                    // Custom Pagination Controls
+                    const pages = info.pages;
+                    const page = info.page;
+                    
+                    let paginationHtml = `<div class="flex items-center gap-1">`;
+                    
+                    // Previous Button
+                    paginationHtml += `<button type="button" ${page === 0 ? 'disabled' : ''} data-page="previous" class="pagination-btn px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium ${page === 0 ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm transition-all'}"><i class="fas fa-chevron-left"></i></button>`;
+                    
+                    // Page Numbers
+                    let startPage = Math.max(0, page - 2);
+                    let endPage = Math.min(pages - 1, page + 2);
+                    
+                    if(startPage > 0) {
+                         paginationHtml += `<button type="button" data-page="0" class="pagination-btn px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm transition-all">1</button>`;
+                         if(startPage > 1) paginationHtml += `<span class="px-2 text-slate-400">...</span>`;
+                    }
+
+                    for(let i = startPage; i <= endPage; i++) {
+                        let isActive = i === page;
+                        let activeClass = 'border-blue-500 bg-blue-600 text-white hover:bg-blue-700';
+                        let inactiveClass = 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600';
+                        paginationHtml += `<button type="button" data-page="${i}" class="pagination-btn px-3 py-2 border rounded-lg text-sm font-medium shadow-sm transition-all ${isActive ? activeClass : inactiveClass}">${i + 1}</button>`;
+                    }
+                    
+                    if(endPage < pages - 1) {
+                        if(endPage < pages - 2) paginationHtml += `<span class="px-2 text-slate-400">...</span>`;
+                        paginationHtml += `<button type="button" data-page="${pages - 1}" class="pagination-btn px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm transition-all">${pages}</button>`;
+                    }
+
+                    // Next Button
+                    paginationHtml += `<button type="button" ${page === pages - 1 || pages === 0 ? 'disabled' : ''} data-page="next" class="pagination-btn px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium ${page === pages - 1 || pages === 0 ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 shadow-sm transition-all'}"><i class="fas fa-chevron-right"></i></button>`;
+                    
+                    paginationHtml += `</div>`;
+                    
+                    $('#pagination-controls').html(paginationHtml);
                 }
+            });
+            
+            // Pagination Click Handler
+            $(document).off('click', '.pagination-btn').on('click', '.pagination-btn', function(e) {
+                e.preventDefault();
+                if($(this).is(':disabled')) return;
+                
+                let pageVal = $(this).attr('data-page'); // Use attr to get string first
+                let action = pageVal;
+                
+                // Check if it's a number
+                if(!isNaN(pageVal) && pageVal !== 'next' && pageVal !== 'previous') {
+                    action = parseInt(pageVal);
+                }
+
+                // Perform paging
+                table.page(action).draw(false); // draw(false) retains paging state but triggers reload
+                
+                // Optional: Scroll table to top smoothly
+                $('html, body').animate({
+                    scrollTop: $(tableId).offset().top - 100
+                }, 300);
             });
             
             // Custom Search Trigger
@@ -726,6 +808,22 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             });
         }
         
+        function markAsPaid(id) {
+            if(!confirm('Are you sure you want to mark this expense as paid?')) return;
+            
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
+                action: 'mark_as_paid',
+                id: id
+            }, function(response) {
+                if(response.success) {
+                    showToast('Expense marked as paid');
+                    table.draw();
+                } else {
+                    showToast('Error: ' + response.error, 'error');
+                }
+            }, 'json');
+        }
+
         function deleteRecord(id) {
             deleteId = id;
             $('#delete-modal').addClass('show');
@@ -754,5 +852,161 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             }, 'json');
         }
     </script>
+    <script>
+        // Invoice View Function
+        function viewInvoice(jobId) {
+            // Improved Loading State (Skeleton UI)
+            let skeletonHtml = `
+                <div class="animate-pulse space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="h-32 bg-slate-200 rounded-xl"></div>
+                        <div class="h-32 bg-slate-200 rounded-xl"></div>
+                    </div>
+                    <div class="h-16 bg-slate-200 rounded-xl"></div>
+                </div>
+            `;
+            
+            $('#invoice-content').html(skeletonHtml);
+            $('#invoice-id-display').text('...');
+            $('#invoice-modal').addClass('show');
+
+            $.post("<?php echo BASE_PATH; ?>/admin/manageTable/jobs", {
+                action: 'get_invoice_details',
+                job_id: jobId
+            }, function(response) {
+                if(response.error) {
+                    $('#invoice-content').html(`<div class="text-center py-8 text-red-500"><i class="fas fa-exclamation-circle text-3xl mb-2"></i><p>${response.error}</p></div>`);
+                    return;
+                }
+                
+                if(!response.invoice_no) {
+                     $('#invoice-content').html(`<div class="text-center py-8 text-slate-400"><i class="fas fa-file-invoice text-3xl mb-2"></i><p>No Invoice generated for this job yet.</p></div>`);
+                     return;
+                }
+
+                // Populate Data
+                $('#invoice-id-display').text(response.invoice_no);
+                
+                let totalValue = parseFloat(response.invoice_value) || 0;
+                let receivedAmount = parseFloat(response.received_amount) || 0;
+                let balance = totalValue - receivedAmount;
+                
+                // Status Determination
+                let statusBadge = '';
+                if(balance <= 0 && totalValue > 0) {
+                     statusBadge = '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold ring-1 ring-green-200">Paid</span>';
+                } else if(receivedAmount > 0) {
+                     statusBadge = '<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold ring-1 ring-blue-200">Partial</span>';
+                } else {
+                     statusBadge = '<span class="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold ring-1 ring-amber-200">Pending</span>';
+                }
+
+                let html = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-blue-300 transition-colors">
+                            <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <i class="fas fa-file-invoice text-5xl text-blue-600"></i>
+                            </div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Invoice Info</h4>
+                            <div class="space-y-3 relative z-10">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 text-sm">Invoice No</span>
+                                    <span class="font-bold text-slate-800 font-mono bg-slate-50 px-2 py-0.5 rounded">${response.invoice_no}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 text-sm">Date Issued</span>
+                                    <span class="font-medium text-slate-800">${response.invoice_date || 'N/A'}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 text-sm">Status</span>
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group hover:border-emerald-300 transition-colors">
+                            <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <i class="fas fa-coins text-5xl text-emerald-600"></i>
+                            </div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Financials</h4>
+                            <div class="space-y-3 relative z-10">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 text-sm">Total Value</span>
+                                    <span class="font-bold text-slate-800 text-lg">${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500 text-sm">Received</span>
+                                    <span class="font-medium text-emerald-600">${receivedAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-slate-100 pt-2 mt-1">
+                                    <span class="text-slate-500 text-sm font-semibold">Balance Due</span>
+                                    <span class="font-bold ${balance > 0 ? 'text-red-500' : 'text-slate-400'} text-lg">${balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Job & Project</h4>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-600 leading-relaxed shadow-inner">
+                            ${response.job_details && response.job_details.includes(' - ') 
+                                ? response.job_details.split(' - ').map(part => `<span class="inline-block bg-white px-2 py-1 rounded border border-slate-200 mr-1 mb-1 shadow-sm">${part.trim()}</span>`).join('') 
+                                : '<span class="italic text-slate-400">No job details available</span>'}
+                        </div>
+                    </div>
+                `;
+                
+                // Invoice File / Attachment
+                if(response.invoice) {
+                     html += `
+                        <div class="mt-6 flex justify-center">
+                             <a href="${response.invoice}" target="_blank" class="group relative inline-flex items-center justify-center px-6 py-3 font-bold text-white transition-all duration-200 bg-blue-600 font-lg rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600">
+                                <i class="fas fa-file-pdf mr-2 text-blue-200 group-hover:text-white transition-colors"></i> View Original Invoice
+                             </a>
+                        </div>
+                     `;
+                } else {
+                     html += `
+                        <div class="mt-6 text-center">
+                           <span class="inline-flex items-center px-4 py-2 rounded-lg bg-slate-100 text-slate-400 text-sm border border-slate-200">
+                                <i class="fas fa-slash mr-2"></i> No Document Attached
+                           </span>
+                        </div>
+                     `;
+                }
+
+                $('#invoice-content').html(html);
+
+            }, 'json').fail(function() {
+                 $('#invoice-content').html(`<div class="text-center py-8 text-red-500"><i class="fas fa-wifi text-3xl mb-2"></i><p>Network Error. Please try again.</p></div>`);
+            });
+        }
+
+        function closeInvoiceModal() {
+            $('#invoice-modal').removeClass('show');
+        }
+    </script>
+    <!-- Invoice Details Modal -->
+    <div id="invoice-modal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeInvoiceModal()"></div>
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-20 border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white rounded-t-2xl">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-file-invoice-dollar text-emerald-500"></i> Invoice <span id="invoice-id-display" class="text-slate-400 font-normal">#...</span>
+                    </h3>
+                </div>
+                <button onclick="closeInvoiceModal()" class="text-slate-400 hover:text-slate-600 transition p-1">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scrollbar" id="invoice-content">
+                <!-- Content Loaded via AJAX -->
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-2xl">
+                <button onclick="closeInvoiceModal()" class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
