@@ -1,7 +1,7 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_log('Error reporting enabled in TableManager.php');
+// Error display disabled in production — errors logged to server log only
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 require_once 'src/core/Model.php';
 class TableManager extends Model {
@@ -227,7 +227,7 @@ class TableManager extends Model {
     }
     public function getActiveEmployees() {
         try {
-            $stmt = $this->db->query("SELECT COUNT(*) FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned = '0000-00-00'");
+            $stmt = $this->db->query("SELECT COUNT(*) FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned < '1970-01-02'");
             return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getActiveEmployees: " . $e->getMessage());
@@ -457,34 +457,17 @@ class TableManager extends Model {
                             $dbCol = $parts[0] . ".`" . $parts[1] . "`";
                         }
 
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
-                            // Exact match for numbers
-                            $termConditions[] = "$dbCol = $paramName";
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
-                             // Exact Date
+                        // Build search condition and bind param value
+                        $originalTerm = trim($searchTerms[$index]);
+                        if (preg_match('/^\d+(\.\d+)?$/', $originalTerm)) {
                              $termConditions[] = "$dbCol = $paramName";
-                        } else {
-                            // Like search
-                            $termConditions[] = "$dbCol LIKE $paramName";
-                            $term = "%{$term}%"; // Modify term for LIKE outside the loop? No, bind it.
-                        }
-                         // IMPORTANT: bind the param value correctly
-                         // We need to re-assign term with % if it was a LIKE query, but we loop fields...
-                         // Actually, we can't bind different values (exact vs like) to the same param name for different fields easily without logic
-                         // Better: make param name specific to the type of search
-                         
-                         // Quick fix: Just use LIKE for everything that isn't strictly date specific logic or pure ID exactness if we want broad search
-                         // Rewriting condition construction for safety:
-                         
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
+                             $params[$paramName] = $originalTerm;
+                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $originalTerm) && $col === $dateField) {
                              $termConditions[] = "$dbCol = $paramName";
-                             $params[$paramName] = $term;
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
-                             $termConditions[] = "$dbCol = $paramName";
-                             $params[$paramName] = $term; // Original term
+                             $params[$paramName] = $originalTerm;
                         } else {
                             $termConditions[] = "$dbCol LIKE $paramName";
-                            $params[$paramName] = "%" . trim($searchTerms[$index]) . "%"; // Use original term with wildcards
+                            $params[$paramName] = "%" . $originalTerm . "%";
                         }
                     }
                     if (!empty($termConditions)) {
@@ -754,34 +737,16 @@ class TableManager extends Model {
         return $this->fetchEmployeeName($empId);
     }
     public function getBooleanIcon($value) {
-        return $value === 'Yes' || $value === true || $value === 1 ? '<i class="fas fa-check" style="color: #10B981;"></i>' : '<i class="fas fa-times" style="color: #EF4444;"></i>';
+        return \App\Helpers\Formatter::getBooleanIcon($value);
     }
     public function getPresenceDisplay($value) {
-        $value = (float)$value;
-        if ($value == 1.0) return '<span style="color: #10B981;">Full Day</span>';
-        if ($value == 0.5) return '<span style="color: #F59E0B;">Half Day</span>';
-        if ($value == 0.0) return '<span style="color: #EF4444;">Not Attended</span>';
-        return htmlspecialchars($value);
+        return \App\Helpers\Formatter::getPresenceDisplay($value);
     }
     public function getTransactionTypeDisplay($value) {
-        if ($value === 'In') {
-            return '<span style="color: #10B981;">Received</span>';
-        } elseif ($value === 'Out') {
-            return '<span style="color: #EF4444;">Disbursed</span>';
-        }
-        return htmlspecialchars($value);
+        return \App\Helpers\Formatter::getTransactionTypeDisplay($value);
     }
     public function getCompletionStatus($value) {
-        $value = (float)$value;
-        switch ($value) {
-            case 0.0: return '<span style="color: #EF4444;">Not Started</span>';
-            case 0.1: return '<span style="color: #D1D5DB;">Cancelled</span>';
-            case 0.2: return '<span style="color: #3B82F6;">Started</span>';
-            case 0.3: return '<span style="color: #6D28D9;">Postponed</span>';
-            case 0.5: return '<span style="color: #F59E0B;">Ongoing</span>';
-            case 1.0: return '<span style="color: #10B981;">Completed</span>';
-            default: return htmlspecialchars($value);
-        }
+        return \App\Helpers\Formatter::getCompletionStatus($value);
     }
     public function getProjectDetailsForJobs($projectId = null) {
         if (!empty($projectId)) {
@@ -895,7 +860,7 @@ class TableManager extends Model {
     }
     public function getEmployeeOptions() {
         try {
-            $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned = '0000-00-00' ORDER BY emp_id DESC");
+            $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned < '1970-01-02' ORDER BY emp_id DESC");
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $options = ['<option value="">Select Employee</option>'];
             foreach ($employees as $employee) {

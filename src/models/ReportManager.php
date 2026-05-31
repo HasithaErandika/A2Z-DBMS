@@ -1,22 +1,39 @@
 <?php
 require_once 'src/core/Model.php';
-error_log("ReportManager.php loaded at " . date('Y-m-d H:i:s'));
 
 class ReportManager extends Model {
-    /**
+    /** Job ID to exclude from reports (e.g. test/placeholder job) */
+    const EXCLUDED_JOB_ID = 1;
+
+/**
  * Retrieves a list of working employee IDs and names, sorted by employee name.
- * Excludes employees who have resigned.
+ * Excludes employees who resigned before the given date range.
  * 
+ * @param string|null $start_date Start date for filtering (optional).
+ * @param string|null $end_date End date for filtering (optional).
  * @return array An array of associative arrays containing emp_id and emp_name, or an empty array on error.
  */
-public function getEmployeeRefs() {
+public function getEmployeeRefs($start_date = null, $end_date = null) {
     try {
-        $stmt = $this->db->query("
+        $query = "
             SELECT emp_id, emp_name
             FROM employees
-            WHERE date_of_resigned = '0000-00-00'
-            ORDER BY emp_name
-        ");
+            WHERE (date_of_resigned IS NULL OR date_of_resigned < '1970-01-02'";
+        
+        $params = [];
+        if ($end_date) {
+            $query .= " OR date_of_resigned > :end_date";
+            $params[':end_date'] = $end_date;
+        }
+        
+        $query .= ")
+            ORDER BY emp_name";
+        
+        $stmt = $this->db->prepare($query);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Error in getEmployeeRefs: " . $e->getMessage());
@@ -76,6 +93,7 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
                 WHEN 0.0 THEN 'Not Started'
                 WHEN 0.1 THEN 'Cancelled'
                 WHEN 0.2 THEN 'Started'
+                WHEN 0.3 THEN 'Postponed'
                 WHEN 0.5 THEN 'Ongoing'
                 WHEN 1.0 THEN 'Completed'
                 ELSE 'Unknown'
@@ -88,7 +106,7 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
             GROUP BY job_id
         ) es ON j.job_id = es.job_id
         LEFT JOIN invoice_data id ON j.job_id = id.job_id
-        WHERE j.job_id != 1
+        WHERE j.job_id != " . self::EXCLUDED_JOB_ID . "
     ";
 
     $conditions = [];
@@ -112,11 +130,11 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
             : "(id.received_amount = 0 OR id.received_amount IS NULL)";
     }
     if (!empty($filters['from_date'])) {
-        $conditions[] = "(j.date_completed >= :from_date OR j.date_completed = '0000-00-00')";
+        $conditions[] = "(j.date_completed >= :from_date OR j.date_completed IS NULL OR j.date_completed < '1970-01-02')";
         $params[':from_date'] = $filters['from_date'];
     }
     if (!empty($filters['to_date'])) {
-        $conditions[] = "(j.date_completed <= :to_date OR j.date_completed = '0000-00-00')";
+        $conditions[] = "(j.date_completed <= :to_date OR j.date_completed IS NULL OR j.date_completed < '1970-01-02')";
         $params[':to_date'] = $filters['to_date'];
     }
     if (!empty($filters['completion'])) {
@@ -162,7 +180,7 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
                        SUM(id.received_amount) AS total_paid
                 FROM jobs j
                 LEFT JOIN invoice_data id ON j.job_id = id.job_id
-                WHERE j.job_id != 1
+                WHERE j.job_id != " . self::EXCLUDED_JOB_ID . "
             ");
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -196,10 +214,10 @@ public function getEmployeeAttendanceCosts($jobId = null, $start_date = null, $e
         $params[':end_date'] = $end_date;
 
         // exclude resigned employees (same rule as getWageData)
-        $conditions[] = "(e.date_of_resigned = '0000-00-00' OR e.date_of_resigned > :end_date)";
+        $conditions[] = "(e.date_of_resigned IS NULL OR e.date_of_resigned < '1970-01-02' OR e.date_of_resigned > :end_date)";
     } else {
         // fallback: exclude anyone resigned on/before the attendance day
-        $conditions[] = "(e.date_of_resigned = '0000-00-00' OR e.date_of_resigned > a.attendance_date)";
+        $conditions[] = "(e.date_of_resigned IS NULL OR e.date_of_resigned < '1970-01-02' OR e.date_of_resigned > a.attendance_date)";
     }
 
     // Only count presence = full (1) or half (0.5)
@@ -342,7 +360,7 @@ public function getWageData($filters = []) {
         LEFT JOIN jobs j ON a.job_id = j.job_id
         LEFT JOIN projects p ON j.project_id = p.project_id
         WHERE 1 = 1
-          AND (e.date_of_resigned = '0000-00-00' OR e.date_of_resigned > :end_date)
+          AND (e.date_of_resigned IS NULL OR e.date_of_resigned < '1970-01-02' OR e.date_of_resigned > :end_date)
     ";
 
     $conditions = [];
@@ -413,8 +431,13 @@ public function getWageData($filters = []) {
 
             if (!empty($row['attendance_date'])) {
                 if ($rate_type === 'Fixed') {
-                    $employee_wages[$emp_id]['total_payment'] = $total_rate;
-                    $employee_wages[$emp_id]['total_days'] = 0;
+                    // Fixed salary: total_payment is the rate (set once during init above)
+                    // Only set it here if not already set (first attendance row)
+                    if ($employee_wages[$emp_id]['total_payment'] === 0) {
+                        $employee_wages[$emp_id]['total_payment'] = $total_rate;
+                    }
+                    // Track days for reporting even though payment is fixed
+                    $employee_wages[$emp_id]['total_days'] += $presence;
                 } else {
                     $employee_wages[$emp_id]['total_payment'] += $payment;
                     $employee_wages[$emp_id]['total_days'] += $presence;
@@ -634,22 +657,39 @@ public function getWageData($filters = []) {
     }
 
     /**
- * Calculates total EPF (Employee Provident Fund) costs for active employees,
- * optionally filtered by start date.
+ * Calculates total EPF (Employee Provident Fund) costs for active employees.
+ * Uses employee_payment_rates as the primary salary source for Fixed-rate employees.
+ * Falls back to employees.basic_salary if available.
  * 
  * @param string|null $start_date Start date for considering active employees (optional).
- * @return float Total EPF costs, or 0 on error.
+ * @param string|null $end_date End date for the period (optional).
+ * @return float Total EPF costs (company contribution at 12%), or 0 on error.
  */
-public function getEPFCosts($start_date = null) {
+public function getEPFCosts($start_date = null, $end_date = null) {
     try {
+        // Use the effective end_date for rate lookup, default to today
+        $effectiveDate = $end_date ?? date('Y-m-d');
+        
         $query = "
-            SELECT SUM(basic_salary * 0.12) AS total_epf
-            FROM employees
-            WHERE date_of_resigned = '0000-00-00'
-               OR (:start_date IS NOT NULL AND date_of_resigned > :start_date)
+            SELECT SUM(
+                COALESCE(
+                    (SELECT epr.rate_amount 
+                     FROM employee_payment_rates epr 
+                     WHERE epr.emp_id = e.emp_id 
+                       AND epr.rate_type = 'Fixed'
+                       AND epr.effective_date <= :effective_date
+                     ORDER BY epr.effective_date DESC 
+                     LIMIT 1),
+                    0
+                ) * 0.12
+            ) AS total_epf
+            FROM employees e
+            WHERE (e.date_of_resigned IS NULL OR e.date_of_resigned < '1970-01-02'
+                   OR (:start_date IS NOT NULL AND e.date_of_resigned > :start_date))
         ";
 
         $stmt = $this->db->prepare($query);
+        $stmt->bindValue(':effective_date', $effectiveDate, PDO::PARAM_STR);
         $stmt->bindValue(':start_date', $start_date, PDO::PARAM_STR);
         $stmt->execute();
 
@@ -678,13 +718,14 @@ public function getEPFCosts($start_date = null) {
                     WHEN 0.0 THEN 'Not Started'
                     WHEN 0.1 THEN 'Cancelled'
                     WHEN 0.2 THEN 'Started'
+                WHEN 0.3 THEN 'Postponed'
                     WHEN 0.5 THEN 'Ongoing'
                     WHEN 1.0 THEN 'Completed'
                     ELSE 'Unknown'
                 END AS completion_status
             FROM jobs j
             LEFT JOIN projects p ON j.project_id = p.project_id
-            WHERE j.job_id != 1
+            WHERE j.job_id != " . self::EXCLUDED_JOB_ID . "
         ";
 
         $conditions = [];

@@ -8,31 +8,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage <?php echo htmlspecialchars($data['table']); ?> - A2Z Engineering</title>
     <!-- Fonts & Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/../partials/theme.php'; ?>
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa',
-                            500: '#2563eb', 600: '#1d4ed8', 700: '#1e40af', 800: '#1e3a8a', 900: '#172554', // Deep Blue
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         /* Custom Overrides */
         body { background-color: #f1f5f9; } /* Slate 100 - Ashy background */
@@ -757,8 +737,13 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
         }
 
         function saveStatus() {
+            const $btn = $('#status-modal button').filter(function() { return $(this).text().trim() === 'Update Status'; });
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Updating...');
+
             const formData = $('#status-form').serialize();
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, formData + '&action=update_status', function(response) {
+                $btn.prop('disabled', false).html(originalText);
                 if(response.success) {
                     closeStatusModal();
                     table.draw();
@@ -766,25 +751,40 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 } else {
                     showToast('Error: ' + response.error, 'error');
                 }
-            }, 'json');
+            }, 'json').fail(function() {
+                $btn.prop('disabled', false).html(originalText);
+                showToast('Network error updating status.', 'error');
+            });
         }
         
         function generateSchedule() {
             if(!confirm('This will generate maintenance schedules for all active jobs based on their started dates. Continue?')) return;
             
+            const $btn = $('button[onclick="generateSchedule()"]');
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> Generating...');
+
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
                 action: 'generate_maintenance'
             }, function(response) {
+                $btn.prop('disabled', false).html(originalText);
                 if(response.success) {
                     showToast('Schedules generated successfully!');
                     table.draw();
                 } else {
                     showToast('Error: ' + (response.error || 'Unknown error'), 'error');
                 }
-            }, 'json');
+            }, 'json').fail(function() {
+                $btn.prop('disabled', false).html(originalText);
+                showToast('Network error generating schedules.', 'error');
+            });
         }
         
         function saveRecord() {
+            const $btn = $('#crud-modal button').filter(function() { return $(this).text().trim() === 'Save Record'; });
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
+
             const formData = $('#crud-form').serialize();
             
             $.ajax({
@@ -793,6 +793,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 data: formData,
                 dataType: "json",
                 success: function(response) {
+                    $btn.prop('disabled', false).html(originalText);
                     if(response.success) {
                         closeModal();
                         table.draw();
@@ -802,6 +803,7 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                     }
                 },
                 error: function(xhr) {
+                    $btn.prop('disabled', false).html(originalText);
                     showToast('Server Error. Check console.', 'error');
                     console.error(xhr);
                 }
@@ -810,6 +812,8 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
         
         function markAsPaid(id) {
             if(!confirm('Are you sure you want to mark this expense as paid?')) return;
+            
+            showToast('Processing payment...', 'info');
             
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
                 action: 'mark_as_paid',
@@ -821,7 +825,9 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 } else {
                     showToast('Error: ' + response.error, 'error');
                 }
-            }, 'json');
+            }, 'json').fail(function() {
+                showToast('Network error marking as paid.', 'error');
+            });
         }
 
         function deleteRecord(id) {
@@ -837,10 +843,15 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
         function confirmDelete() {
             if(!deleteId) return;
             
+            const $btn = $('#delete-modal button').filter(function() { return $(this).text().trim() === 'Yes, Delete It'; });
+            const originalText = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...');
+
             $.post("<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName, {
                 action: 'delete',
                 id: deleteId
             }, function(response) {
+                $btn.prop('disabled', false).html(originalText);
                 if(response.success) {
                     closeDeleteModal();
                     table.draw();
@@ -849,7 +860,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                     closeDeleteModal();
                     showToast('Error deleting: ' + response.error, 'error');
                 }
-            }, 'json');
+            }, 'json').fail(function() {
+                $btn.prop('disabled', false).html(originalText);
+                closeDeleteModal();
+                showToast('Network error deleting record.', 'error');
+            });
         }
     </script>
     <script>

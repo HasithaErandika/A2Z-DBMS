@@ -20,7 +20,6 @@ $expenses_by_category = $expenses_by_category ?? [];
 $employee_costs_by_type = $employee_costs_by_type ?? ['Attendance-Based' => 0, 'Hiring of Labor' => 0];
 $error = $error ?? null;
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,168 +28,229 @@ $error = $error ?? null;
     <title>A2Z Engineering - Expense Report</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <?php require_once __DIR__ . '/../partials/theme.php'; ?>
 </head>
-<body class="font-poppins bg-gray-50 text-gray-900 leading-relaxed overflow-x-hidden">
-    <div class="container mx-auto p-6 min-h-screen bg-[url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"%3E%3Cg fill="%231E3A8A" fill-opacity="0.03"%3E%3Cpath d="M60 20 L80 60 L60 100 L40 60 Z"/%3E%3C/g%3E%3C/svg%3E')] bg-[length:240px]">
-        <div class="header bg-gradient-to-br from-blue-900 to-blue-500 p-8 rounded-xl shadow-2xl flex items-center justify-between mb-10 text-white relative overflow-hidden hover:after:opacity-20 after:content-[''] after:absolute after:top-[-50%] after:left-[-50%] after:w-[200%] after:h-[200%] after:bg-white/10 after:rotate-30 after:transition-all after:duration-500 after:opacity-0 after:z-0">
-            <h1 class="text-3xl font-semibold z-10">Expense Report</h1>
-            <div class="header-controls flex gap-3 z-10">
-                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.print()"><i class="ri-printer-line"></i> Print</button>
-                <button class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30" onclick="window.location.href='<?php echo htmlspecialchars(FULL_BASE_URL . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>'"><i class="ri-arrow-left-line"></i> Go Back</button>
-                <button class="btn bg-transparent text-blue-900 border-2 border-blue-900 px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:bg-blue-900 hover:text-white hover:translate-y-[-2px]" onclick="downloadCSV()"><i class="ri-download-line"></i> Download CSV</button>
-            </div>
+<body class="font-sans bg-slate-50 text-slate-800 antialiased overflow-x-hidden min-h-screen">
+
+    <?php 
+    $activePage = 'reports';
+    $headerTitle = 'Expenses & Revenue Audit';
+    $headerSubtitle = 'Comprehensive profit analysis comparing client invoices against operational expenses and labor costs.';
+    $breadcrumb = 'Reports / Expenses';
+    require_once __DIR__ . '/../partials/sidebar.php';
+    ?>
+
+    <!-- Main Container -->
+    <div class="ml-64 transition-all duration-300 min-h-screen flex flex-col justify-between" id="container">
+        <div>
+            <?php require_once __DIR__ . '/../partials/header.php'; ?>
+
+            <main class="p-8 animate-fadeIn">
+                <!-- Action Controls -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div class="text-xs text-slate-500 font-semibold"><?php echo htmlspecialchars($report_title); ?></div>
+                    <div class="flex items-center gap-2">
+                        <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Reports
+                        </a>
+                        <button onclick="window.print()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                        <button onclick="downloadCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+
+                <?php if ($error): ?>
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
+                    </div>
+                <?php else: ?>
+
+                    <!-- Filters Card -->
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
+                        <h3 class="text-xs font-bold text-slate-900 mb-4 uppercase tracking-wider">Report Filters</h3>
+                        <form method="POST" action="<?php echo htmlspecialchars(BASE_PATH . '/reports/expenses_report', ENT_QUOTES, 'UTF-8'); ?>" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end" id="filterForm">
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Year</label>
+                                <select name="year" class="p-2.5 border border-slate-200 rounded-lg text-xs transition-all focus:border-emerald-500 focus:outline-none bg-white">
+                                    <option value="">All Years</option>
+                                    <option value="2024" <?php echo $filters['year'] === '2024' ? 'selected' : ''; ?>>2024</option>
+                                    <option value="2025" <?php echo $filters['year'] === '2025' ? 'selected' : ''; ?>>2025</option>
+                                    <option value="2026" <?php echo $filters['year'] === '2026' ? 'selected' : ''; ?>>2026</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Month</label>
+                                <select name="month" class="p-2.5 border border-slate-200 rounded-lg text-xs transition-all focus:border-emerald-500 focus:outline-none bg-white">
+                                    <option value="">All Months</option>
+                                    <?php for ($m = 1; $m <= 12; $m++): ?>
+                                        <option value="<?php echo $m; ?>" <?php echo $filters['month'] == $m ? 'selected' : ''; ?>>
+                                            <?php echo date('F', mktime(0, 0, 0, $m, 1)); ?>
+                                        </option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                            <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 h-[38px]">
+                                <i class="fas fa-filter"></i> Apply Filter
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Financial Summary Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Revenue</h4>
+                            <p class="text-xl font-extrabold text-slate-900">Rs <?php echo number_format($total_invoices, 2); ?></p>
+                            <small class="text-[11px] text-slate-500 mt-1 block"><?php echo $total_invoices_count; ?> Invoices</small>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Expenses</h4>
+                            <p class="text-xl font-extrabold text-slate-900">Rs <?php echo number_format($total_expenses + $total_employee_costs, 2); ?></p>
+                            <small class="text-[11px] text-slate-500 mt-1 block">Operational + Labor</small>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Net Profit</h4>
+                            <p class="text-xl font-extrabold <?php echo $profit >= 0 ? 'text-emerald-600' : 'text-red-500'; ?>">Rs <?php echo number_format($profit, 2); ?></p>
+                            <small class="text-[11px] text-slate-500 mt-1 block"><?php echo $profit >= 0 ? 'Profit Margin' : 'Financial Deficit'; ?></small>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Active Jobs</h4>
+                            <p class="text-xl font-extrabold text-slate-900"><?php echo $total_jobs; ?></p>
+                            <small class="text-[11px] text-slate-500 mt-1 block"><?php echo number_format($total_job_capacity, 1); ?>kW Cumulative Capacity</small>
+                        </div>
+                    </div>
+
+                    <!-- Charts Container -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-900 mb-4 uppercase tracking-wider">Revenue vs Total Costs</h3>
+                            <div class="h-[260px] flex items-center justify-center">
+                                <canvas id="revenueVsCostChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                            <h3 class="text-xs font-bold text-slate-900 mb-4 uppercase tracking-wider">Expense Breakdown by Category</h3>
+                            <div class="h-[260px] flex items-center justify-center">
+                                <canvas id="expenseBreakdownChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operational Expenses Table -->
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8 overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 bg-slate-50">
+                            <h3 class="text-sm font-bold text-slate-900">Operational Expenses by Category</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <?php if (empty($expenses_by_category) && !isset($expenses_by_category['EPF'])): ?>
+                                <p class="text-center text-slate-500 py-10 text-xs">No operational expenses recorded for this period.</p>
+                            <?php else: ?>
+                                <table class="w-full border-collapse text-xs text-left">
+                                    <thead>
+                                        <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
+                                            <th class="p-4 font-bold">Category</th>
+                                            <th class="p-4 font-bold text-right">Amount (Rs)</th>
+                                            <th class="p-4 font-bold text-right">Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <?php 
+                                        $totalAllExpenses = $total_expenses + $total_employee_costs;
+                                        foreach ($expenses_by_category as $cat => $amt): 
+                                            $percentage = $totalAllExpenses > 0 ? ($amt / $totalAllExpenses) * 100 : 0;
+                                        ?>
+                                            <tr class="hover:bg-slate-50/55 transition-colors">
+                                                <td class="p-4 font-medium text-slate-900"><?php echo htmlspecialchars($cat); ?></td>
+                                                <td class="p-4 text-right font-medium text-slate-800">Rs <?php echo number_format($amt, 2); ?></td>
+                                                <td class="p-4 text-right text-slate-500"><?php echo number_format($percentage, 1); ?>%</td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        <tr class="bg-slate-50 font-bold border-t border-slate-200">
+                                            <td class="p-4 text-slate-800">Total Operational Expenses</td>
+                                            <td class="p-4 text-right text-slate-900 font-bold">Rs <?php echo number_format($total_expenses, 2); ?></td>
+                                            <td class="p-4 text-right text-slate-600">100%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Employee & Labor Costs Table -->
+                    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8 overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 bg-slate-50">
+                            <h3 class="text-sm font-bold text-slate-900">Employee & Labor Costs</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse text-xs text-left">
+                                <thead>
+                                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
+                                        <th class="p-4 font-bold">Cost Type</th>
+                                        <th class="p-4 font-bold text-right">Amount (Rs)</th>
+                                        <th class="p-4 font-bold text-right">Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <?php 
+                                    foreach ($employee_costs_by_type as $type => $amt): 
+                                        $percentage = $total_employee_costs > 0 ? ($amt / $total_employee_costs) * 100 : 0;
+                                    ?>
+                                        <tr class="hover:bg-slate-50/55 transition-colors">
+                                            <td class="p-4 font-medium text-slate-900"><?php echo htmlspecialchars($type); ?></td>
+                                            <td class="p-4 text-right font-medium text-slate-800">Rs <?php echo number_format($amt, 2); ?></td>
+                                            <td class="p-4 text-right text-slate-500"><?php echo number_format($percentage, 1); ?>%</td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    <?php if (isset($expenses_by_category['EPF']) && $expenses_by_category['EPF'] > 0): ?>
+                                        <tr class="hover:bg-slate-50/55 transition-colors">
+                                            <td class="p-4 font-medium text-slate-900">EPF Contribution</td>
+                                            <td class="p-4 text-right font-medium text-slate-800">Rs <?php echo number_format($expenses_by_category['EPF'], 2); ?></td>
+                                            <td class="p-4 text-right text-slate-500"><?php echo $total_employee_costs > 0 ? number_format(($expenses_by_category['EPF'] / $total_employee_costs) * 100, 1) : '0.0'; ?>%</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                    <tr class="bg-slate-50 font-bold border-t border-slate-200">
+                                        <td class="p-4 text-slate-800">Total Employee & Labor Costs</td>
+                                        <td class="p-4 text-right text-slate-900 font-bold">Rs <?php echo number_format($total_employee_costs, 2); ?></td>
+                                        <td class="p-4 text-right text-slate-600">100%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                <?php endif; ?>
+            </main>
         </div>
 
-        <?php if ($error): ?>
-            <div class="error-message bg-red-500 text-white p-4 rounded-xl mb-5 text-center"><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
-        <?php else: ?>
-
-            <div class="filter-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
-                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Report Filters</h2>
-                <form method="POST" action="<?php echo htmlspecialchars(FULL_BASE_URL . '/reports/expenses_report', ENT_QUOTES, 'UTF-8'); ?>" class="filter-form grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 items-end" id="filterForm">
-                    <div class="filter-item flex flex-col gap-2">
-                        <label class="text-sm font-medium text-gray-500">Select Year</label>
-                        <select name="year" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
-                            <option value="">All Years</option>
-                            <option value="2024" <?php echo $filters['year'] === '2024' ? 'selected' : ''; ?>>2024</option>
-                            <option value="2025" <?php echo $filters['year'] === '2025' ? 'selected' : ''; ?>>2025</option>
-                            <option value="2026" <?php echo $filters['year'] === '2026' ? 'selected' : ''; ?>>2026</option>
-                        </select>
-                    </div>
-                    <div class="filter-item flex flex-col gap-2">
-                        <label class="text-sm font-medium text-gray-500">Select Month</label>
-                        <select name="month" class="p-2.5 border border-gray-200 rounded-lg text-base transition-all duration-300 focus:border-blue-900 focus:outline-none focus:shadow-[0_0_0_3px_rgba(30,58,138,0.1)]">
-                            <option value="">All Months</option>
-                            <?php for ($m = 1; $m <= 12; $m++): ?>
-                                <option value="<?php echo $m; ?>" <?php echo $filters['month'] == $m ? 'selected' : ''; ?>>
-                                    <?php echo date('F', mktime(0, 0, 0, $m, 1)); ?>
-                                </option>
-                            <?php endfor; ?>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn bg-gradient-to-br from-blue-900 to-blue-500 text-white px-5 py-2.5 rounded-lg font-medium cursor-pointer transition-all duration-300 flex items-center gap-2 text-sm hover:translate-y-[-2px] hover:shadow-xl hover:shadow-blue-900/30"><i class="ri-filter-line"></i> Filter</button>
-                </form>
+        <!-- Corporate Footer -->
+        <footer class="border-t border-slate-200 bg-white py-6 px-8 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-2">
+                <img class="h-6 w-auto opacity-70" src="<?php echo BASE_PATH; ?>/src/assets/images/logo.png" alt="A2Z Logo">
+                <span>&copy; <?php echo date('Y'); ?> A2Z Engineering. Internal DBMS Portal.</span>
             </div>
-
-            <div class="summary-card bg-white p-6 rounded-xl shadow-lg mb-10 transition-all duration-300 hover:shadow-2xl">
-                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Financial Summary</h2>
-                <div class="summary-grid grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
-                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-blue-500">
-                        <h3 class="text-base text-gray-500 mb-2">Total Revenue</h3>
-                        <p class="text-lg font-semibold text-gray-900">Rs <?php echo number_format($total_invoices, 2); ?></p>
-                        <small class="text-xs text-gray-500"><?php echo $total_invoices_count; ?> Invoices</small>
-                    </div>
-                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-red-500">
-                        <h3 class="text-base text-gray-500 mb-2">Total Expenses</h3>
-                        <p class="text-lg font-semibold text-gray-900">Rs <?php echo number_format($total_expenses + $total_employee_costs, 2); ?></p>
-                        <small class="text-xs text-gray-500">Operational + Labor</small>
-                    </div>
-                    <div class="summary-item <?php echo $profit >= 0 ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'; ?> bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg">
-                        <h3 class="text-base text-gray-500 mb-2">Net Profit</h3>
-                        <p class="text-lg font-semibold text-gray-900">Rs <?php echo number_format($profit, 2); ?></p>
-                        <small class="text-xs text-gray-500"><?php echo $profit >= 0 ? 'Profit' : 'Loss'; ?></small>
-                    </div>
-                    <div class="summary-item bg-white p-4 rounded-xl shadow-md text-center transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg border-l-4 border-teal-500">
-                        <h3 class="text-base text-gray-500 mb-2">Active Jobs</h3>
-                        <p class="text-lg font-semibold text-gray-900"><?php echo $total_jobs; ?></p>
-                        <small class="text-xs text-gray-500"><?php echo number_format($total_job_capacity, 2); ?> Capacity</small>
-                    </div>
-                </div>
+            <div class="flex space-x-6">
+                <a href="https://a2zengineering.lk" target="_blank" rel="noopener noreferrer" class="hover:text-slate-900 transition-colors">Corporate Site</a>
+                <span class="text-slate-300">|</span>
+                <span>DBMS Stable v2.2.0</span>
             </div>
-
-            <div class="charts-container flex flex-row gap-6 mb-10 flex-wrap">
-                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
-                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Revenue vs Total Costs</h2>
-                    <div class="chart-container max-w-full h-[300px]">
-                        <canvas id="revenueVsCostChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl flex-1 min-w-[300px]">
-                    <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Expense Breakdown by Category</h2>
-                    <div class="chart-container max-w-full h-[300px]">
-                        <canvas id="expenseBreakdownChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl mb-10 overflow-x-auto">
-                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Operational Expenses by Category</h2>
-                <?php if (empty($expenses_by_category) && !isset($expenses_by_category['EPF'])): ?>
-                    <p class="text-center text-gray-500 py-10">No operational expenses recorded for this period.</p>
-                <?php else: ?>
-                    <table class="table w-full border-collapse text-base">
-                        <thead>
-                            <tr>
-                                <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Category</th>
-                                <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Amount (Rs)</th>
-                                <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Percentage</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            $totalAllExpenses = $total_expenses + $total_employee_costs;
-                            foreach ($expenses_by_category as $cat => $amt): 
-                                $percentage = $totalAllExpenses > 0 ? ($amt / $totalAllExpenses) * 100 : 0;
-                            ?>
-                                <tr>
-                                    <td class="p-3 border-b border-gray-200"><?php echo htmlspecialchars($cat); ?></td>
-                                    <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($amt, 2); ?></td>
-                                    <td class="p-3 border-b border-gray-200 text-right"><?php echo number_format($percentage, 1); ?>%</td>
-                                </tr>
-                            <?php endforeach; ?>
-                            <tr class="bg-blue-50">
-                                <td class="p-3 font-semibold">Total Operational Expenses</td>
-                                <td class="p-3 text-right font-semibold">Rs <?php echo number_format($total_expenses, 2); ?></td>
-                                <td class="p-3 text-right font-semibold">100%</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
-            </div>
-
-            <div class="table-card bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl overflow-x-auto">
-                <h2 class="text-xl font-semibold bg-gradient-to-br from-blue-900 to-blue-500 bg-clip-text text-transparent mb-5">Employee & Labor Costs</h2>
-                <table class="table w-full border-collapse text-base">
-                    <thead>
-                        <tr>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10">Cost Type</th>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Amount (Rs)</th>
-                            <th class="p-3 bg-gradient-to-br from-blue-900 to-blue-500 text-white font-semibold sticky top-0 z-10 text-right">Percentage</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        foreach ($employee_costs_by_type as $type => $amt): 
-                            $percentage = $total_employee_costs > 0 ? ($amt / $total_employee_costs) * 100 : 0;
-                        ?>
-                            <tr>
-                                <td class="p-3 border-b border-gray-200"><?php echo htmlspecialchars($type); ?></td>
-                                <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($amt, 2); ?></td>
-                                <td class="p-3 border-b border-gray-200 text-right"><?php echo number_format($percentage, 1); ?>%</td>
-                            </tr>
-                        <?php endforeach; ?>
-                        <?php if (isset($expenses_by_category['EPF']) && $expenses_by_category['EPF'] > 0): ?>
-                            <tr>
-                                <td class="p-3 border-b border-gray-200">EPF Contribution</td>
-                                <td class="p-3 border-b border-gray-200 text-right font-medium"><?php echo number_format($expenses_by_category['EPF'], 2); ?></td>
-                                <td class="p-3 border-b border-gray-200 text-right"><?php echo $total_employee_costs > 0 ? number_format(($expenses_by_category['EPF'] / $total_employee_costs) * 100, 1) : '0.0'; ?>%</td>
-                            </tr>
-                        <?php endif; ?>
-                        <tr class="bg-green-50">
-                            <td class="p-3 font-semibold">Total Employee & Labor Costs</td>
-                            <td class="p-3 text-right font-semibold">Rs <?php echo number_format($total_employee_costs, 2); ?></td>
-                            <td class="p-3 text-right font-semibold">100%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-        <?php endif; ?>
+        </footer>
     </div>
 
+    <!-- Scripts -->
     <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const container = document.getElementById('container');
+            sidebar.classList.toggle('hidden');
+            if (window.innerWidth >= 1024) {
+                container.classList.toggle('ml-0');
+                container.classList.toggle('ml-64');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Revenue vs Costs Bar Chart
             new Chart(document.getElementById('revenueVsCostChart'), {
@@ -206,29 +266,30 @@ $error = $error ?? null;
                             <?php echo $profit; ?>
                         ],
                         backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(249, 115, 22, 0.8)',
-                            'rgba(239, 68, 68, 0.8)',
-                            <?php echo $profit >= 0 ? "'rgba(16, 185, 129, 0.8)'" : "'rgba(239, 68, 68, 0.9)'"; ?>
+                            '#3b82f6',
+                            '#f59e0b',
+                            '#ef4444',
+                            <?php echo $profit >= 0 ? "'#059669'" : "'#ef4444'"; ?>
                         ],
-                        borderRadius: 8,
+                        borderRadius: 6,
                         borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
                         tooltip: { callbacks: { label: ctx => 'Rs ' + ctx.parsed.y.toLocaleString() } }
                     },
-                    scales: { y: { beginAtZero: true, ticks: { callback: value => 'Rs ' + value.toLocaleString() } } }
+                    scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { callback: value => 'Rs ' + value.toLocaleString() } } }
                 }
             });
 
             // Expense Breakdown Doughnut Chart
             const allCategories = <?php echo json_encode(array_keys($expenses_by_category)); ?>;
             const allAmounts = <?php echo json_encode(array_values($expenses_by_category)); ?>;
-            const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
+            const colors = ['#3b82f6', '#8b5cf6', '#059669', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
 
             new Chart(document.getElementById('expenseBreakdownChart'), {
                 type: 'doughnut',
@@ -243,8 +304,9 @@ $error = $error ?? null;
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { padding: 20, font: { size: 14 } } },
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
                         tooltip: { callbacks: { label: ctx => ctx.label + ': Rs ' + Number(ctx.parsed).toLocaleString() } }
                     }
                 }
