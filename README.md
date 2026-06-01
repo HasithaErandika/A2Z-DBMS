@@ -1,283 +1,140 @@
-# A2Z Engineering - Database Management System (DBMS)
+# A2Z Engineering - DBMS (Database Management System)
 
-## Overview
+A modernized, high-performance Database Management System designed for internal operations, site cost calculation, wages tracking, maintenance schedule tracking, and operational expenses management. 
 
-A2Z Engineering DBMS is an internal database management system designed for Solar, AC, and Electrical Power companies. This system provides comprehensive management capabilities for employees, projects, jobs, invoices, expenses, and payroll data. The system offers a modern web interface built with PHP, Tailwind CSS, and JavaScript.
+This project uses a decoupled, clean MVC architecture featuring a Service-Repository layer, Custom Middlewares, Pipeline Router, and secure Session Management.
 
-## Features
+---
 
-- **Employee Management**: Track employee information, payment rates, attendance, and salary increments
-- **Project Management**: Manage solar, AC, and electrical power projects with detailed tracking
-- **Job Tracking**: Monitor job progress, completion status, and associated invoices
-- **Financial Management**: Handle operational expenses, employee payments, and invoice data
-- **Reporting**: Generate detailed reports on expenses, wages, and cost calculations
-- **Data Export**: Export data to CSV format for further analysis
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+## 🚀 Key Features & Architecture
 
-## System Requirements
+* **Decoupled Business Logic**: Services like `WageCalculationService` and `ExportService` contain core calculations, keeping controllers lean.
+* **Separation of Concerns**: Database operations are encapsulated inside domain-specific repositories (`EmployeeRepository`, `JobRepository`, `ExpenseRepository`).
+* **Secure Pipeline Middleware**: Includes an `AuthMiddleware` to check authentication, and a `RateLimitMiddleware` to prevent login brute force.
+* **Modern Design System**: Styled with vibrant colors, glassmorphism UI components, Google Fonts (`Poppins`), and subtle hover animations for a premium user experience.
 
-- PHP 7.4 or higher
-- MySQL 5.7 or higher
-- Apache or Nginx web server
-- Composer (for dependency management)
-- Node.js and npm (for frontend asset compilation)
+---
 
-## Installation
+## 🛠️ Local Installation & Setup
 
-### 1. Clone the Repository
+Follow these steps to run the application locally on your PC:
+
+### 1. Prerequisites
+Ensure you have the following installed:
+* **PHP 8.2+** (with `pdo`, `pdo_mysql`, `openssl` extensions enabled)
+* **MySQL Server** (or MySQL Workbench)
+* **Composer** (PHP dependency manager)
+
+### 2. Database Initialization
+Use MySQL Workbench or command-line client to import the schema and seed data.
+The password for `root` on your PC is `Login@123456`.
 
 ```bash
-git clone https://github.com/your-username/a2z-dbms.git
-cd a2z-dbms
+# 1. Import Schema (Creates database 'operational_db' and tables)
+mysql -u root -p'Login@123456' < database/str.sql
+
+# 2. Import Seed Data (Inserts mock employees, projects, jobs, and attendance for testing)
+mysql -u root -p'Login@123456' < database/seed.sql
 ```
 
-### 2. Install Dependencies
-
+### 3. Dependency Autoloading
+Generate the autoloader map inside the project root directory:
 ```bash
 composer install
-npm install
+# or if dependencies are already installed
+composer dump-autoload
 ```
 
-### 3. Database Setup
+### 4. Configuration (`.env`)
+Create/edit the `.env` file in the root directory:
+```env
+# Application Config
+APP_KEY=83b7f16f5c88ea7651a2d5be32a2491a
+APP_ENV=development
+APP_DEBUG=true
+BASE_PATH=/A2Z-DBMS
+FULL_BASE_URL=http://localhost:8000/A2Z-DBMS
 
-1. Create a MySQL database:
-```sql
-CREATE DATABASE a2z_dbms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+# Database Config
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=operational_db
+DB_CHARSET=utf8mb4
+
+# Database Credentials
+DB_USER=root
+DB_PASS=Login@123456
 ```
 
-2. Import the database schema:
+### 5. Run the Local Server
+Start the built-in PHP development server using the index router:
 ```bash
-mysql -u your_username -p a2z_dbms < database/schema.sql
+php -S localhost:8000 public/index.php
 ```
 
-3. Import sample data (optional):
-```bash
-mysql -u your_username -p a2z_dbms < database/sample_data.sql
+Open your browser and navigate to:
+👉 **[http://localhost:8000/A2Z-DBMS/](http://localhost:8000/A2Z-DBMS/)**
+
+### 🔓 Default Admin Credentials
+* **Username**: `admin`
+* **Password**: `admin123`
+
+---
+
+## 📊 Business Logic & Report Calculations
+
+### 1. Wages Report & Calculations
+Wages are handled by the `WageCalculationService`:
+* **Fixed Rate Employees**: Earn a set monthly salary. If they work less than a full month, their salary is prorated based on attendance days vs. total days.
+* **Daily Rate Employees**: Calculated as `Total Presence Days × Daily Rate`.
+* **Deductions (EPF/ETF)**:
+  * **Employee EPF**: 8% deduction from the base salary.
+  * **Employer EPF**: 12% contributed by the employer (not deducted from employee's net wage).
+  * **Employer ETF**: 3% contributed by the employer (not deducted from employee's net wage).
+* **Net Wage**: calculated as `Gross Wage + Allowances - Deductions (Advances, Employee EPF)`.
+
+### 2. Operational Expenses
+Expenses are grouped by categories (e.g. `Transport`, `Materials`, `Tools`, `Subcontracting`):
+* Sums total expenses per project and per site.
+* Provides inline actions to mark expenses as paid/unpaid.
+
+### 3. Maintenance Reports
+The maintenance scheduler runs periodic safety/check cycles:
+* Tracks cycle count, status (`scheduled`, `completed`, `overdue`), and dates.
+* Auto-generates maintenance schedules when a job is marked as active.
+
+### 4. Cost Calculations of Sites
+Combines:
+* Total employee labor costs (based on attendance records and payment rates).
+* Total operational expenses logged for a specific job/site.
+* Invoiced values vs. received payments to calculate real-time profitability per site.
+
+---
+
+## ☁️ Connecting Supabase (PostgreSQL Integration)
+
+Yes, you can connect the system to **Supabase**! Because Supabase uses **PostgreSQL** instead of MySQL, you will need to perform the following transitions:
+
+### 1. Database Schema Translation
+Translate the MySQL DDL in `database/str.sql` to PostgreSQL dialect:
+* Replace `INT(11) AUTO_INCREMENT` with `SERIAL` or `BIGSERIAL`.
+* Replace `VARCHAR(x) COLLATE utf8mb4_general_ci` with `VARCHAR(x)`.
+* Change `TINYINT(1)` to `BOOLEAN`.
+* Run the converted SQL script inside the Supabase SQL Editor.
+
+### 2. Update Configuration
+Change `.env` file credentials to point to your Supabase PostgreSQL connection pool:
+```env
+DB_HOST=aws-0-us-east-1.pooler.supabase.com  # Your Supabase host
+DB_PORT=6543                                 # Postgres port (standard/transaction pooler)
+DB_NAME=postgres
+DB_USER=postgres.your-project-id
+DB_PASS=your-supabase-db-password
 ```
 
-### 4. Configuration
-
-1. Copy the configuration file:
-```bash
-cp config/config.example.php config/config.php
-```
-
-2. Update the database credentials in `config/config.php`:
+### 3. Update PDO Driver DSN
+In `src/core/Database.php`, change the connection string DSN prefix from `mysql:` to `pgsql:`:
 ```php
-<?php
-return [
-    'database' => [
-        'host' => 'localhost',
-        'dbname' => 'a2z_dbms',
-        'username' => 'your_database_username',
-        'password' => 'your_database_password',
-        'charset' => 'utf8mb4'
-    ],
-    'app' => [
-        'base_url' => 'http://localhost/a2z-dbms',
-        'timezone' => 'Asia/Colombo'
-    ]
-];
+$dsn = "pgsql:host={$host};port={$port};dbname={$dbname};options='--client_encoding=UTF8'";
 ```
-
-### 5. Web Server Configuration
-
-#### Apache
-
-Ensure mod_rewrite is enabled and use the provided `.htaccess` file in the public directory.
-
-#### Nginx
-
-Add the following configuration to your Nginx server block:
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /path/to/a2z-dbms/public;
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-}
-```
-
-### 6. Asset Compilation
-
-Compile the frontend assets:
-
-```bash
-npm run build
-```
-
-## Directory Structure
-
-```
-a2z-dbms/
-├── config/                 # Application configuration files
-├── database/               # Database schema and sample data
-├── public/                 # Publicly accessible files
-│   ├── index.php           # Entry point
-│   └── .htaccess           # Apache rewrite rules
-├── src/                    # Application source code
-│   ├── Controllers/        # Controller classes
-│   ├── Models/             # Model classes
-│   ├── Views/              # View templates
-│   │   ├── admin/          # Admin panel views
-│   │   ├── auth/           # Authentication views
-│   │   ├── errors/         # Error pages
-│   │   ├── home/           # Homepage views
-│   │   └── reports/        # Report views
-│   ├── assets/             # Static assets
-│   │   ├── css/            # Stylesheets
-│   │   ├── js/             # JavaScript files
-│   │   └── images/         # Image files
-│   └── Core/               # Core framework files
-├── vendor/                 # Composer dependencies
-├── .env.example            # Environment variables example
-├── composer.json           # PHP dependencies
-└── package.json            # Frontend dependencies
-```
-
-## Usage
-
-### Authentication
-
-1. Navigate to the login page: `http://your-domain.com/login`
-2. Enter your database credentials to access the system
-3. Upon successful authentication, you'll be redirected to the admin dashboard
-
-### Admin Dashboard
-
-The dashboard provides an overview of:
-- Total employees
-- Active jobs
-- Total projects
-- Financial summaries
-- System information
-
-### Data Management
-
-Access different data tables through the sidebar navigation:
-- **Employees**: Manage employee information and payment rates
-- **Attendance**: Track employee attendance records
-- **Projects**: Manage project details
-- **Jobs**: Track job progress and completion
-- **Invoices**: Handle invoice data and payments
-- **Expenses**: Manage operational expenses
-- **Payments**: Track employee payments
-- **Bank Details**: Store employee bank information
-
-### Reports
-
-Generate various reports from the Reports section:
-- **Expense Reports**: Analyze operational expenses
-- **Wage Reports**: Review employee payments
-- **Cost Calculations**: Calculate project profitability
-
-## Development
-
-### Coding Standards
-
-- Follow PSR-12 coding standards for PHP
-- Use Tailwind CSS for styling
-- Maintain consistent naming conventions
-- Write clear, commented code
-
-### Adding New Features
-
-1. Create a new branch for your feature:
-```bash
-git checkout -b feature/new-feature-name
-```
-
-2. Implement your feature following the existing code patterns
-
-3. Test thoroughly and commit your changes:
-```bash
-git add .
-git commit -m "Add new feature: description"
-```
-
-4. Push to the repository and create a pull request:
-```bash
-git push origin feature/new-feature-name
-```
-
-## Security
-
-- All database queries use prepared statements to prevent SQL injection
-- User inputs are sanitized and validated
-- Passwords are hashed using bcrypt
-- Session management follows security best practices
-- CSRF protection is implemented for forms
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Error**
-   - Verify database credentials in `config/config.php`
-   - Ensure MySQL service is running
-   - Check database user permissions
-
-2. **404 Errors**
-   - Verify web server rewrite rules are configured correctly
-   - Check that the `public` directory is set as the document root
-
-3. **Permission Issues**
-   - Ensure the web server has read/write permissions for:
-     - `logs/` directory
-     - `cache/` directory
-     - `uploads/` directory (if applicable)
-
-### Logging
-
-Application logs are stored in the `logs/` directory. Check these files for error messages and debugging information.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a pull request
-
-## License
-
-This project is proprietary software developed for A2Z Engineering. All rights reserved.
-
-## Support
-
-For support, contact the development team at:
-- Email: support@a2zengineering.com
-- Phone: +94 XXX XXX XXX
-
-## Version History
-
-### v2.1.0 (Current)
-- Enhanced UI/UX with Tailwind CSS
-- Improved data management capabilities
-- Added comprehensive reporting features
-- Implemented responsive design
-- Enhanced security measures
-
-### v2.0.0
-- Major refactor of the codebase
-- Migration to modern PHP practices
-- Improved database structure
-- Added new data tables
-
-### v1.0.0
-- Initial release
-- Basic CRUD operations
-- Simple reporting capabilities
-- Authentication system
+PostgreSQL will then connect seamlessly via the PDO PGSQL driver.

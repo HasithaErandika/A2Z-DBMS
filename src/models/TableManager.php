@@ -1,18 +1,29 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_log('Error reporting enabled in TableManager.php');
+// Error display disabled in production — errors logged to server log only
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 require_once 'src/core/Model.php';
-class TableManager extends Model {
+class TableManager extends Model
+{
     private $allowedTables = [
-        'attendance', 'employees', 'employee_bank_details', 'projects', 'jobs',
-        'operational_expenses', 'invoice_data', 'employee_payments', 'salary_increments',
-        'employee_payment_rates', 'cash_hand', 'maintenance_schedule'
+        'attendance',
+        'employees',
+        'employee_bank_details',
+        'projects',
+        'jobs',
+        'operational_expenses',
+        'invoice_data',
+        'employee_payments',
+        'salary_increments',
+        'employee_payment_rates',
+        'cash_hand',
+        'maintenance_schedule',
+        'job_materials'
     ];
     private $tableConfigs = [
         'jobs' => [
-            'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
+            'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'selling_price', 'remarks', 'completion'],
             'validation' => [
                 'engineer' => ['required'],
                 'date_started' => ['required']
@@ -97,7 +108,7 @@ class TableManager extends Model {
             'dateField' => 'attendance_date'
         ],
         'employees' => [
-             'editableFields' => ['emp_name', 'emp_nic', 'date_of_birth', 'address', 'date_of_joined', 'date_of_resigned', 'designation', 'etf_number', 'daily_wage', 'basic_salary', 'nic_photo'],
+            'editableFields' => ['emp_name', 'emp_nic', 'date_of_birth', 'address', 'date_of_joined', 'date_of_resigned', 'designation', 'etf_number', 'daily_wage', 'basic_salary', 'nic_photo'],
             'validation' => [
                 'emp_name' => ['required'],
                 'emp_nic' => ['required']
@@ -145,7 +156,7 @@ class TableManager extends Model {
             'dateField' => 'increment_date'
         ],
         'employee_payment_rates' => [
-             'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
+            'editableFields' => ['emp_id', 'rate_type', 'rate_amount', 'effective_date', 'end_date'],
             'validation' => [
                 'emp_id' => ['required'],
                 'rate_type' => ['required', 'in:Fixed,Daily'],
@@ -160,7 +171,7 @@ class TableManager extends Model {
             'dateField' => 'effective_date'
         ],
         'cash_hand' => [
-             'editableFields' => ['given_by', 'received_by', 'amount', 'purpose', 'transaction_type', 'txn_date', 'reference_note'],
+            'editableFields' => ['given_by', 'received_by', 'amount', 'purpose', 'transaction_type', 'txn_date', 'reference_note'],
             'validation' => [
                 'given_by' => ['required'],
                 'received_by' => ['required'],
@@ -177,7 +188,7 @@ class TableManager extends Model {
             'dateField' => 'txn_date'
         ],
         'maintenance_schedule' => [
-             'editableFields' => ['job_id', 'cycle_number', 'scheduled_date', 'actual_date', 'status', 'description'],
+            'editableFields' => ['job_id', 'cycle_number', 'scheduled_date', 'actual_date', 'status', 'description'],
             'validation' => [
                 'job_id' => ['required'],
                 'cycle_number' => ['required']
@@ -188,14 +199,40 @@ class TableManager extends Model {
             'searchFields' => ['scheduled_date', 'actual_date', 'status', 'description'],
             'dateField' => 'scheduled_date'
         ],
+        'job_materials' => [
+            'editableFields' => ['job_id', 'material_name', 'quantity', 'unit_price', 'profit_margin'],
+            'validation' => [
+                'job_id' => ['required'],
+                'material_name' => ['required'],
+                'quantity' => ['required'],
+                'unit_price' => ['required'],
+                'profit_margin' => ['required']
+            ],
+            'formatters' => [
+                'job_id' => 'getJobDetails',
+                'unit_price' => 'formatCurrency',
+                'total_cost' => 'formatCurrency',
+                'profit_amount' => 'formatCurrency',
+                'final_price' => 'formatCurrency'
+            ],
+            'searchFields' => ['material_name', 'quantity', 'unit_price', 'profit_margin', 'total_cost', 'final_price'],
+            'dateField' => null,
+            'joins' => [
+                ['table' => 'jobs', 'alias' => 'j', 'condition' => 'job_materials.job_id = j.job_id', 'type' => 'LEFT'],
+                ['table' => 'projects', 'alias' => 'p', 'condition' => 'j.project_id = p.project_id', 'type' => 'LEFT']
+            ]
+        ],
     ];
-    public function getAllowedTables() {
+    public function getAllowedTables()
+    {
         return $this->allowedTables;
     }
-    public function getConfig($table) {
+    public function getConfig($table)
+    {
         return $this->tableConfigs[$table] ?? [];
     }
-    public function getColumns($table) {
+    public function getColumns($table)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -208,7 +245,8 @@ class TableManager extends Model {
             throw new Exception("Failed to retrieve columns for $table: " . $e->getMessage());
         }
     }
-    public function getPrimaryKey($table) {
+    public function getPrimaryKey($table)
+    {
         $primaryKeys = [
             'employees' => 'emp_id',
             'employee_payment_rates' => 'rate_id',
@@ -225,17 +263,19 @@ class TableManager extends Model {
         ];
         return $primaryKeys[$table] ?? $this->getColumns($table)[0];
     }
-    public function getActiveEmployees() {
+    public function getActiveEmployees()
+    {
         try {
-            $stmt = $this->db->query("SELECT COUNT(*) FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned = '0000-00-00'");
+            $stmt = $this->db->query("SELECT COUNT(*) FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned < '1970-01-02'");
             return $stmt->fetchColumn();
         } catch (PDOException $e) {
             error_log("Error in getActiveEmployees: " . $e->getMessage());
             return 'N/A';
         }
     }
-    
-    public function getActiveJobs() {
+
+    public function getActiveJobs()
+    {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM jobs WHERE completion < 1.0");
             return $stmt->fetchColumn();
@@ -244,8 +284,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTotalProjects() {
+
+    public function getTotalProjects()
+    {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM projects");
             return $stmt->fetchColumn();
@@ -254,8 +295,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTotalExpenses() {
+
+    public function getTotalExpenses()
+    {
         try {
             $stmt = $this->db->query("SELECT SUM(expense_amount) FROM operational_expenses");
             return $stmt->fetchColumn() ?: 0;
@@ -264,8 +306,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTotalPayments() {
+
+    public function getTotalPayments()
+    {
         try {
             $stmt = $this->db->query("SELECT SUM(paid_amount) FROM employee_payments");
             return $stmt->fetchColumn() ?: 0;
@@ -274,8 +317,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTodaysJobs() {
+
+    public function getTodaysJobs()
+    {
         try {
             $today = date('Y-m-d');
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM jobs WHERE DATE(date_started) = ?");
@@ -286,8 +330,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTodaysExpenses() {
+
+    public function getTodaysExpenses()
+    {
         try {
             $today = date('Y-m-d');
             $stmt = $this->db->prepare("SELECT SUM(expense_amount) FROM operational_expenses WHERE DATE(expensed_date) = ?");
@@ -298,7 +343,8 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    public function getTotalEmployees() {
+    public function getTotalEmployees()
+    {
         try {
             $stmt = $this->db->query("SELECT COUNT(*) FROM employees");
             return $stmt->fetchColumn();
@@ -307,8 +353,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getTodaysAttendance() {
+
+    public function getTodaysAttendance()
+    {
         try {
             $today = date('Y-m-d');
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM attendance WHERE attendance_date = ?");
@@ -319,7 +366,8 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    public function getMonthlyExpenses() {
+    public function getMonthlyExpenses()
+    {
         try {
             $month = date('Y-m');
             $stmt = $this->db->prepare("SELECT SUM(expense_amount) FROM operational_expenses WHERE expensed_date LIKE ?");
@@ -330,7 +378,8 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    public function getPendingPayments() {
+    public function getPendingPayments()
+    {
         try {
             $stmt = $this->db->prepare("SELECT COUNT(*) FROM employee_payments WHERE payment_type = ?");
             $stmt->execute(['Advance']);
@@ -340,8 +389,9 @@ class TableManager extends Model {
             return 'N/A';
         }
     }
-    
-    public function getMySQLVersion() {
+
+    public function getMySQLVersion()
+    {
         try {
             $stmt = $this->db->query("SELECT VERSION() AS mysql_version");
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -351,14 +401,15 @@ class TableManager extends Model {
             return 'Unknown';
         }
     }
-    public function calculateTotalJobCapacity() {
+    public function calculateTotalJobCapacity()
+    {
         try {
             $stmt = $this->db->query("SELECT job_capacity FROM jobs");
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $totalCapacity = 0.0;
             foreach ($results as $row) {
                 if (preg_match('/\d+(\.\d+)?/', $row['job_capacity'] ?? '', $matches)) {
-                    $totalCapacity += (float)$matches[0];
+                    $totalCapacity += (float) $matches[0];
                 }
             }
             return $totalCapacity;
@@ -367,7 +418,8 @@ class TableManager extends Model {
             return 0.0;
         }
     }
-    public function fetchRecords($table, $page = 1, $perPage = 10, $searchTerms = [], $sortColumn = '', $sortOrder = 'DESC', $dataTablesFormat = true, $dataOnly = false) {
+    public function fetchRecords($table, $page = 1, $perPage = 10, $searchTerms = [], $sortColumn = '', $sortOrder = 'DESC', $dataTablesFormat = true, $dataOnly = false)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -377,19 +429,24 @@ class TableManager extends Model {
             $config = $this->getConfig($table);
             $idColumn = $this->getPrimaryKey($table);
             $dateField = $config['dateField'] ?? null;
-            
+
             // Map main aliases for consistent querying
             $mainAlias = '';
-            if ($table === 'jobs') $mainAlias = 'j';
-            elseif ($table === 'operational_expenses') $mainAlias = 'ex';
-            elseif ($table === 'employee_payments') $mainAlias = 'ep';
-            elseif ($table === 'invoice_data') $mainAlias = 'inv';
-            else $mainAlias = $table; // default to table name if no short alias needed
+            if ($table === 'jobs')
+                $mainAlias = 'j';
+            elseif ($table === 'operational_expenses')
+                $mainAlias = 'ex';
+            elseif ($table === 'employee_payments')
+                $mainAlias = 'ep';
+            elseif ($table === 'invoice_data')
+                $mainAlias = 'inv';
+            else
+                $mainAlias = $table; // default to table name if no short alias needed
 
-            $selectColumns = array_map(function($col) use ($table, $dateField, $mainAlias) {
-                 // Use prefix if main alias is short
+            $selectColumns = array_map(function ($col) use ($table, $dateField, $mainAlias) {
+                // Use prefix if main alias is short
                 $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
-                
+
                 if ($col === $dateField) {
                     return "DATE_FORMAT($prefix`$col`, '%Y-%m-%d') AS `$col`";
                 }
@@ -402,16 +459,16 @@ class TableManager extends Model {
 
             // Add extra columns for Jobs if needed (legacy support or specific logic)
             if ($table === 'jobs') {
-                 // Explicitly ensure emp_id is selected if it exists, or handle if it doesn't
-                 // The error suggests emp_id column is missing from jobs table or alias j issue
-                 // But getColumns returned it? If j.emp_id failed, maybe it's not in the table. 
-                 // We will skip selecting custom stuff for now as selectColumns covers allColumns
-                 $sql .= ", p.company_reference AS company_reference, (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = j.job_id) > 0 AS has_invoice";
+                // Explicitly ensure emp_id is selected if it exists, or handle if it doesn't
+                // The error suggests emp_id column is missing from jobs table or alias j issue
+                // But getColumns returned it? If j.emp_id failed, maybe it's not in the table. 
+                // We will skip selecting custom stuff for now as selectColumns covers allColumns
+                $sql .= ", p.company_reference AS company_reference, (SELECT COUNT(*) FROM invoice_data WHERE invoice_data.job_id = j.job_id) > 0 AS has_invoice";
             }
 
             // JOIN Logic
             $sql .= " FROM `$table`" . ((in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? " AS $mainAlias" : "");
-            
+
             $joins = $config['joins'] ?? [];
             foreach ($joins as $join) {
                 $joinType = $join['type'] ?? 'LEFT';
@@ -423,7 +480,7 @@ class TableManager extends Model {
 
             // Count Query (Must mirrors joins for search filtering)
             $countSql = "SELECT COUNT(*) FROM `$table`" . ((in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? " AS $mainAlias" : "");
-             foreach ($joins as $join) {
+            foreach ($joins as $join) {
                 $joinType = $join['type'] ?? 'LEFT';
                 $joinTable = $join['table'];
                 $joinAlias = $join['alias'];
@@ -438,53 +495,37 @@ class TableManager extends Model {
                 $searchFields = $config['searchFields'] ?? $allColumns;
                 foreach ($searchTerms as $index => $term) {
                     $term = trim($term);
-                    if ($term === '') continue;
+                    if ($term === '')
+                        continue;
 
                     $termConditions = [];
                     foreach ($searchFields as $fieldIndex => $col) {
                         $paramName = ":search{$index}_{$fieldIndex}";
-                        
+
                         // Handle column names that might have table aliases (e.g., p.company_reference)
                         $dbCol = $col;
                         if (strpos($col, '.') === false) {
                             // No alias provided, infer it? strict searching requires knowing the column
                             // For simplicity, if no alias, assume main table.
-                             $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
-                             $dbCol = "$prefix`$col`";
+                            $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                            $dbCol = "$prefix`$col`";
                         } else {
                             // Alias present, assume safe format "alias.column"
                             $parts = explode('.', $col);
                             $dbCol = $parts[0] . ".`" . $parts[1] . "`";
                         }
 
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
-                            // Exact match for numbers
+                        // Build search condition and bind param value
+                        $originalTerm = trim($searchTerms[$index]);
+                        if (preg_match('/^\d+(\.\d+)?$/', $originalTerm)) {
                             $termConditions[] = "$dbCol = $paramName";
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
-                             // Exact Date
-                             $termConditions[] = "$dbCol = $paramName";
-                        } else {
-                            // Like search
-                            $termConditions[] = "$dbCol LIKE $paramName";
-                            $term = "%{$term}%"; // Modify term for LIKE outside the loop? No, bind it.
-                        }
-                         // IMPORTANT: bind the param value correctly
-                         // We need to re-assign term with % if it was a LIKE query, but we loop fields...
-                         // Actually, we can't bind different values (exact vs like) to the same param name for different fields easily without logic
-                         // Better: make param name specific to the type of search
-                         
-                         // Quick fix: Just use LIKE for everything that isn't strictly date specific logic or pure ID exactness if we want broad search
-                         // Rewriting condition construction for safety:
-                         
-                        if (preg_match('/^\d+(\.\d+)?$/', $term)) {
-                             $termConditions[] = "$dbCol = $paramName";
-                             $params[$paramName] = $term;
-                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $term) && $col === $dateField) {
-                             $termConditions[] = "$dbCol = $paramName";
-                             $params[$paramName] = $term; // Original term
+                            $params[$paramName] = $originalTerm;
+                        } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $originalTerm) && $col === $dateField) {
+                            $termConditions[] = "$dbCol = $paramName";
+                            $params[$paramName] = $originalTerm;
                         } else {
                             $termConditions[] = "$dbCol LIKE $paramName";
-                            $params[$paramName] = "%" . trim($searchTerms[$index]) . "%"; // Use original term with wildcards
+                            $params[$paramName] = "%" . $originalTerm . "%";
                         }
                     }
                     if (!empty($termConditions)) {
@@ -499,14 +540,14 @@ class TableManager extends Model {
             }
 
             if ($sortColumn && in_array($sortColumn, $allColumns)) {
-                 $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
                 $sql .= " ORDER BY $prefix`$sortColumn` " . ($sortOrder === 'ASC' ? 'ASC' : 'DESC');
             } else {
-                 $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
+                $prefix = (in_array($table, ['jobs', 'operational_expenses', 'employee_payments', 'invoice_data'])) ? "$mainAlias." : "`$table`.";
                 $sql .= " ORDER BY $prefix`$idColumn` DESC";
             }
 
-            $offset = $perPage > 0 ? (int)(($page - 1) * $perPage) : 0;
+            $offset = $perPage > 0 ? (int) (($page - 1) * $perPage) : 0;
             if ($perPage > 0) {
                 $sql .= " LIMIT :offset, :perPage";
                 $params[':offset'] = $offset;
@@ -518,7 +559,7 @@ class TableManager extends Model {
 
             $countStmt = $this->db->prepare($countSql);
             foreach ($params as $paramName => $paramValue) {
-               if (strpos($paramName, ':search') === 0) {
+                if (strpos($paramName, ':search') === 0) {
                     $countStmt->bindValue($paramName, $paramValue, PDO::PARAM_STR);
                 }
             }
@@ -527,8 +568,8 @@ class TableManager extends Model {
 
             $stmt = $this->db->prepare($sql);
             foreach ($params as $paramName => $paramValue) {
-                 $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
-                 $stmt->bindValue($paramName, $paramValue, $paramType);
+                $paramType = strpos($paramName, ':search') === 0 ? PDO::PARAM_STR : PDO::PARAM_INT;
+                $stmt->bindValue($paramName, $paramValue, $paramType);
             }
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -539,13 +580,13 @@ class TableManager extends Model {
             }
 
             $result = [
-                'recordsTotal' => (int)$recordsTotal,
-                'recordsFiltered' => (int)$recordsFiltered,
+                'recordsTotal' => (int) $recordsTotal,
+                'recordsFiltered' => (int) $recordsFiltered,
                 'data' => $data
             ];
-            
+
             if ($dataTablesFormat) {
-                $result['draw'] = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
+                $result['draw'] = isset($_POST['draw']) ? (int) $_POST['draw'] : 1;
             }
 
             return $result;
@@ -554,7 +595,8 @@ class TableManager extends Model {
             throw new Exception("Failed to retrieve records from $table: " . $e->getMessage());
         }
     }
-    private function applyFormatters($records, $table, $columns) {
+    private function applyFormatters($records, $table, $columns)
+    {
         $config = $this->getConfig($table);
         foreach ($records as &$record) {
             foreach ($columns as $column) {
@@ -563,13 +605,14 @@ class TableManager extends Model {
                 }
             }
             if ($table === 'jobs' && isset($record['has_invoice'])) {
-                $record['has_invoice'] = (bool)$record['has_invoice'];
+                $record['has_invoice'] = (bool) $record['has_invoice'];
             }
         }
         unset($record);
         return $records;
     }
-    public function getInvoiceDetailsByJobId($jobId) {
+    public function getInvoiceDetailsByJobId($jobId)
+    {
         if (empty($jobId)) {
             error_log("Empty jobId passed to getInvoiceDetailsByJobId");
             return null;
@@ -598,13 +641,13 @@ class TableManager extends Model {
                 return null;
             }
             if (isset($invoice['invoice_value'])) {
-                $invoice['invoice_value'] = number_format((float)$invoice['invoice_value'], 2, '.', '');
+                $invoice['invoice_value'] = number_format((float) $invoice['invoice_value'], 2, '.', '');
             }
             if (isset($invoice['receiving_payment'])) {
-                $invoice['receiving_payment'] = number_format((float)$invoice['receiving_payment'], 2, '.', '');
+                $invoice['receiving_payment'] = number_format((float) $invoice['receiving_payment'], 2, '.', '');
             }
             if (isset($invoice['received_amount'])) {
-                $invoice['received_amount'] = number_format((float)$invoice['received_amount'], 2, '.', '');
+                $invoice['received_amount'] = number_format((float) $invoice['received_amount'], 2, '.', '');
             }
             if (isset($invoice['job_id'])) {
                 $jobDetails = $this->getJobDetails($invoice['job_id']);
@@ -616,7 +659,8 @@ class TableManager extends Model {
             return null;
         }
     }
-    public function updateJobStatus($jobId, $newCompletion) {
+    public function updateJobStatus($jobId, $newCompletion)
+    {
         try {
             if (empty($jobId)) {
                 return ['success' => false, 'error' => 'Job ID is required'];
@@ -627,9 +671,9 @@ class TableManager extends Model {
             if ($currentCompletion === false) {
                 return ['success' => false, 'error' => 'Job not found'];
             }
-            $currentCompletion = (float)$currentCompletion;
+            $currentCompletion = (float) $currentCompletion;
             $validCompletions = [0.0, 0.1, 0.2, 0.3, 0.5, 1.0];
-            $newCompletion = (float)$newCompletion;
+            $newCompletion = (float) $newCompletion;
             if (!in_array($newCompletion, $validCompletions)) {
                 return ['success' => false, 'error' => 'Invalid completion value'];
             }
@@ -640,26 +684,45 @@ class TableManager extends Model {
             return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
         }
     }
-    public function create($table, $data) {
+    public function create($table, $data)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
         try {
             $this->db->beginTransaction();
             $config = $this->getConfig($table);
+            if ($table === 'job_materials') {
+                if (isset($data['profit_margin'])) {
+                    $margin = floatval($data['profit_margin']);
+                    if ($margin > 0 && $margin < 1) {
+                        $data['profit_margin'] = round($margin * 100, 4);
+                    }
+                    if ($data['profit_margin'] > 100) {
+                        $data['profit_margin'] = 100;
+                    }
+                }
+            }
             $this->validate($table, $data, $config['validation'] ?? []);
             $editableFields = $config['editableFields'] ?? $this->getColumns($table);
             $filteredData = array_intersect_key($data, array_flip($editableFields));
+            foreach ($filteredData as $key => &$value) {
+                if ($value === '') {
+                    $value = null;
+                }
+            }
+            unset($value);
             if (empty($filteredData)) {
                 throw new Exception("No valid fields provided for insertion in $table. Submitted data: " . json_encode($data));
             }
             $columns = array_keys($filteredData);
-            $placeholders = array_map(function($col) { return ":$col"; }, $columns);
+            $placeholders = array_map(function ($col) {
+                return ":$col"; }, $columns);
             $sql = "INSERT INTO `$table` (" . implode(',', array_map(fn($col) => "`$col`", $columns)) . ")
                     VALUES (" . implode(',', $placeholders) . ")";
             $stmt = $this->db->prepare($sql);
             foreach ($filteredData as $key => $value) {
-                $stmt->bindValue(":$key", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+                $stmt->bindValue(":$key", $value, is_null($value) ? PDO::PARAM_NULL : (is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR));
             }
             $stmt->execute();
             $newId = $this->db->lastInsertId();
@@ -675,7 +738,8 @@ class TableManager extends Model {
             throw $e;
         }
     }
-    public function update($table, $data, $idColumn, $id) {
+    public function update($table, $data, $idColumn, $id)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -687,9 +751,26 @@ class TableManager extends Model {
                 throw new Exception("Record with $idColumn = $id not found in $table");
             }
             $config = $this->getConfig($table);
+            if ($table === 'job_materials') {
+                if (isset($data['profit_margin'])) {
+                    $margin = floatval($data['profit_margin']);
+                    if ($margin > 0 && $margin < 1) {
+                        $data['profit_margin'] = round($margin * 100, 4);
+                    }
+                    if ($data['profit_margin'] > 100) {
+                        $data['profit_margin'] = 100;
+                    }
+                }
+            }
             $this->validate($table, $data, $config['validation'] ?? []);
             $editableFields = $config['editableFields'] ?? $this->getColumns($table);
             $filteredData = array_intersect_key($data, array_flip($editableFields));
+            foreach ($filteredData as $key => &$value) {
+                if ($value === '') {
+                    $value = null;
+                }
+            }
+            unset($value);
             if (empty($filteredData)) {
                 throw new Exception("No valid fields provided for update in $table");
             }
@@ -697,7 +778,7 @@ class TableManager extends Model {
             $sql = "UPDATE `$table` SET $setClause WHERE `$idColumn` = :id";
             $stmt = $this->db->prepare($sql);
             foreach ($filteredData as $key => $value) {
-                $stmt->bindValue(":$key", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+                $stmt->bindValue(":$key", $value, is_null($value) ? PDO::PARAM_NULL : (is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR));
             }
             $stmt->bindValue(':id', $id, is_int($id) ? PDO::PARAM_INT : PDO::PARAM_STR);
             $stmt->execute();
@@ -711,7 +792,8 @@ class TableManager extends Model {
             throw $e;
         }
     }
-    public function delete($table, $idColumn, $id) {
+    public function delete($table, $idColumn, $id)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -738,8 +820,10 @@ class TableManager extends Model {
             throw new Exception("Failed to delete record from $table: " . $e->getMessage());
         }
     }
-    public function fetchEmployeeName($empId) {
-        if (empty($empId)) return 'No Employee';
+    public function fetchEmployeeName($empId)
+    {
+        if (empty($empId))
+            return 'No Employee';
         try {
             $stmt = $this->db->prepare("SELECT emp_name FROM employees WHERE emp_id = ?");
             $stmt->execute([$empId]);
@@ -750,40 +834,28 @@ class TableManager extends Model {
             return 'Error';
         }
     }
-    public function getEmployeeName($empId) {
+    public function getEmployeeName($empId)
+    {
         return $this->fetchEmployeeName($empId);
     }
-    public function getBooleanIcon($value) {
-        return $value === 'Yes' || $value === true || $value === 1 ? '<i class="fas fa-check" style="color: #10B981;"></i>' : '<i class="fas fa-times" style="color: #EF4444;"></i>';
+    public function getBooleanIcon($value)
+    {
+        return \App\Helpers\Formatter::getBooleanIcon($value);
     }
-    public function getPresenceDisplay($value) {
-        $value = (float)$value;
-        if ($value == 1.0) return '<span style="color: #10B981;">Full Day</span>';
-        if ($value == 0.5) return '<span style="color: #F59E0B;">Half Day</span>';
-        if ($value == 0.0) return '<span style="color: #EF4444;">Not Attended</span>';
-        return htmlspecialchars($value);
+    public function getPresenceDisplay($value)
+    {
+        return \App\Helpers\Formatter::getPresenceDisplay($value);
     }
-    public function getTransactionTypeDisplay($value) {
-        if ($value === 'In') {
-            return '<span style="color: #10B981;">Received</span>';
-        } elseif ($value === 'Out') {
-            return '<span style="color: #EF4444;">Disbursed</span>';
-        }
-        return htmlspecialchars($value);
+    public function getTransactionTypeDisplay($value)
+    {
+        return \App\Helpers\Formatter::getTransactionTypeDisplay($value);
     }
-    public function getCompletionStatus($value) {
-        $value = (float)$value;
-        switch ($value) {
-            case 0.0: return '<span style="color: #EF4444;">Not Started</span>';
-            case 0.1: return '<span style="color: #D1D5DB;">Cancelled</span>';
-            case 0.2: return '<span style="color: #3B82F6;">Started</span>';
-            case 0.3: return '<span style="color: #6D28D9;">Postponed</span>';
-            case 0.5: return '<span style="color: #F59E0B;">Ongoing</span>';
-            case 1.0: return '<span style="color: #10B981;">Completed</span>';
-            default: return htmlspecialchars($value);
-        }
+    public function getCompletionStatus($value)
+    {
+        return \App\Helpers\Formatter::getCompletionStatus($value);
     }
-    public function getProjectDetailsForJobs($projectId = null) {
+    public function getProjectDetailsForJobs($projectId = null)
+    {
         if (!empty($projectId)) {
             try {
                 $stmt = $this->db->prepare("
@@ -830,7 +902,8 @@ class TableManager extends Model {
             return '<option value="">Error loading projects</option>';
         }
     }
-    public function getJobDetails($jobId = null) {
+    public function getJobDetails($jobId = null)
+    {
         if (!empty($jobId)) {
             try {
                 $stmt = $this->db->prepare("
@@ -846,7 +919,8 @@ class TableManager extends Model {
                 ");
                 $stmt->execute([$jobId]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$result) return 'Job Not Found';
+                if (!$result)
+                    return 'Job Not Found';
                 return sprintf(
                     '%s - %s - %s',
                     htmlspecialchars($result['project_description'] ?? 'No Description'),
@@ -893,9 +967,10 @@ class TableManager extends Model {
             return '<option value="">Error loading jobs</option>';
         }
     }
-    public function getEmployeeOptions() {
+    public function getEmployeeOptions()
+    {
         try {
-            $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned = '0000-00-00' ORDER BY emp_id DESC");
+            $stmt = $this->db->query("SELECT emp_id, emp_name FROM employees WHERE date_of_resigned IS NULL OR date_of_resigned < '1970-01-02' ORDER BY emp_id DESC");
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
             $options = ['<option value="">Select Employee</option>'];
             foreach ($employees as $employee) {
@@ -914,15 +989,20 @@ class TableManager extends Model {
             return '<option value="">Error loading employees</option>';
         }
     }
-    public function generateMaintenanceSchedulesForJob($jobId) {
-        if (empty($jobId)) return ['success' => false, 'error' => 'Job ID required'];
+    public function generateMaintenanceSchedulesForJob($jobId)
+    {
+        if (empty($jobId))
+            return ['success' => false, 'error' => 'Job ID required'];
         try {
             $stmt = $this->db->prepare("SELECT job_id, DATE_FORMAT(date_completed, '%Y-%m-%d') AS end_date, project_id FROM jobs WHERE job_id = ? LIMIT 1");
             $stmt->execute([$jobId]);
             $job = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$job) return ['success' => false, 'error' => 'Job not found'];
-            if (empty($job['end_date'])) return ['success' => false, 'error' => 'Job has no completion date'];
-            if ((int)$job['project_id'] !== 5) return ['success' => false, 'error' => 'Not an A2Z Engineering job'];
+            if (!$job)
+                return ['success' => false, 'error' => 'Job not found'];
+            if (empty($job['end_date']))
+                return ['success' => false, 'error' => 'Job has no completion date'];
+            if ((int) $job['project_id'] !== 5)
+                return ['success' => false, 'error' => 'Not an A2Z Engineering job'];
             $inserted = 0;
             $this->db->beginTransaction();
             $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM maintenance_schedule WHERE job_id = ? AND cycle_number = ?");
@@ -948,12 +1028,16 @@ class TableManager extends Model {
             $this->db->commit();
             return ['success' => true, 'inserted' => $inserted, 'job_id' => $jobId];
         } catch (PDOException $e) {
-            try { $this->db->rollBack(); } catch (Exception $ex) {}
+            try {
+                $this->db->rollBack();
+            } catch (Exception $ex) {
+            }
             error_log("Error in generateMaintenanceSchedulesForJob: " . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
-    public function exportRecordsToCSV($table, $startDate, $endDate) {
+    public function exportRecordsToCSV($table, $startDate, $endDate)
+    {
         if (!in_array($table, $this->allowedTables)) {
             throw new Exception("Invalid table: $table");
         }
@@ -965,7 +1049,7 @@ class TableManager extends Model {
             $config = $this->getConfig($table);
             $dateField = $config['dateField'] ?? $this->getColumns($table)[0];
             $allColumns = $this->getColumns($table);
-            $selectColumns = array_map(function($col) use ($table, $dateField) {
+            $selectColumns = array_map(function ($col) use ($table, $dateField) {
                 if ($col === $dateField) {
                     return "DATE_FORMAT(`$table`.`$col`, '%Y-%m-%d') AS `$col`";
                 }
@@ -995,10 +1079,47 @@ class TableManager extends Model {
             throw new Exception("Failed to export records from $table");
         }
     }
-    public function formatCurrency($value) {
-        return number_format((float)$value, 2, '.', '');
+    public function generateMaintenanceSchedulesFromJobs()
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT job_id FROM jobs WHERE project_id = 5 AND date_completed IS NOT NULL AND date_completed != '0000-00-00'");
+            $stmt->execute();
+            $jobIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $totalInserted = 0;
+            $successJobs = [];
+            foreach ($jobIds as $jobId) {
+                $res = $this->generateMaintenanceSchedulesForJob($jobId);
+                if (isset($res['success']) && $res['success']) {
+                    $totalInserted += $res['inserted'];
+                    $successJobs[] = $jobId;
+                }
+            }
+            return ['success' => true, 'inserted' => $totalInserted, 'jobs_processed' => count($successJobs)];
+        } catch (PDOException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
-    private function validate($table, $data, $rules) {
+
+    public function getJobCompletion($jobId)
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT completion FROM jobs WHERE job_id = ?");
+            $stmt->execute([$jobId]);
+            $val = $stmt->fetchColumn();
+            return $val !== false ? floatval($val) : 0.0;
+        } catch (PDOException $e) {
+            error_log("Error in getJobCompletion: " . $e->getMessage());
+            return 0.0;
+        }
+    }
+
+    public function formatCurrency($value)
+    {
+        return number_format((float) $value, 2, '.', '');
+    }
+    private function validate($table, $data, $rules)
+    {
         $errors = [];
         foreach ($rules as $field => $fieldRules) {
             foreach ($fieldRules as $rule) {

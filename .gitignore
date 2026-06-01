@@ -1,0 +1,32 @@
+# .gitignore for A2Z-DBMS
+
+# Environment Config
+.env
+
+# Dependencies
+/vendor/
+
+# OS/System files
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+/.idea/
+/.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# Logs and databases
+/logs/
+*.log
+*.sqlite
+
+# Uploads and temporary assets
+/src/assets/uploads/
+
+database/data/
+import_original.sh

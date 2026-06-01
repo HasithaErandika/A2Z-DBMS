@@ -50,14 +50,7 @@ switch($errorCode) {
     <title>Error <?php echo $errorCode; ?> - A2Z Engineering DBMS</title>
     <meta name="description" content="Error page for A2Z Engineering DBMS">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <?php require_once __DIR__ . '/../partials/theme.php'; ?>
     
     <style>
         body {
