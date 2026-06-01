@@ -53,6 +53,28 @@ function buildEmployeeDetails($emp) {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php require_once __DIR__ . '/../partials/theme.php'; ?>
+    <!-- DataTables Tailwind CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <style>
+        .dataTables_wrapper .dataTables_length select {
+            padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+            outline: none;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #10b981;
+        }
+    </style>
 </head>
 <body class="font-sans bg-slate-50 text-slate-800 antialiased overflow-x-hidden min-h-screen">
 
@@ -75,14 +97,14 @@ function buildEmployeeDetails($emp) {
                     <div class="text-xs text-slate-500 font-semibold">Report Generated on: <?php echo date('d M Y'); ?></div>
                     <div class="flex items-center gap-2">
                         <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-arrow-left"></i> Back to Reports
+                            <i class="ri-arrow-left-line"></i> Back to Reports
                         </a>
                         <button onclick="window.print()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-print"></i> Print
+                            <i class="ri-printer-line"></i> Print
                         </button>
                         <?php if (empty($filters['emp_id'])): ?>
                             <button onclick="generatePDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                                <i class="fas fa-file-pdf"></i> PDF Slips
+                                <i class="ri-file-pdf-line"></i> PDF Slips
                             </button>
                         <?php endif; ?>
                     </div>
@@ -90,7 +112,7 @@ function buildEmployeeDetails($emp) {
 
                 <?php if (isset($error)): ?>
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <i class="ri-error-warning-line"></i>
                         <span><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 <?php else: ?>
@@ -120,11 +142,7 @@ function buildEmployeeDetails($emp) {
                             $advance_deduction = $selectedEmp['advance_details']['deduction_amount'] ?? 0;
                             $advance_total = $advance_paid + $advance_deduction;
                             
-                            if ($isFixed) {
-                                $net_payable = $basic - $epfEmp - $advance_total - $paid;
-                            } else {
-                                $net_payable = $earned - $advance_total - $paid;
-                            }
+                            $net_payable = floatval($selectedEmp['net_payable'] ?? 0);
                     ?>
                         <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm max-w-4xl mx-auto mb-10">
                             <div class="flex justify-between items-start border-b border-slate-100 pb-6 mb-6">
@@ -195,7 +213,7 @@ function buildEmployeeDetails($emp) {
 
                             <div class="text-center">
                                 <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm" onclick="window.print()">
-                                    <i class="fas fa-print"></i> Print Salary Slip
+                                    <i class="ri-printer-line"></i> Print Salary Slip
                                 </button>
                             </div>
                         </div>
@@ -213,7 +231,7 @@ function buildEmployeeDetails($emp) {
                                 <div class="flex flex-col gap-1.5">
                                     <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Year</label>
                                     <select name="year" class="p-2.5 border border-slate-200 rounded-lg text-xs transition-all focus:border-emerald-500 focus:outline-none bg-white">
-                                        <?php for ($y = 2023; $y <= 2030; $y++): ?>
+                                        <?php for ($y = 2022; $y <= 2030; $y++): ?>
                                             <option value="<?php echo $y; ?>" <?php echo ($filters['year'] ?? date('Y')) == $y ? 'selected' : ''; ?>><?php echo $y; ?></option>
                                         <?php endfor; ?>
                                     </select>
@@ -241,7 +259,7 @@ function buildEmployeeDetails($emp) {
                                     </select>
                                 </div>
                                 <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 h-[38px]">
-                                    <i class="fas fa-filter"></i> Apply Filter
+                                    <i class="ri-filter-3-line"></i> Apply Filter
                                 </button>
                             </form>
                         </div>
@@ -306,8 +324,8 @@ function buildEmployeeDetails($emp) {
                                 <h3 class="text-sm font-bold text-slate-900">Daily Wage Employees Registry</h3>
                                 <span class="text-xs text-slate-500 font-semibold"><?php echo count($daily_wage_employees); ?> Records</span>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full border-collapse text-xs text-left">
+                            <div class="p-4 overflow-x-auto">
+                                <table class="w-full border-collapse text-xs text-left" id="dailyWagesTable">
                                     <thead>
                                         <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
                                             <th class="p-4 font-bold">Employee</th>
@@ -328,13 +346,13 @@ function buildEmployeeDetails($emp) {
                                             $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
                                             $advance_total = $advance_paid + $advance_deduction;
                                             $paid   = array_sum($emp['paid_amount'] ?? [0,0,0]);
-                                            $net_payable = $earned - $advance_total - $paid;
+                                            $net_payable = floatval($emp['net_payable'] ?? 0);
                                         ?>
                                             <tr class="hover:bg-slate-50/55 transition-colors">
                                                 <td class="p-4 font-medium text-slate-900">
                                                     <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none">
                                                         <span><?php echo htmlspecialchars($emp['emp_name']); ?></span>
-                                                        <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                        <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                     </div>
                                                     <div class="details hidden mt-2"><?php echo buildEmployeeDetails($emp); ?></div>
                                                 </td>
@@ -359,8 +377,8 @@ function buildEmployeeDetails($emp) {
                                 <h3 class="text-sm font-bold text-slate-900">Fixed Salary Employees Registry</h3>
                                 <span class="text-xs text-slate-500 font-semibold"><?php echo count($fixed_rate_employees); ?> Records</span>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full border-collapse text-xs text-left">
+                            <div class="p-4 overflow-x-auto">
+                                <table class="w-full border-collapse text-xs text-left" id="fixedWagesTable">
                                     <thead>
                                         <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
                                             <th class="p-4 font-bold">Employee</th>
@@ -386,13 +404,13 @@ function buildEmployeeDetails($emp) {
                                             $advance_deduction = $emp['advance_details']['deduction_amount'] ?? 0;
                                             $advance_total = $advance_paid + $advance_deduction;
                                             $paid      = array_sum($emp['paid_amount'] ?? [0,0,0]);
-                                            $net_payable = $basic - $epfEmp - $advance_total - $paid;
+                                            $net_payable = floatval($emp['net_payable'] ?? 0);
                                         ?>
                                             <tr class="hover:bg-slate-50/55 transition-colors">
                                                 <td class="p-4 font-medium text-slate-900">
                                                     <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none">
                                                         <span><?php echo htmlspecialchars($emp['emp_name']); ?></span>
-                                                        <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                        <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                     </div>
                                                     <div class="details hidden mt-2"><?php echo buildEmployeeDetails($emp); ?></div>
                                                 </td>
@@ -419,8 +437,8 @@ function buildEmployeeDetails($emp) {
                                 <h3 class="text-sm font-bold text-slate-900">Labor Wages Registry Summary</h3>
                                 <span class="text-xs text-slate-500 font-semibold"><?php echo count($labor_wages_data['summations'] ?? []); ?> Records</span>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full border-collapse text-xs text-left">
+                            <div class="p-4 overflow-x-auto">
+                                <table class="w-full border-collapse text-xs text-left" id="laborWagesTable">
                                     <thead>
                                         <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
                                             <th class="p-4 font-bold">Labor Name</th>
@@ -440,7 +458,7 @@ function buildEmployeeDetails($emp) {
                                                 <td class="p-4 font-medium text-slate-900">
                                                     <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none">
                                                         <span><?php echo htmlspecialchars($sum['labor_name'] ?? 'Unknown'); ?></span>
-                                                        <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                        <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                     </div>
                                                     <div class="details hidden p-4 bg-slate-50/50 border border-slate-100 rounded-xl mt-2"><?php echo $details; ?></div>
                                                 </td>
@@ -474,6 +492,9 @@ function buildEmployeeDetails($emp) {
     </div>
 
     <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -485,21 +506,48 @@ function buildEmployeeDetails($emp) {
             }
         }
 
-        // Collapsible rows
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.collapsible').forEach(item => {
-                item.addEventListener('click', () => {
-                    const details = item.nextElementSibling;
-                    const icon = item.querySelector('.fa-chevron-down, .fa-chevron-up');
-                    details.classList.toggle('hidden');
-                    if (icon) {
-                        if (details.classList.contains('hidden')) {
-                            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                        } else {
-                            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                        }
-                    }
-                });
+        $(document).ready(function() {
+            // Initialize DataTables
+            $('#dailyWagesTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                searching: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search daily registry..."
+                }
+            });
+
+            $('#fixedWagesTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                searching: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search fixed registry..."
+                }
+            });
+
+            $('#laborWagesTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                searching: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search labor wages..."
+                }
+            });
+
+            // Delegated collapsible rows listener
+            $(document).on('click', '.collapsible', function() {
+                const details = $(this).next('.details');
+                const icon = $(this).find('i');
+                details.toggleClass('hidden');
+                if (details.hasClass('hidden')) {
+                    icon.removeClass('ri-arrow-up-s-line').addClass('ri-arrow-down-s-line');
+                } else {
+                    icon.removeClass('ri-arrow-down-s-line').addClass('ri-arrow-up-s-line');
+                }
             });
 
             // Charts

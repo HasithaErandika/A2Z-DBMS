@@ -42,13 +42,14 @@ public function getEmployeeRefs($start_date = null, $end_date = null) {
 }
 
 
-    /**
-     * Retrieves a list of unique customer references from the jobs table.
-     * @return array An array of customer references, or an empty array on error.
-     */
-    public function getCustomerRefs() {
+    public function getCustomerRefs($projectId = null) {
         try {
-            $stmt = $this->db->query("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL");
+            if ($projectId !== null) {
+                $stmt = $this->db->prepare("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL AND project_id = ?");
+                $stmt->execute([$projectId]);
+            } else {
+                $stmt = $this->db->query("SELECT DISTINCT customer_reference FROM jobs WHERE customer_reference IS NOT NULL");
+            }
             return $stmt->fetchAll(PDO::FETCH_COLUMN);
         } catch (PDOException $e) {
             error_log("Error in getCustomerRefs: " . $e->getMessage());
@@ -124,7 +125,7 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
         $conditions[] = "p.company_reference = :company_reference";
         $params[':company_reference'] = $filters['company_reference'];
     }
-    if (isset($filters['status'])) {
+    if (isset($filters['status']) && $filters['status'] !== '') {
         $conditions[] = $filters['status'] === 'paid' 
             ? "id.received_amount > 0" 
             : "(id.received_amount = 0 OR id.received_amount IS NULL)";
@@ -138,8 +139,18 @@ public function getJobCostData($filters = [], $limit = 50, $offset = 0) {
         $params[':to_date'] = $filters['to_date'];
     }
     if (!empty($filters['completion'])) {
-        $conditions[] = "j.completion = :completion";
-        $params[':completion'] = $filters['completion'];
+        $completionMap = [
+            'Not Started' => 0.0,
+            'Cancelled' => 0.1,
+            'Started' => 0.2,
+            'Postponed' => 0.3,
+            'Ongoing' => 0.5,
+            'Completed' => 1.0
+        ];
+        if (isset($completionMap[$filters['completion']])) {
+            $conditions[] = "j.completion = :completion";
+            $params[':completion'] = $completionMap[$filters['completion']];
+        }
     }
 
     if ($conditions) {
@@ -245,6 +256,7 @@ public function getEmployeeAttendanceCosts($jobId = null, $start_date = null, $e
             ), 0) AS base_rate,
 
             -- Latest increment as of the attendance date
+            -- new_salary overrides the base completely; increment_amount is additive
             COALESCE((
                 SELECT si.increment_amount
                 FROM salary_increments si
@@ -252,7 +264,8 @@ public function getEmployeeAttendanceCosts($jobId = null, $start_date = null, $e
                   AND si.increment_date <= a.attendance_date
                 ORDER BY si.increment_date DESC
                 LIMIT 1
-            ), 0) AS increment_amount
+            ), 0) AS increment_amount,
+            0 AS new_salary_override
         FROM attendance a
         JOIN employees e ON a.emp_id = e.emp_id
         $whereClause
@@ -269,10 +282,12 @@ public function getEmployeeAttendanceCosts($jobId = null, $start_date = null, $e
 
         foreach ($records as &$record) {
             $base = (float)($record['base_rate'] ?? 0);
+            $override = (float)($record['new_salary_override'] ?? 0);
             $inc  = (float)($record['increment_amount'] ?? 0);
             $presence = (float)($record['presence'] ?? 0);
 
-            $record['total_rate']  = $base + $inc;
+            $effective_base = $override > 0 ? $override : $base;
+            $record['total_rate']  = $effective_base + $inc;
             $record['actual_cost'] = $record['total_rate'] * $presence;
         }
 
@@ -657,48 +672,187 @@ public function getWageData($filters = []) {
     }
 
     /**
- * Calculates total EPF (Employee Provident Fund) costs for active employees.
- * Uses employee_payment_rates as the primary salary source for Fixed-rate employees.
- * Falls back to employees.basic_salary if available.
- * 
- * @param string|null $start_date Start date for considering active employees (optional).
- * @param string|null $end_date End date for the period (optional).
- * @return float Total EPF costs (company contribution at 12%), or 0 on error.
+ * Returns a per-employee statutory breakdown: employer EPF (12%) + ETF (3%)
+ * for every Fixed-rate employee active during the given period.
+ * Also returns the grand totals.
+ *
+ * @param string|null $start_date
+ * @param string|null $end_date
+ * @return array [
+ *   'rows'       => [ ['emp_id','emp_name','basic_salary','epf_employer','etf'] ... ],
+ *   'total_epf'  => float,   // company EPF (12%) total
+ *   'total_etf'  => float,   // company ETF  (3%) total
+ *   'total'      => float,   // EPF + ETF combined
+ * ]
  */
-public function getEPFCosts($start_date = null, $end_date = null) {
+public function getStatutoryBreakdown($start_date = null, $end_date = null): array {
     try {
-        // Use the effective end_date for rate lookup, default to today
-        $effectiveDate = $end_date ?? date('Y-m-d');
-        
-        $query = "
-            SELECT SUM(
-                COALESCE(
-                    (SELECT epr.rate_amount 
-                     FROM employee_payment_rates epr 
-                     WHERE epr.emp_id = e.emp_id 
-                       AND epr.rate_type = 'Fixed'
-                       AND epr.effective_date <= :effective_date
-                     ORDER BY epr.effective_date DESC 
-                     LIMIT 1),
-                    0
-                ) * 0.12
-            ) AS total_epf
-            FROM employees e
-            WHERE (e.date_of_resigned IS NULL OR e.date_of_resigned < '1970-01-02'
-                   OR (:start_date IS NOT NULL AND e.date_of_resigned > :start_date))
-        ";
+        $start = !empty($start_date) ? $start_date : '2022-01-01';
+        $end = !empty($end_date) ? $end_date : date('Y-m-d');
 
+        $months = [];
+        $current = new DateTime($start);
+        $current->modify('first day of this month');
+        $target = new DateTime($end);
+        $target->modify('first day of this month');
+
+        while ($current <= $target) {
+            $months[] = [
+                'first_day' => $current->format('Y-m-01'),
+                'last_day' => $current->format('Y-m-t')
+            ];
+            $current->modify('+1 month');
+        }
+
+        $empStmt = $this->db->query("SELECT emp_id, emp_name, date_of_joined, date_of_resigned FROM employees ORDER BY emp_name");
+        $employees = $empStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $rateStmt = $this->db->query("
+            SELECT emp_id, rate_amount, DATE_FORMAT(effective_date, '%Y-%m-%d') AS effective_date 
+            FROM employee_payment_rates 
+            WHERE rate_type = 'Fixed' 
+            ORDER BY emp_id, effective_date ASC
+        ");
+        $allRates = $rateStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $ratesByEmp = [];
+        foreach ($allRates as $r) {
+            $ratesByEmp[$r['emp_id']][] = [
+                'amount' => floatval($r['rate_amount']),
+                'date' => $r['effective_date']
+            ];
+        }
+
+        $rows = [];
+        $totalEpfEmployer = 0.0;
+        $totalEpfEmployee = 0.0;
+        $totalEtf = 0.0;
+
+        foreach ($employees as $emp) {
+            $empId = $emp['emp_id'];
+            $joinedStr = $emp['date_of_joined'];
+            $resignedStr = $emp['date_of_resigned'];
+
+            $joined = (!empty($joinedStr) && $joinedStr !== '0000-00-00') ? new DateTime($joinedStr) : null;
+            $resigned = (!empty($resignedStr) && $resignedStr !== '0000-00-00' && $resignedStr !== '1970-01-01') ? new DateTime($resignedStr) : null;
+
+            $empBasicSum = 0.0;
+            $empEpfEmployeeSum = 0.0;
+            $empEpfEmployerSum = 0.0;
+            $empEtfSum = 0.0;
+            $hasActiveMonth = false;
+            $latestActiveRate = 0.0;
+
+            foreach ($months as $m) {
+                $mFirst = new DateTime($m['first_day']);
+                $mLast = new DateTime($m['last_day']);
+
+                if ($joined && $joined > $mLast) {
+                    continue;
+                }
+                if ($resigned && $resigned < $mFirst) {
+                    continue;
+                }
+
+                $effectiveRate = 0.0;
+                if (isset($ratesByEmp[$empId])) {
+                    foreach ($ratesByEmp[$empId] as $r) {
+                        if ($r['date'] <= $m['last_day']) {
+                            $effectiveRate = $r['amount'];
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                if ($effectiveRate > 0) {
+                    $hasActiveMonth = true;
+                    $empBasicSum += $effectiveRate;
+                    $empEpfEmployeeSum += ($effectiveRate * 0.08);
+                    $empEpfEmployerSum += ($effectiveRate * 0.12);
+                    $empEtfSum += ($effectiveRate * 0.03);
+                    $latestActiveRate = $effectiveRate;
+                }
+            }
+
+            if ($hasActiveMonth && $latestActiveRate > 0) {
+                $rows[] = [
+                    'emp_id'       => $empId,
+                    'emp_name'     => $emp['emp_name'],
+                    'basic_salary' => $latestActiveRate,
+                    'epf_employee' => $latestActiveRate * 0.08,
+                    'epf_employer' => $latestActiveRate * 0.12,
+                    'etf'          => $latestActiveRate * 0.03,
+                    'total_statutory' => $latestActiveRate * 0.15,
+                ];
+
+                $totalEpfEmployer += $empEpfEmployerSum;
+                $totalEpfEmployee += $empEpfEmployeeSum;
+                $totalEtf += $empEtfSum;
+            }
+        }
+
+        return [
+            'rows'      => $rows,
+            'total_epf' => $totalEpfEmployer,
+            'total_etf' => $totalEtf,
+            'total'     => $totalEpfEmployer + $totalEtf,
+        ];
+    } catch (Exception $e) {
+        error_log("Error in getStatutoryBreakdown: " . $e->getMessage());
+        return ['rows' => [], 'total_epf' => 0.0, 'total_etf' => 0.0, 'total' => 0.0];
+    }
+}
+
+/**
+ * Backwards-compat shim so existing callers of getEPFCosts() still work.
+ */
+public function getEPFCosts($start_date = null, $end_date = null): float {
+    return $this->getStatutoryBreakdown($start_date, $end_date)['total_epf'];
+}
+
+/**
+ * Returns every operational-expense transaction row (for the auditor detail table).
+ * Joins employees and jobs for context.
+ *
+ * @param string|null $start_date
+ * @param string|null $end_date
+ * @return array
+ */
+public function getDetailedExpenseRows($start_date = null, $end_date = null): array {
+    $where = $start_date ? "WHERE oe.expensed_date BETWEEN :start_date AND :end_date" : "";
+    $query = "
+        SELECT
+            oe.expense_id,
+            oe.expensed_date,
+            oe.expenses_category,
+            oe.description,
+            oe.expense_amount,
+            oe.voucher_number,
+            oe.paid,
+            oe.remarks,
+            oe.job_id,
+            COALESCE(e.emp_name, 'N/A')       AS emp_name,
+            COALESCE(j.location, 'N/A')        AS job_location,
+            COALESCE(p.company_reference, 'N/A') AS company_reference
+        FROM operational_expenses oe
+        LEFT JOIN employees e ON oe.emp_id = e.emp_id
+        LEFT JOIN jobs j      ON oe.job_id = j.job_id
+        LEFT JOIN projects p  ON j.project_id = p.project_id
+        $where
+        ORDER BY oe.expensed_date DESC, oe.expense_id DESC
+    ";
+    try {
         $stmt = $this->db->prepare($query);
-        $stmt->bindValue(':effective_date', $effectiveDate, PDO::PARAM_STR);
-        $stmt->bindValue(':start_date', $start_date, PDO::PARAM_STR);
+        if ($start_date) {
+            $stmt->bindValue(':start_date', $start_date, PDO::PARAM_STR);
+            $stmt->bindValue(':end_date',   $end_date,   PDO::PARAM_STR);
+        }
         $stmt->execute();
-
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['total_epf'] ? floatval($result['total_epf']) : 0.0;
-
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
-        error_log("Error in getEPFCosts: " . $e->getMessage());
-        return 0.0;
+        error_log("Error in getDetailedExpenseRows: " . $e->getMessage());
+        return [];
     }
 }
 
@@ -772,5 +926,202 @@ public function getEPFCosts($start_date = null, $end_date = null) {
         }
     }
 
+    /**
+     * Fetch aggregated material costs grouped by job_id
+     */
+    public function getJobMaterialCosts(): array {
+        try {
+            $stmt = $this->db->query("SELECT job_id, SUM(total_cost) AS material_cost FROM job_materials GROUP BY job_id");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $map = [];
+            foreach ($rows as $r) {
+                $map[$r['job_id']] = floatval($r['material_cost']);
+            }
+            return $map;
+        } catch (PDOException $e) {
+            error_log("Error in getJobMaterialCosts: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Fetch all items calculated for a specific job_id
+     */
+    public function getMaterialsForJob($jobId): array {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM job_materials WHERE job_id = ? ORDER BY id ASC");
+            $stmt->execute([$jobId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getMaterialsForJob: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get total material cost sum filtered by date_completed range of active jobs
+     */
+    public function getMaterialCostSummary($start_date = null, $end_date = null): float {
+        try {
+            $query = "
+                SELECT SUM(jm.total_cost) AS total_materials
+                FROM job_materials jm
+                JOIN jobs j ON jm.job_id = j.job_id
+                WHERE 1=1
+            ";
+            $params = [];
+            if ($start_date) {
+                $query .= " AND j.date_completed >= :start_date";
+                $params[':start_date'] = $start_date;
+            }
+            if ($end_date) {
+                $query .= " AND j.date_completed <= :end_date";
+                $params[':end_date'] = $end_date;
+            }
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute($params);
+            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+            return floatval($res['total_materials'] ?? 0);
+        } catch (PDOException $e) {
+            error_log("Error in getMaterialCostSummary: " . $e->getMessage());
+            return 0.0;
+        }
+    }
+
+    /**
+     * Fetch all active jobs for dropdown selection
+     */
+    public function getActiveJobsList(): array {
+        try {
+            $stmt = $this->db->query("
+                SELECT j.job_id, j.customer_reference, j.location, p.company_reference
+                FROM jobs j
+                LEFT JOIN projects p ON j.project_id = p.project_id
+                WHERE j.project_id = 5
+                ORDER BY p.company_reference ASC, j.customer_reference ASC
+            ");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error in getActiveJobsList: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Add a single material item to a job and calculate prices automatically
+     */
+    public function addJobMaterialItem($jobId, $name, $qty, $unitPrice, $margin): bool {
+        try {
+            $totalCost = floatval($qty) * floatval($unitPrice);
+            $profitAmount = $totalCost * (floatval($margin) / 100);
+            $finalPrice = $totalCost + $profitAmount;
+
+            $stmt = $this->db->prepare("
+                INSERT INTO job_materials (job_id, material_name, quantity, unit_price, profit_margin, total_cost, profit_amount, final_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            return $stmt->execute([
+                $jobId,
+                $name,
+                $qty,
+                $unitPrice,
+                $margin,
+                $totalCost,
+                $profitAmount,
+                $finalPrice
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error in addJobMaterialItem: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete a single material item
+     */
+    public function deleteJobMaterialItem($id): bool {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM job_materials WHERE id = ?");
+            return $stmt->execute([$id]);
+        } catch (PDOException $e) {
+            error_log("Error in deleteJobMaterialItem: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Clear all material items for a job
+     */
+    public function clearJobMaterialItems($jobId): bool {
+        try {
+            $stmt = $this->db->prepare("DELETE FROM job_materials WHERE job_id = ?");
+            return $stmt->execute([$jobId]);
+        } catch (PDOException $e) {
+            error_log("Error in clearJobMaterialItems: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Bulk-import material rows from a parsed spreadsheet.
+     * Each $rows entry must have: material_name, quantity, unit_price, profit_margin.
+     * Returns ['inserted'=>N, 'skipped'=>N, 'errors'=>[...]]
+     */
+    public function importJobMaterials(int $jobId, array $rows): array {
+        $inserted = 0;
+        $skipped  = 0;
+        $errors   = [];
+
+        try {
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare("
+                INSERT INTO job_materials
+                    (job_id, material_name, quantity, unit_price, profit_margin, total_cost, profit_amount, final_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            foreach ($rows as $i => $row) {
+                $rowNum = $i + 2; // Excel row number (1=header)
+
+                $name   = trim($row['material_name'] ?? '');
+                $qty    = floatval($row['quantity'] ?? 0);
+                $price  = floatval($row['unit_price'] ?? 0);
+                $margin = floatval($row['profit_margin'] ?? 0);
+
+                if ($name === '') {
+                    $errors[] = "Row {$rowNum}: Material name is empty — skipped.";
+                    $skipped++;
+                    continue;
+                }
+                if ($qty <= 0) {
+                    $errors[] = "Row {$rowNum}: Quantity must be > 0 (got {$qty}) — skipped.";
+                    $skipped++;
+                    continue;
+                }
+                if ($price <= 0) {
+                    $errors[] = "Row {$rowNum}: Unit price must be > 0 (got {$price}) — skipped.";
+                    $skipped++;
+                    continue;
+                }
+
+                $totalCost    = $qty * $price;
+                $profitAmount = $totalCost * ($margin / 100);
+                $finalPrice   = $totalCost + $profitAmount;
+
+                $stmt->execute([$jobId, $name, $qty, $price, $margin, $totalCost, $profitAmount, $finalPrice]);
+                $inserted++;
+            }
+
+            $this->db->commit();
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("Error in importJobMaterials: " . $e->getMessage());
+            $errors[] = "Database error: " . $e->getMessage();
+        }
+
+        return compact('inserted', 'skipped', 'errors');
+    }
 
 }

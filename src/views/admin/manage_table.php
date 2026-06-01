@@ -15,24 +15,62 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         /* Custom Overrides */
-        body { background-color: #f1f5f9; } /* Slate 100 - Ashy background */
+        body { background-color: #f1f5f9; }
+        
+        /* Cross-browser input normalization */
+        #crud-form input[type="text"],
+        #crud-form input[type="date"],
+        #crud-form input[type="time"],
+        #crud-form input[type="number"],
+        #crud-form textarea,
+        #crud-form select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.875rem;
+            color: #1e293b;
+            background-color: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 0.625rem 0.875rem;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        #crud-form input:focus,
+        #crud-form select:focus,
+        #crud-form textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        #crud-form input[readonly] {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
         
         /* Select2 Tailwind Integration */
         .select2-container .select2-selection--single {
-            height: 46px !important;
-            border-color: #cbd5e1 !important; /* Slate 300 */
+            height: 42px !important;
+            border: 1.5px solid #cbd5e1 !important;
             border-radius: 0.5rem !important;
             display: flex !important;
             align-items: center !important;
-            background-color: #f8fafc !important; /* Slate 50 */
+            background-color: #ffffff !important;
         }
         .select2-container--default .select2-selection--single .select2-selection__arrow {
-            top: 10px !important;
+            top: 8px !important;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
         }
 
         /* Modal Transitions */
         .modal {
-            transition: opacity 0.3s ease;
+            transition: opacity 0.25s ease;
             opacity: 0;
             pointer-events: none;
         }
@@ -41,11 +79,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             pointer-events: auto;
         }
         .modal-content {
-            transition: transform 0.3s ease-out;
-            transform: scale(0.95);
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            transform: scale(0.94) translateY(8px);
         }
         .modal.show .modal-content {
-            transform: scale(1);
+            transform: scale(1) translateY(0);
         }
 
         /* DataTables Customization */
@@ -62,29 +100,53 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             border-color: #cbd5e1;
         }
         
-        /* Custom Scrollbar for heavy tables */
-        .custom-scrollbar::-webkit-scrollbar {
-            height: 10px;
-            width: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #94a3b8; 
-            border-radius: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #64748b; 
-        }
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         /* Table Row Styling */
-        /* Table Row Styling */
         table.dataTable tbody tr, table.dataTable tbody tr.odd, table.dataTable tbody tr.even {
-            background-color: #ffffff !important; /* Force White background */
+            background-color: #ffffff !important;
         }
         table.dataTable tbody tr:hover {
-            background-color: #e2e8f0; /* Slightly darker ash on hover */
+            background-color: #f1f5f9;
+        }
+
+        /* Modal footer button styles */
+        .btn-cancel {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border-radius: 8px; font-size: 0.8125rem;
+            font-weight: 600; border: 1.5px solid #cbd5e1;
+            background: #fff; color: #475569;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-cancel:hover { background: #f1f5f9; border-color: #94a3b8; color: #1e293b; }
+        .btn-save {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 24px; border-radius: 8px; font-size: 0.8125rem;
+            font-weight: 700; border: none;
+            background: linear-gradient(135deg,#2563eb,#1d4ed8);
+            color: #fff; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+            transition: all 0.15s;
+        }
+        .btn-save:hover { background: linear-gradient(135deg,#1d4ed8,#1e40af); box-shadow: 0 4px 14px rgba(37,99,235,0.35); transform: translateY(-1px); }
+        .btn-save:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+        .btn-delete-confirm {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 22px; border-radius: 10px; font-size: 0.8125rem;
+            font-weight: 700; border: none;
+            background: linear-gradient(135deg,#dc2626,#b91c1c);
+            color: #fff; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+            transition: all 0.15s;
+        }
+        .btn-delete-confirm:hover { box-shadow: 0 4px 14px rgba(220,38,38,0.4); transform: translateY(-1px); }
+        .form-label {
+            display: block; font-size: 0.8rem; font-weight: 600;
+            color: #374151; margin-bottom: 6px; letter-spacing: 0.01em;
         }
     </style>
 </head>
@@ -337,9 +399,16 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             </div>
             
             <!-- Modal Footer -->
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 bg-gray-50/50 rounded-b-2xl">
-                <button onclick="closeModal()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition">Cancel</button>
-                <button onclick="saveRecord()" class="px-4 py-2 bg-brand-600 border border-transparent text-white rounded-lg text-sm font-bold shadow-sm hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition">Save Record</button>
+            <div class="px-6 py-5 border-t border-slate-100 flex items-center justify-between bg-slate-50/70 rounded-b-2xl">
+                <span class="text-xs text-slate-400 italic" id="modal-draft-hint" style="display:none;"><i class="fas fa-save mr-1 text-emerald-400"></i>Draft values saved locally</span>
+                <div class="flex items-center gap-3 ml-auto">
+                    <button type="button" onclick="closeModal()" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" onclick="saveRecord()" id="save-btn" class="btn-save">
+                        <i class="fas fa-save"></i> Save Record
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -402,11 +471,11 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 <h3 class="text-xl font-bold text-slate-900 mb-2">Delete Record?</h3>
                 <p class="text-sm text-slate-500 mb-6">Are you sure you want to delete this record? This action cannot be undone.</p>
                 <div class="flex gap-3 justify-center">
-                    <button onclick="closeDeleteModal()" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors">
-                        Cancel
+                    <button onclick="closeDeleteModal()" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button onclick="confirmDelete()" class="px-5 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all transform hover:scale-105">
-                        Yes, Delete It
+                    <button onclick="confirmDelete()" class="btn-delete-confirm">
+                        <i class="fas fa-trash-alt"></i> Yes, Delete It
                     </button>
                 </div>
             </div>
@@ -667,52 +736,98 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
             }, 3000);
         }
 
+        // ── Session-storage draft key ──────────────────────────────────────────
+        const draftKey = `a2z_crud_draft_${tableName}`;
+
+        function saveDraft() {
+            const formData = {};
+            $('#crud-form').find('input:not([readonly]):not([disabled]), select, textarea').each(function() {
+                const name = $(this).attr('name');
+                if (name && name !== 'action' && name !== 'id') {
+                    formData[name] = $(this).is('select.select2-dropdown') ? $(this).val() : $(this).val();
+                }
+            });
+            try { sessionStorage.setItem(draftKey, JSON.stringify(formData)); } catch(e) {}
+            $('#modal-draft-hint').show();
+        }
+
+        function loadDraft() {
+            try {
+                const raw = sessionStorage.getItem(draftKey);
+                if (!raw) return;
+                const formData = JSON.parse(raw);
+                $.each(formData, function(key, value) {
+                    const $el = $(`[name="${key}"]`);
+                    if (!$el.length || !value) return;
+                    if ($el.is('select.select2-dropdown')) {
+                        $el.val(value).trigger('change');
+                    } else {
+                        $el.val(value);
+                    }
+                });
+                $('#modal-draft-hint').show();
+            } catch(e) {}
+        }
+
+        function clearDraft() {
+            try { sessionStorage.removeItem(draftKey); } catch(e) {}
+            $('#modal-draft-hint').hide();
+        }
+
         // Modal Functions
         function openModal(action, data = null) {
             $('#form-action').val(action);
-            $('#modal-title').html(action === 'create' 
+            const isCreate = action === 'create';
+            $('#modal-title').html(isCreate 
                 ? '<i class="fas fa-plus-circle text-blue-500 mr-2"></i> Create New Record' 
-                : '<i class="fas fa-edit text-blue-500 mr-2"></i> Edit Record');
+                : '<i class="fas fa-pencil-alt text-amber-500 mr-2"></i> Edit Record');
             
-            // Reset form
+            // Always reset first
             $('#crud-form')[0].reset();
             $('.select2-dropdown').val(null).trigger('change');
+            $('#modal-draft-hint').hide();
             
             // ID Field Handling
             let $idField = $(`[name="${primaryKey}"]`);
-            if(action === 'create') {
-                $idField.val('Auto-Generated').prop('disabled', true).addClass('bg-slate-50 text-slate-400 italic');
+            if (isCreate) {
+                $idField.val('Auto-Generated').prop('disabled', true);
             } else {
-                $idField.prop('disabled', false).removeClass('bg-slate-50 text-slate-400 italic').addClass('bg-slate-100').prop('readonly', true);
+                $idField.prop('disabled', false).prop('readonly', true);
             }
-            
-            if(action === 'update' && data) {
-                $('#form-id').val(data[primaryKey]);
-                $.each(data, function(key, value) {
-                    let $el = $(`[name="${key}"]`);
-                    if($el.length) {
-                        if($el.is('select.select2-dropdown')) {
-                            $el.val(value).trigger('change');
-                        } else if($el.attr('type') === 'checkbox') {
-                             $el.prop('checked', value == 1);
-                        } else {
-                             if(key !== primaryKey) $el.val(value);
-                             else $el.val(value);
-                        }
-                         
-                         let $groupSelect = $(`#group-${key} select`);
-                         if($groupSelect.length) {
-                             $groupSelect.val(value);
-                             $el.val(value); 
-                         }
-                    }
+
+            if (isCreate) {
+                // Restore draft values for create mode (cross-browser via sessionStorage)
+                loadDraft();
+                // Bind live draft save on any input change
+                $('#crud-form').off('input.draft change.draft').on('input.draft change.draft', 'input, select, textarea', function() {
+                    saveDraft();
                 });
+            } else {
+                // Edit mode: populate from row data
+                $('#crud-form').off('input.draft change.draft');
+                if (data) {
+                    $('#form-id').val(data[primaryKey]);
+                    $.each(data, function(key, value) {
+                        let $el = $(`[name="${key}"]`);
+                        if ($el.length) {
+                            if ($el.is('select.select2-dropdown')) {
+                                $el.val(value).trigger('change');
+                            } else if ($el.attr('type') === 'checkbox') {
+                                $el.prop('checked', value == 1);
+                            } else {
+                                $el.val(value);
+                            }
+                        }
+                    });
+                }
             }
             $('#crud-modal').addClass('show');
         }
 
         function closeModal() {
             $('#crud-modal').removeClass('show');
+            $('#crud-form').off('input.draft change.draft');
+            // Draft is intentionally kept in sessionStorage so user can re-open and continue
         }
 
         // Status Modal Functions
@@ -781,11 +896,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
         }
         
         function saveRecord() {
-            const $btn = $('#crud-modal button').filter(function() { return $(this).text().trim() === 'Save Record'; });
-            const originalText = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
+            const $btn = $('#save-btn');
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
             const formData = $('#crud-form').serialize();
+            const isCreate = $('#form-action').val() === 'create';
             
             $.ajax({
                 url: "<?php echo BASE_PATH; ?>/admin/manageTable/" + tableName,
@@ -793,18 +909,20 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 data: formData,
                 dataType: "json",
                 success: function(response) {
-                    $btn.prop('disabled', false).html(originalText);
-                    if(response.success) {
+                    $btn.prop('disabled', false).html(originalHtml);
+                    if (response.success) {
+                        if (isCreate) clearDraft(); // Clear draft only on successful create
                         closeModal();
                         table.draw();
                         showToast(response.message || 'Record saved successfully');
                     } else {
                         showToast('Error: ' + (response.error || 'Unknown error occurred'), 'error');
+                        // Keep modal open & values intact so user can correct and retry
                     }
                 },
                 error: function(xhr) {
-                    $btn.prop('disabled', false).html(originalText);
-                    showToast('Server Error. Check console.', 'error');
+                    $btn.prop('disabled', false).html(originalHtml);
+                    showToast('Server error — your input has been preserved. Please try again.', 'error');
                     console.error(xhr);
                 }
             });

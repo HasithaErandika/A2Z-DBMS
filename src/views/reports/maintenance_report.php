@@ -15,6 +15,29 @@ if (!defined('FULL_BASE_URL')) {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php require_once __DIR__ . '/../partials/theme.php'; ?>
+    <!-- DataTables Tailwind CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <style>
+        /* Modern Select2/DataTable customizations */
+        .dataTables_wrapper .dataTables_length select {
+            padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+            outline: none;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #10b981;
+        }
+    </style>
 </head>
 <body class="font-sans bg-slate-50 text-slate-800 antialiased overflow-x-hidden min-h-screen">
 
@@ -37,20 +60,20 @@ if (!defined('FULL_BASE_URL')) {
                     <div class="text-xs text-slate-500 font-semibold">Report Generated on: <?php echo date('d M Y'); ?></div>
                     <div class="flex items-center gap-2">
                         <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-arrow-left"></i> Back to Reports
+                            <i class="ri-arrow-left-line"></i> Back to Reports
                         </a>
                         <button onclick="window.print()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-print"></i> Print
+                            <i class="ri-printer-line"></i> Print
                         </button>
                         <button onclick="downloadCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-file-csv"></i> Export CSV
+                            <i class="ri-file-excel-line"></i> Export CSV
                         </button>
                     </div>
                 </div>
 
                 <?php if (isset($error)): ?>
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <i class="ri-error-warning-line"></i>
                         <span><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 <?php else: ?>
@@ -78,7 +101,7 @@ if (!defined('FULL_BASE_URL')) {
                                 <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Year</label>
                                 <select name="year" class="p-2.5 border border-slate-200 rounded-lg text-xs transition-all focus:border-emerald-500 focus:outline-none bg-white">
                                     <option value="">Any Year</option>
-                                    <?php $currentYear = (int)date('Y'); for ($y = $currentYear; $y >= $currentYear - 5; $y--): ?>
+                                    <?php for ($y = 2022; $y <= 2030; $y++): ?>
                                     <option value="<?php echo $y; ?>" <?php echo (isset($_GET['year']) && (int)$_GET['year'] === $y) ? 'selected' : ''; ?>><?php echo $y; ?></option>
                                     <?php endfor; ?>
                                 </select>
@@ -93,7 +116,7 @@ if (!defined('FULL_BASE_URL')) {
                                 </select>
                             </div>
                             <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 h-[38px]">
-                                <i class="fas fa-filter"></i> Apply Filter
+                                <i class="ri-filter-3-line"></i> Apply Filter
                             </button>
                         </form>
                     </div>
@@ -139,8 +162,8 @@ if (!defined('FULL_BASE_URL')) {
                         <div class="p-6 border-b border-slate-100 bg-slate-50">
                             <h3 class="text-sm font-bold text-slate-900">Detailed Maintenance Schedule</h3>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse text-xs text-left">
+                        <div class="p-4 overflow-x-auto">
+                            <table class="w-full border-collapse text-xs text-left" id="detailedMaintenanceTable">
                                 <thead>
                                     <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
                                         <th class="p-4 font-bold">Job Details</th>
@@ -171,11 +194,11 @@ if (!defined('FULL_BASE_URL')) {
                                                 $cycle_date = clone $install_date;
                                                 $cycle_date->add(new DateInterval('P' . (6 * $i) . 'M'));
                                                 $status = $cycle_date > $today ? 'scheduled' : 'overdue';
-                                                $maintenance_cycles[] = ['cycle_number' => $i, 'scheduled_date' => $cycle_date->format('Y-m-d'), 'actual_date' => null, 'status' => $status, 'description' => ''];
+                                                $maintenance_cycles[] = ['schedule_id' => '', 'cycle_number' => $i, 'scheduled_date' => $cycle_date->format('Y-m-d'), 'actual_date' => null, 'status' => $status, 'description' => ''];
                                             }
                                         } else {
                                             for ($i = 1; $i <= 4; $i++) {
-                                                $maintenance_cycles[] = ['cycle_number' => $i, 'scheduled_date' => 'N/A', 'actual_date' => null, 'status' => 'not set', 'description' => ''];
+                                                $maintenance_cycles[] = ['schedule_id' => '', 'cycle_number' => $i, 'scheduled_date' => 'N/A', 'actual_date' => null, 'status' => 'not set', 'description' => ''];
                                             }
                                         }
                                     } else {
@@ -197,9 +220,22 @@ if (!defined('FULL_BASE_URL')) {
                                         <td class="p-4 align-top">
                                             <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
                                                 <span><?php echo htmlspecialchars($row['customer_reference'] ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></span>
-                                                <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                             </div>
                                             <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $jobDetails; ?></div>
+                                            
+                                            <!-- Add Custom Cycle Button -->
+                                            <button onclick="event.stopPropagation(); openMaintenanceModal({
+                                                schedule_id: '',
+                                                job_id: '<?php echo htmlspecialchars($row['job_id']); ?>',
+                                                cycle_number: '<?php echo count($maintenance_cycles) + 1; ?>',
+                                                scheduled_date: '<?php echo date('Y-m-d'); ?>',
+                                                actual_date: '',
+                                                status: 'scheduled',
+                                                description: ''
+                                            })" class="mt-2.5 text-[10px] text-emerald-600 hover:text-emerald-800 font-bold flex items-center gap-1 transition-colors">
+                                                <i class="ri-add-circle-line"></i> Add Custom Cycle
+                                            </button>
                                         </td>
                                         <td class="p-4 align-top text-slate-650">
                                             <?php echo $installation_date && $installation_date !== '0000-00-00' ? htmlspecialchars($installation_date, ENT_QUOTES, 'UTF-8') : '<span class="text-slate-350 italic">Pending</span>'; ?>
@@ -208,11 +244,11 @@ if (!defined('FULL_BASE_URL')) {
                                         <?php
                                         $cycle = array_reduce($maintenance_cycles, function($carry, $item) use ($i) {
                                             return ($item['cycle_number'] == $i) ? $item : $carry;
-                                        }, null) ?? ['scheduled_date' => 'N/A', 'actual_date' => null, 'status' => 'not set', 'description' => ''];
+                                        }, null) ?? ['schedule_id' => '', 'scheduled_date' => 'N/A', 'actual_date' => null, 'status' => 'not set', 'description' => ''];
                                         
                                         $status = $cycle['status'];
                                         $date = $cycle['scheduled_date'];
-                                        $actual = $cycle['actual_date'] ? '<div class="text-[10px] text-emerald-600 mt-1"><i class="ri-check-double-line"></i> Completed: ' . $cycle['actual_date'] . '</div>' : '';
+                                        $actual = $cycle['actual_date'] ? '<div class="text-[10px] text-emerald-600 mt-1"><i class="ri-checkbox-circle-line"></i> Completed: ' . $cycle['actual_date'] . '</div>' : '';
                                         $desc = $cycle['description'] ? '<div class="text-[10px] text-slate-400 mt-1 italic truncate max-w-[120px]" title="'.htmlspecialchars($cycle['description']).'">' . htmlspecialchars($cycle['description']) . '</div>' : '';
                                         
                                         // Status badge classes
@@ -221,9 +257,18 @@ if (!defined('FULL_BASE_URL')) {
                                         elseif($status === 'completed') $badgeClass .= "bg-emerald-50 border border-emerald-100 text-emerald-600";
                                         elseif($status === 'overdue') $badgeClass .= "bg-amber-50 border border-amber-100 text-amber-600";
                                         elseif($status === 'cancelled') $badgeClass .= "bg-rose-50 border border-rose-100 text-rose-500 line-through decoration-rose-400";
-                                        else $badgeClass .= "bg-slate-55 border border-slate-100 text-slate-400";
+                                        else $badgeClass .= "bg-slate-100 border border-slate-200 text-slate-400";
                                         ?>
-                                        <td class="p-4 align-top text-center border-l border-slate-100">
+                                        <td class="p-4 align-top text-center border-l border-slate-100 cursor-pointer hover:bg-slate-100/70 transition-colors group relative" 
+                                            onclick="openMaintenanceModal({
+                                                schedule_id: '<?php echo htmlspecialchars($cycle['schedule_id'] ?? ''); ?>',
+                                                job_id: '<?php echo htmlspecialchars($row['job_id']); ?>',
+                                                cycle_number: '<?php echo $i; ?>',
+                                                scheduled_date: '<?php echo htmlspecialchars($date === 'N/A' ? '' : $date); ?>',
+                                                actual_date: '<?php echo htmlspecialchars($cycle['actual_date'] ?? ''); ?>',
+                                                status: '<?php echo htmlspecialchars($status === 'not set' ? 'scheduled' : $status); ?>',
+                                                description: '<?php echo htmlspecialchars($cycle['description'] ?? ''); ?>'
+                                            })">
                                             <div class="flex flex-col items-center h-full justify-between gap-3">
                                                 <div>
                                                     <span class="<?php echo $badgeClass; ?>"><?php echo ucfirst($status); ?></span>
@@ -231,14 +276,9 @@ if (!defined('FULL_BASE_URL')) {
                                                     <?php echo $actual . $desc; ?>
                                                 </div>
                                                 
-                                                <div class="flex gap-1 <?php echo ($status === 'completed' || $status === 'cancelled') ? 'hidden' : 'opacity-100'; ?> bg-white shadow-sm p-1 rounded-full border border-slate-200">
-                                                    <button class="w-6.5 h-6.5 rounded-full flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors btn-status" data-job="<?php echo $row['job_id']; ?>" data-cycle="<?php echo $i; ?>" data-date="<?php echo $date; ?>" data-status="scheduled" title="Reschedule"><i class="ri-calendar-line text-[11px] pointer-events-none"></i></button>
-                                                    
-                                                    <button class="w-6.5 h-6.5 rounded-full flex items-center justify-center bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-colors btn-status" data-job="<?php echo $row['job_id']; ?>" data-cycle="<?php echo $i; ?>" data-date="<?php echo $date; ?>" data-status="completed" title="Complete"><i class="ri-check-line text-[11px] pointer-events-none"></i></button>
-                                                    
-                                                    <button class="w-6.5 h-6.5 rounded-full flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white transition-colors btn-status" data-job="<?php echo $row['job_id']; ?>" data-cycle="<?php echo $i; ?>" data-date="<?php echo $date; ?>" data-status="overdue" title="Mark Overdue"><i class="ri-alert-line text-[11px] pointer-events-none"></i></button>
-                                                    
-                                                    <button class="w-6.5 h-6.5 rounded-full flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors btn-status" data-job="<?php echo $row['job_id']; ?>" data-cycle="<?php echo $i; ?>" data-date="<?php echo $date; ?>" data-status="cancelled" title="Cancel"><i class="ri-close-line text-[11px] pointer-events-none"></i></button>
+                                                <!-- Action badge -->
+                                                <div class="text-[10px] text-blue-500 font-semibold opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1 mt-1 justify-center">
+                                                    <i class="ri-edit-line"></i> Manage
                                                 </div>
                                             </div>
                                         </td>
@@ -267,7 +307,83 @@ if (!defined('FULL_BASE_URL')) {
         </footer>
     </div>
 
+    <!-- Modern Maintenance Cycle Modal -->
+    <div id="maintenanceModal" class="fixed inset-0 z-50 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/60 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
+
+            <!-- Modal Content -->
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider" id="modalTitle">Manage Maintenance</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i class="ri-close-line text-xl"></i>
+                    </button>
+                </div>
+                <form id="maintenanceForm" class="p-6 space-y-4">
+                    <input type="hidden" id="modal_schedule_id" name="schedule_id">
+                    <input type="hidden" id="modal_job_id" name="job_id">
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Job ID</label>
+                            <input type="text" id="modal_job_id_display" class="p-2.5 border border-slate-200 rounded-lg text-xs bg-slate-100 font-medium text-slate-650 outline-none" readonly>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Cycle Number</label>
+                            <input type="number" id="modal_cycle_number" name="cycle_number" min="1" max="100" class="p-2.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-emerald-500 bg-white">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Scheduled Date</label>
+                            <input type="date" id="modal_scheduled_date" name="scheduled_date" class="p-2.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:border-emerald-500 outline-none bg-white">
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Actual Date</label>
+                            <input type="date" id="modal_actual_date" name="actual_date" class="p-2.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:border-emerald-500 outline-none bg-white">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Status</label>
+                        <select id="modal_status" name="status" class="p-2.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:border-emerald-500 outline-none bg-white font-medium">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="completed">Completed</option>
+                            <option value="overdue">Overdue</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Description / Notes</label>
+                        <textarea id="modal_description" name="description" rows="3" class="p-2.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:border-emerald-500 outline-none resize-none bg-white" placeholder="e.g. Battery Replaced, Panel Cleaned"></textarea>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-150">
+                        <button type="button" id="deleteBtn" onclick="deleteMaintenance()" class="bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm hidden">
+                            <i class="ri-delete-bin-line"></i> Delete Cycle
+                        </button>
+                        <div class="flex gap-2 ml-auto">
+                            <button type="button" onclick="closeModal()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                                <span id="saveBtnText">Save Changes</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -279,21 +395,29 @@ if (!defined('FULL_BASE_URL')) {
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize DataTable & Collapsibility
+        $(document).ready(function() {
+            $('#detailedMaintenanceTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                ordering: false, // Keep default sorting to preserve row grouping
+                searching: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search within table..."
+                }
+            });
+
             // Row-level collapsible
-            document.querySelectorAll('.collapsible').forEach(item => {
-                item.addEventListener('click', () => {
-                    const details = item.nextElementSibling;
-                    const icon = item.querySelector('.fa-chevron-down, .fa-chevron-up');
-                    details.classList.toggle('hidden');
-                    if (icon) {
-                        if (details.classList.contains('hidden')) {
-                            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                        } else {
-                            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                        }
-                    }
-                });
+            $(document).on('click', '.collapsible', function() {
+                const details = $(this).next('.details');
+                const icon = $(this).find('i');
+                details.toggleClass('hidden');
+                if (details.hasClass('hidden')) {
+                    icon.removeClass('ri-arrow-up-s-line').addClass('ri-arrow-down-s-line');
+                } else {
+                    icon.removeClass('ri-arrow-down-s-line').addClass('ri-arrow-up-s-line');
+                }
             });
             
             // Maintenance Status Chart
@@ -355,42 +479,97 @@ if (!defined('FULL_BASE_URL')) {
                     }
                 }
             });
-            
-            // Status update functionality
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('btn-status') || e.target.closest('.btn-status')) {
-                    const btn = e.target.classList.contains('btn-status') ? e.target : e.target.closest('.btn-status');
-                    const jobId = btn.getAttribute('data-job');
-                    const cycle = btn.getAttribute('data-cycle');
-                    const date = btn.getAttribute('data-date');
-                    const status = btn.getAttribute('data-status');
-                    const desc = prompt('Add an optional note (e.g., "Battery Replaced"):', '');
-                    
-                    const form = new FormData();
-                    form.append('action', 'set_maintenance_status');
-                    form.append('job_id', jobId);
-                    form.append('cycle_number', cycle);
-                    form.append('scheduled_date', date);
-                    form.append('status', status);
-                    form.append('description', desc || '');
- 
-                    fetch('<?php echo BASE_PATH; ?>/admin/manageTable/maintenance_schedule', {
-                        method: 'POST',
-                        body: form
-                    }).then(r => r.json()).then(json => {
-                        if (json.success) {
-                            btn.innerHTML = '<i class="ri-loader-4-line animate-spin text-[11px]"></i>';
-                            setTimeout(() => location.reload(), 500);
-                        } else {
-                            alert('Error: ' + (json.error || 'Unknown'));
-                        }
-                    }).catch(err => {
-                        console.error(err);
-                        alert('Request failed');
-                    });
+
+            // Handle AJAX Form Submission
+            $('#maintenanceForm').on('submit', function(e) {
+                e.preventDefault();
+                const form = new FormData(this);
+                const scheduleId = $('#modal_schedule_id').val();
+                
+                if (scheduleId) {
+                    form.append('action', 'update');
+                    form.append('id', scheduleId);
+                } else {
+                    form.append('action', 'create');
                 }
+                
+                const saveBtnText = $('#saveBtnText');
+                const originalText = saveBtnText.text();
+                saveBtnText.text('Saving...');
+                
+                fetch('<?php echo BASE_PATH; ?>/admin/manageTable/maintenance_schedule', {
+                    method: 'POST',
+                    body: form
+                })
+                .then(r => r.json())
+                .then(json => {
+                    if (json.success) {
+                        location.reload();
+                    } else {
+                        alert('Error saving record: ' + (json.error || 'Unknown error'));
+                        saveBtnText.text(originalText);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Request failed');
+                    saveBtnText.text(originalText);
+                });
             });
         });
+
+        // Modal triggers
+        function openMaintenanceModal(data) {
+            $('#modal_schedule_id').val(data.schedule_id);
+            $('#modal_job_id').val(data.job_id);
+            $('#modal_job_id_display').val('Job #' + data.job_id);
+            $('#modal_cycle_number').val(data.cycle_number);
+            $('#modal_scheduled_date').val(data.scheduled_date);
+            $('#modal_actual_date').val(data.actual_date);
+            $('#modal_status').val(data.status);
+            $('#modal_description').val(data.description);
+
+            if (data.schedule_id) {
+                $('#modalTitle').text('Edit Maintenance Cycle');
+                $('#deleteBtn').removeClass('hidden');
+            } else {
+                $('#modalTitle').text('Add Maintenance Cycle');
+                $('#deleteBtn').addClass('hidden');
+            }
+
+            $('#maintenanceModal').removeClass('hidden');
+        }
+
+        function closeModal() {
+            $('#maintenanceModal').addClass('hidden');
+        }
+
+        function deleteMaintenance() {
+            const scheduleId = $('#modal_schedule_id').val();
+            if (!scheduleId) return;
+            if (!confirm('Are you sure you want to delete this maintenance cycle?')) return;
+            
+            const form = new FormData();
+            form.append('action', 'delete');
+            form.append('id', scheduleId);
+            
+            fetch('<?php echo BASE_PATH; ?>/admin/manageTable/maintenance_schedule', {
+                method: 'POST',
+                body: form
+            })
+            .then(r => r.json())
+            .then(json => {
+                if (json.success) {
+                    location.reload();
+                } else {
+                    alert('Error deleting record: ' + (json.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Request failed');
+            });
+        }
         
         function downloadCSV() {
             const form = document.getElementById('filterForm');

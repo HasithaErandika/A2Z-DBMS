@@ -15,6 +15,28 @@ if (!defined('FULL_BASE_URL')) {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php require_once __DIR__ . '/../partials/theme.php'; ?>
+    <!-- DataTables Tailwind CSS -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <style>
+        .dataTables_wrapper .dataTables_length select {
+            padding: 0.375rem 1.75rem 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: 0.375rem;
+            border-color: #e2e8f0;
+            background-color: #fff;
+            outline: none;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: #10b981;
+        }
+    </style>
 </head>
 <body class="font-sans bg-slate-50 text-slate-800 antialiased overflow-x-hidden min-h-screen">
 
@@ -37,20 +59,20 @@ if (!defined('FULL_BASE_URL')) {
                     <div class="text-xs text-slate-500 font-semibold">Report Generated on: <?php echo date('d M Y'); ?></div>
                     <div class="flex items-center gap-2">
                         <a href="<?php echo htmlspecialchars(BASE_PATH . '/admin/reports', ENT_QUOTES, 'UTF-8'); ?>" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-arrow-left"></i> Back to Reports
+                            <i class="ri-arrow-left-line"></i> Back to Reports
                         </a>
                         <button onclick="window.print()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-print"></i> Print
+                            <i class="ri-printer-line"></i> Print
                         </button>
                         <button onclick="downloadCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
-                            <i class="fas fa-file-csv"></i> Export CSV
+                            <i class="ri-file-excel-line"></i> Export CSV
                         </button>
                     </div>
                 </div>
 
                 <?php if (isset($error)): ?>
                     <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 flex items-center space-x-2">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <i class="ri-error-warning-line"></i>
                         <span><?php echo htmlspecialchars($error ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
                 <?php else: ?>
@@ -113,7 +135,7 @@ if (!defined('FULL_BASE_URL')) {
                                 <input type="date" name="to_date" value="<?php echo htmlspecialchars($filters['to_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="p-2 border border-slate-200 rounded-lg text-xs transition-all focus:border-emerald-500 focus:outline-none bg-white">
                             </div>
                             <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 h-[38px] md:col-span-2">
-                                <i class="fas fa-filter"></i> Apply Filter
+                                <i class="ri-filter-3-line"></i> Apply Filter
                             </button>
                         </form>
                     </div>
@@ -121,7 +143,7 @@ if (!defined('FULL_BASE_URL')) {
                     <!-- Filtered Summary Cards -->
                     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-8">
                         <h3 class="text-xs font-bold text-slate-900 mb-4 uppercase tracking-wider">Filtered Financial Metrics</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-slate-800">
                             <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                                 <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Invoiced</h4>
                                 <p class="text-sm font-extrabold text-slate-900">LKR <?php echo number_format($total_invoice_amount, 2); ?></p>
@@ -145,10 +167,14 @@ if (!defined('FULL_BASE_URL')) {
                         </div>
 
                         <h3 class="text-xs font-bold text-slate-900 mb-4 mt-6 uppercase tracking-wider">Filtered Operating Costs & Profit</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
                             <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
-                                <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Material Expenses</h4>
+                                <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Operational Expenses</h4>
                                 <p class="text-sm font-extrabold text-slate-900">LKR <?php echo number_format($total_expenses, 2); ?></p>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                                <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Site Material Costs</h4>
+                                <p class="text-sm font-extrabold text-slate-900">LKR <?php echo number_format($total_material_cost, 2); ?></p>
                             </div>
                             <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                                 <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Labor & EPF Costs</h4>
@@ -165,7 +191,7 @@ if (!defined('FULL_BASE_URL')) {
                             <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl <?php echo $total_net_profit >= 0 ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'; ?>">
                                 <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Net Margin (Profit)</h4>
                                 <p class="text-sm font-extrabold <?php echo $total_net_profit >= 0 ? 'text-emerald-600' : 'text-red-500'; ?>">
-                                    LKR <?php echo number_format($total_net_profit, 0); ?> (<?php echo number_format($profit_margin, 1); ?>%)
+                                    LKR <?php echo number_format($total_net_profit, 2); ?> (<?php echo number_format($profit_margin, 1); ?>%)
                                 </p>
                             </div>
                         </div>
@@ -236,10 +262,10 @@ if (!defined('FULL_BASE_URL')) {
                                             ?>"></span>
                                             <?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?> Jobs (<?php echo count($jobs); ?>)
                                         </h4>
-                                        <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300"></i>
+                                        <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                     </div>
-                                    <div class="status-content hidden overflow-x-auto">
-                                        <table class="w-full border-collapse text-xs text-left">
+                                    <div class="status-content hidden p-4 overflow-x-auto">
+                                        <table class="w-full border-collapse text-xs text-left cost-table">
                                             <thead>
                                                 <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
                                                     <th class="p-4 font-bold">Job Details</th>
@@ -247,6 +273,7 @@ if (!defined('FULL_BASE_URL')) {
                                                     <th class="p-4 font-bold">Capacity</th>
                                                     <th class="p-4 font-bold">Invoice Details</th>
                                                     <th class="p-4 font-bold">Expenses</th>
+                                                    <th class="p-4 font-bold">Material Cost</th>
                                                     <th class="p-4 font-bold">Employee Costs</th>
                                                     <th class="p-4 font-bold">Total Cost</th>
                                                     <th class="p-4 font-bold">Total Invoiced</th>
@@ -255,14 +282,7 @@ if (!defined('FULL_BASE_URL')) {
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100">
-                                                <?php $current_company = ''; ?>
                                                 <?php foreach ($jobs as $row): ?>
-                                                    <?php if ($row['company_reference'] !== $current_company): ?>
-                                                        <tr class="bg-slate-50/50">
-                                                            <td colspan="10" class="p-4 font-bold text-[10px] uppercase text-slate-550 border-y border-slate-200/60">Company: <?php echo htmlspecialchars($row['company_reference'] ?? 'Unknown', ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        </tr>
-                                                        <?php $current_company = $row['company_reference']; ?>
-                                                    <?php endif; ?>
                                                     <?php
                                                     $jobDetails = "<ul class='list-disc pl-5 space-y-1 text-slate-500'>";
                                                     $jobDetails .= "<li><strong>Job ID:</strong> " . htmlspecialchars($row['job_id'] ?? '', ENT_QUOTES, 'UTF-8') . "</li>";
@@ -295,71 +315,109 @@ if (!defined('FULL_BASE_URL')) {
                                                         $expenseDetails .= "<li>No expenses recorded</li>";
                                                     }
                                                     $expenseDetails .= "</ul>";
-                                                    $employeeDetails = "<ul class='list-disc pl-5 space-y-1 text-slate-500'>";
-                                                    $totalEmployeeCostsForJob = floatval($row['total_employee_costs'] ?? 0);
-                                                    if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
-                                                        foreach ($row['employee_details'] as $emp) {
-                                                            $employeeDetails .= "<li><strong>" . htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8') . ":</strong> LKR " . number_format(floatval($emp['payment'] ?? 0), 2);
-                                                            if (!empty($emp['days']) && is_array($emp['days'])) {
-                                                                $employeeDetails .= "<ul class='list-disc pl-5 space-y-1 mt-1'>";
-                                                                foreach ($emp['days'] as $day) {
-                                                                    $presence = floatval($day['presence'] ?? 0);
-                                                                    $presenceText = $presence == 1.0 ? 'Full Day' : ($presence == 0.5 ? 'Half Day' : number_format($presence, 1) . ' Days');
-                                                                    $employeeDetails .= "<li>";
-                                                                    $employeeDetails .= "<strong>Date:</strong> " . htmlspecialchars($day['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8') . "<br>";
-                                                                    $employeeDetails .= "<strong>Pres:</strong> " . $presenceText . "<br>";
-                                                                    $employeeDetails .= "<strong>Pay:</strong> LKR " . number_format(floatval($day['payment'] ?? 0), 2);
-                                                                    $employeeDetails .= "</li>";
-                                                                }
-                                                                $employeeDetails .= "</ul>";
-                                                            } else {
-                                                                $employeeDetails .= " (No attendance recorded)";
-                                                            }
-                                                            $employeeDetails .= "</li>";
-                                                        }
-                                                    } else {
-                                                        $employeeDetails .= "<li>No employee costs</li>";
-                                                    }
-                                                    $employeeDetails .= "</ul>";
-                                                    $totalCost = $totalExpensesForJob + $totalEmployeeCostsForJob;
+                                                     $totalEmployeeCostsForJob = floatval($row['total_employee_costs'] ?? 0);
+                                                     // Build a structured attendance mini-table
+                                                     if (!empty($row['employee_details']) && is_array($row['employee_details'])) {
+                                                         $employeeDetails = "<div class='overflow-x-auto mt-1'>";
+                                                         foreach ($row['employee_details'] as $emp) {
+                                                             $empName = htmlspecialchars($emp['emp_name'] ?? 'Unknown Employee', ENT_QUOTES, 'UTF-8');
+                                                             $empTotal = number_format(floatval($emp['payment'] ?? 0), 2);
+                                                             $hasDays = !empty($emp['days']) && is_array($emp['days']);
+                                                             $employeeDetails .= "
+                                                             <div class='mb-4 rounded-xl overflow-hidden border border-slate-200 shadow-sm'>
+                                                                 <div class='flex items-center justify-between px-3 py-2 bg-slate-800 text-white'>
+                                                                     <span class='text-xs font-bold tracking-wide'>{$empName}</span>
+                                                                     <span class='text-xs font-mono font-semibold text-emerald-300'>LKR {$empTotal}</span>
+                                                                 </div>";
+                                                             if ($hasDays) {
+                                                                 $employeeDetails .= "
+                                                                 <table class='w-full text-xs'>
+                                                                     <thead>
+                                                                         <tr class='bg-slate-100 text-slate-500 uppercase tracking-wider text-[10px]'>
+                                                                             <th class='px-3 py-1.5 text-left font-semibold'>Date</th>
+                                                                             <th class='px-3 py-1.5 text-center font-semibold'>Attendance</th>
+                                                                             <th class='px-3 py-1.5 text-right font-semibold'>Daily Pay (LKR)</th>
+                                                                         </tr>
+                                                                     </thead>
+                                                                     <tbody class='divide-y divide-slate-100 bg-white'>";
+                                                                 foreach ($emp['days'] as $day) {
+                                                                     $presence = floatval($day['presence'] ?? 0);
+                                                                     if ($presence == 1.0) {
+                                                                         $badge = "<span style='display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#d1fae5;color:#065f46;'>Full Day</span>";
+                                                                     } elseif ($presence == 0.5) {
+                                                                         $badge = "<span style='display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#fef3c7;color:#92400e;'>Half Day</span>";
+                                                                     } else {
+                                                                         $badge = "<span style='display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#fee2e2;color:#991b1b;'>Absent</span>";
+                                                                     }
+                                                                     $dayPay = number_format(floatval($day['payment'] ?? 0), 2);
+                                                                     $dayDate = htmlspecialchars($day['date'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                                                     $employeeDetails .= "
+                                                                         <tr class='hover:bg-slate-50'>
+                                                                             <td class='px-3 py-1.5 text-slate-600 font-medium'>{$dayDate}</td>
+                                                                             <td class='px-3 py-1.5 text-center'>{$badge}</td>
+                                                                             <td class='px-3 py-1.5 text-right font-semibold text-slate-800'>{$dayPay}</td>
+                                                                         </tr>";
+                                                                 }
+                                                                 $employeeDetails .= "
+                                                                     </tbody>
+                                                                 </table>";
+                                                             } else {
+                                                                 $employeeDetails .= "<p class='px-3 py-2 text-xs text-slate-400 italic bg-white'>No attendance records linked to this job.</p>";
+                                                             }
+                                                             $employeeDetails .= "</div>";
+                                                         }
+                                                         $employeeDetails .= "</div>";
+                                                     } else {
+                                                         $employeeDetails = "<p class='text-xs text-slate-400 italic p-2'>No employee cost records for this job.</p>";
+                                                     }
+                                                    $totalMaterialCost = floatval($row['material_cost'] ?? 0);
+                                                    $materialDetailsHtml = $row['material_details_html'] ?? '<li>No materials</li>';
+                                                    $totalCost = $totalExpensesForJob + $totalEmployeeCostsForJob + $totalMaterialCost;
                                                     $outstanding = floatval($row['invoice_value'] ?? 0) - floatval($row['received_amount'] ?? 0);
                                                     $netProfit = floatval($row['net_profit'] ?? 0);
                                                     $displayDate = $row['date_completed'] === '0000-00-00' ? 'Not Set' : htmlspecialchars($row['date_completed'] ?? '', ENT_QUOTES, 'UTF-8');
                                                     ?>
                                                     <tr class="hover:bg-slate-50/55 transition-colors">
-                                                        <td class="p-4 align-top">
+                                                        <td class="p-4 align-top font-medium">
                                                             <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
-                                                                <span>Customer: <?php echo htmlspecialchars($row['customer_reference'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
-                                                                <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                                <span><?php echo htmlspecialchars($row['customer_reference'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
+                                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                             </div>
                                                             <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $jobDetails; ?></div>
                                                         </td>
                                                         <td class="p-4 align-top text-slate-650"><?php echo $displayDate; ?></td>
-                                                        <td class="p-4 align-top font-medium text-slate-800"><?php echo htmlspecialchars($row['job_capacity'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="p-4 align-top font-medium text-slate-850"><?php echo htmlspecialchars($row['job_capacity'] ?? '', ENT_QUOTES, 'UTF-8'); ?> kW</td>
                                                         <td class="p-4 align-top">
                                                             <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
                                                                 <span><?php echo $has_invoice ? htmlspecialchars($row['invoice_no'], ENT_QUOTES, 'UTF-8') : 'No Invoice'; ?></span>
-                                                                <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                             </div>
                                                             <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $invoiceDetails; ?></div>
                                                         </td>
-                                                        <td class="p-4 align-top">
+                                                        <td class="p-4 align-top font-medium text-slate-800">
                                                             <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
                                                                 <span>LKR <?php echo number_format($totalExpensesForJob, 2); ?></span>
-                                                                <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                             </div>
                                                             <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $expenseDetails; ?></div>
                                                         </td>
-                                                        <td class="p-4 align-top">
+                                                        <td class="p-4 align-top font-medium text-slate-800">
+                                                            <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
+                                                                <span>LKR <?php echo number_format($totalMaterialCost, 2); ?></span>
+                                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
+                                                            </div>
+                                                            <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $materialDetailsHtml; ?></div>
+                                                        </td>
+                                                        <td class="p-4 align-top font-medium text-slate-800">
                                                             <div class="collapsible cursor-pointer flex items-center gap-2 font-medium select-none text-slate-900">
                                                                 <span>LKR <?php echo number_format($totalEmployeeCostsForJob, 2); ?></span>
-                                                                <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform duration-300"></i>
+                                                                <i class="ri-arrow-down-s-line text-slate-400 transition-transform duration-300"></i>
                                                             </div>
                                                             <div class="details hidden p-4 bg-slate-50/50 border border-slate-200/60 rounded-xl mt-3"><?php echo $employeeDetails; ?></div>
                                                         </td>
-                                                        <td class="p-4 align-top text-slate-700">LKR <?php echo number_format($totalCost, 2); ?></td>
-                                                        <td class="p-4 align-top text-slate-800 font-medium">LKR <?php echo number_format(floatval($row['invoice_value'] ?? 0), 2); ?></td>
-                                                        <td class="p-4 align-top text-slate-650"><?php echo $has_invoice ? 'LKR ' . number_format($outstanding, 2) : 'N/A'; ?></td>
+                                                        <td class="p-4 align-top text-slate-700 font-medium">LKR <?php echo number_format($totalCost, 2); ?></td>
+                                                        <td class="p-4 align-top text-slate-800 font-semibold">LKR <?php echo number_format(floatval($row['invoice_value'] ?? 0), 2); ?></td>
+                                                        <td class="p-4 align-top text-slate-650">LKR <?php echo number_format($outstanding, 2); ?></td>
                                                         <td class="p-4 align-top font-bold <?php echo $netProfit >= 0 ? 'text-emerald-600' : 'text-red-500'; ?>">
                                                             LKR <?php echo number_format($netProfit, 2); ?>
                                                         </td>
@@ -391,6 +449,9 @@ if (!defined('FULL_BASE_URL')) {
     </div>
 
     <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.tailwindcss.min.js"></script>
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -402,37 +463,40 @@ if (!defined('FULL_BASE_URL')) {
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Row-level collapsible
-            document.querySelectorAll('.collapsible').forEach(item => {
-                item.addEventListener('click', () => {
-                    const details = item.nextElementSibling;
-                    const icon = item.querySelector('.fa-chevron-down, .fa-chevron-up');
-                    details.classList.toggle('hidden');
-                    if (icon) {
-                        if (details.classList.contains('hidden')) {
-                            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                        } else {
-                            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                        }
-                    }
-                });
+        $(document).ready(function() {
+            // Initialize DataTables
+            $('.cost-table').DataTable({
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                searching: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search within table..."
+                }
+            });
+
+            // Delegated collapsible rows listener
+            $(document).on('click', '.collapsible', function() {
+                const details = $(this).next('.details');
+                const icon = $(this).find('i');
+                details.toggleClass('hidden');
+                if (details.hasClass('hidden')) {
+                    icon.removeClass('ri-arrow-up-s-line').addClass('ri-arrow-down-s-line');
+                } else {
+                    icon.removeClass('ri-arrow-down-s-line').addClass('ri-arrow-up-s-line');
+                }
             });
 
             // Status section collapsible
-            document.querySelectorAll('.status-header').forEach(header => {
-                header.addEventListener('click', () => {
-                    const content = header.nextElementSibling;
-                    const icon = header.querySelector('.fa-chevron-down, .fa-chevron-up');
-                    content.classList.toggle('hidden');
-                    if (icon) {
-                        if (content.classList.contains('hidden')) {
-                            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                        } else {
-                            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-                        }
-                    }
-                });
+            $('.status-header').on('click', function() {
+                const content = $(this).next('.status-content');
+                const icon = $(this).find('i');
+                content.toggleClass('hidden');
+                if (content.hasClass('hidden')) {
+                    icon.removeClass('ri-arrow-up-s-line').addClass('ri-arrow-down-s-line');
+                } else {
+                    icon.removeClass('ri-arrow-down-s-line').addClass('ri-arrow-up-s-line');
+                }
             });
 
             const ctx = document.getElementById('financialChart').getContext('2d');

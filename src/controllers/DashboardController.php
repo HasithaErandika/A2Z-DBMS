@@ -6,7 +6,6 @@ require_once 'src/core/Controller.php';
 use App\Repositories\EmployeeRepository;
 use App\Repositories\JobRepository;
 use App\Repositories\ExpenseRepository;
-use Database;
 
 class DashboardController extends Controller {
     private $employeeRepo;
@@ -65,6 +64,7 @@ class DashboardController extends Controller {
                 ['link' => BASE_PATH . '/admin/manageTable/employee_payment_rates', 'icon' => 'fa-money-check-alt', 'title' => 'Employee Payment Rates', 'desc' => 'Fixed or Daily Wage'],
                 ['link' => BASE_PATH . '/admin/manageTable/projects', 'icon' => 'fa-project-diagram', 'title' => 'Projects', 'desc' => 'Project management'],
                 ['link' => BASE_PATH . '/admin/manageTable/jobs', 'icon' => 'fa-briefcase', 'title' => 'Jobs', 'desc' => 'Job assignments'],
+                ['link' => BASE_PATH . '/admin/manageTable/job_materials', 'icon' => 'fa-boxes', 'title' => 'Job Materials', 'desc' => 'Site-specific material lists and cost calculations'],
                 ['link' => BASE_PATH . '/admin/manageTable/maintenance_schedule', 'icon' => 'fa-tools', 'title' => 'Maintenance Schedule', 'desc' => 'Scheduled maintenance cycles'],
                 ['link' => BASE_PATH . '/admin/manageTable/operational_expenses', 'icon' => 'fa-receipt', 'title' => 'Operational Expenses', 'desc' => 'Expense tracking'],
                 ['link' => BASE_PATH . '/admin/manageTable/invoice_data', 'icon' => 'fa-file-invoice', 'title' => 'Invoice Data', 'desc' => 'Invoice records'],

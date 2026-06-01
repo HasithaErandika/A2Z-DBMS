@@ -5,7 +5,6 @@ require_once 'src/core/Controller.php';
 
 use App\Services\WageCalculationService;
 use App\Services\ExportService;
-use Database;
 
 class ReportController extends Controller {
     private $reportManager;
@@ -177,66 +176,124 @@ class ReportController extends Controller {
                     throw new Exception("Invalid year or month selected.");
                 }
                 $start_date = sprintf("%d-%02d-01", $year, $month);
-                $end_date = sprintf("%d-%02d-%d", $year, $month, date('t', mktime(0, 0, 0, $month, 1, $year)));
+                $end_date   = sprintf("%d-%02d-%d", $year, $month, date('t', mktime(0, 0, 0, $month, 1, $year)));
                 $month_name = date('F', mktime(0, 0, 0, $month, 1, $year));
                 $report_title = "Company Expense Report for $month_name $year";
+            } elseif ($request->isPost() && $request->post('year')) {
+                $year = filter_var($request->post('year'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 2020, 'max_range' => 2035]]);
+                if ($year === false) throw new Exception("Invalid year selected.");
+                $start_date = "$year-01-01";
+                $end_date   = "$year-12-31";
+                $report_title = "Company Expense Report for $year";
             }
 
-            $expenses_data = $this->reportManager->getExpensesByCategory($start_date, $end_date);
-            $invoices_data = $this->reportManager->getInvoicesSummary($start_date, $end_date);
-            $jobs_data = $this->reportManager->getJobsSummary($start_date, $end_date);
-            $attendance_data = $this->reportManager->getEmployeeAttendanceCosts(null, $start_date, $end_date);
-            $epf_costs = $this->reportManager->getEPFCosts($start_date);
+            // ── Fetch raw data ───────────────────────────────────────────────────────
+            $expenses_data     = $this->reportManager->getExpensesByCategory($start_date, $end_date);
+            $invoices_data     = $this->reportManager->getInvoicesSummary($start_date, $end_date);
+            $jobs_data         = $this->reportManager->getJobsSummary($start_date, $end_date);
+            $attendance_data   = $this->reportManager->getEmployeeAttendanceCosts(null, $start_date, $end_date);
+            $statutory         = $this->reportManager->getStatutoryBreakdown($start_date, $end_date);
+            $detailed_rows     = $this->reportManager->getDetailedExpenseRows($start_date, $end_date);
 
-            $total_expenses = 0;
-            $total_employee_costs = 0;
+            // ── Operational expenses by category (excluding Hiring of Labor) ────────
+            $total_operational  = 0.0;
             $expenses_by_category = [];
-            $employee_costs_by_type = ['Attendance-Based' => 0, 'Hiring of Labor' => 0];
+            $hiring_labor_cost   = 0.0;
 
             foreach ($expenses_data as $row) {
                 $category = $row['expenses_category'];
-                $amount = floatval($row['total_expenses']);
+                $amount   = floatval($row['total_expenses']);
                 if (strcasecmp($category, 'Hiring of Labor') === 0) {
-                    $employee_costs_by_type['Hiring of Labor'] = $amount;
-                    $total_employee_costs += $amount;
+                    $hiring_labor_cost += $amount;
                 } else {
-                    $expenses_by_category[$category] = $amount;
-                    $total_expenses += $amount;
+                    $expenses_by_category[$category] = ($expenses_by_category[$category] ?? 0) + $amount;
+                    $total_operational += $amount;
                 }
             }
 
+            // ── Attendance-based employee costs ──────────────────────────────────────
+            $attendance_cost = 0.0;
             foreach ($attendance_data as $row) {
-                $payment = floatval($row['actual_cost'] ?? 0);
-                if ($row['presence'] > 0) {
-                    $employee_costs_by_type['Attendance-Based'] += $payment;
-                    $total_employee_costs += $payment;
+                if (floatval($row['presence'] ?? 0) > 0) {
+                    $attendance_cost += floatval($row['actual_cost'] ?? 0);
                 }
             }
 
-            $total_employee_costs += $epf_costs;
-            $expenses_by_category['EPF'] = $epf_costs;
+            // ── Statutory: EPF employer (12%) + ETF (3%) ────────────────────────────
+            $total_epf_employer = $statutory['total_epf'];   // company pays 12%
+            $total_etf          = $statutory['total_etf'];   // company pays 3%
+            $total_statutory    = $statutory['total'];       // EPF+ETF combined
+            $statutory_rows     = $statutory['rows'];
 
-            $total_invoices = floatval($invoices_data['total_invoices'] ?? 0);
+            // ── Total employee/labor costs ────────────────────────────────────────────
+            $total_employee_costs = $attendance_cost + $hiring_labor_cost + $total_statutory;
+
+            // ── Material Costs for A2Z Engineering Jobs ──────────────────────────────
+            $total_material_cost  = $this->reportManager->getMaterialCostSummary($start_date, $end_date);
+
+            // ── Revenue ──────────────────────────────────────────────────────────────
+            $total_invoices       = floatval($invoices_data['total_invoices'] ?? 0);
             $total_invoices_count = intval($invoices_data['invoice_count'] ?? 0);
-            $total_jobs = intval($jobs_data['job_count'] ?? 0);
-            $total_job_capacity = floatval($jobs_data['total_capacity'] ?? 0);
+            $total_jobs           = intval($jobs_data['job_count'] ?? 0);
+            $total_job_capacity   = floatval($jobs_data['total_capacity'] ?? 0);
 
-            $profit = $total_invoices - ($total_expenses + $total_employee_costs);
+            // ── Profit = Revenue − (Operational + Employee/Labor + Statutory + Materials) ──
+            $total_costs = $total_operational + $total_employee_costs + $total_material_cost;
+            $profit      = $total_invoices - $total_costs;
+
+            // ── Build the unified breakdown for the doughnut chart ───────────────────
+            // This merges operational categories + labor cost + statutory + materials into one map
+            $full_breakdown = $expenses_by_category;
+            if ($total_material_cost > 0) {
+                $full_breakdown['Site Material Costs'] = $total_material_cost;
+            }
+            if ($hiring_labor_cost > 0) {
+                $full_breakdown['Hiring of Labor']    = $hiring_labor_cost;
+            }
+            if ($attendance_cost > 0) {
+                $full_breakdown['Attendance Wages']   = $attendance_cost;
+            }
+            if ($total_epf_employer > 0) {
+                $full_breakdown['EPF (Employer 12%)'] = $total_epf_employer;
+            }
+            if ($total_etf > 0) {
+                $full_breakdown['ETF (3%)']           = $total_etf;
+            }
+
+            // Employee costs sub-breakdown for the employee costs table
+            $employee_costs_by_type = [
+                'Attendance-Based Wages' => $attendance_cost,
+                'Hiring of Labor'        => $hiring_labor_cost,
+                'EPF Employer (12%)'     => $total_epf_employer,
+                'ETF (3%)'               => $total_etf,
+            ];
 
             $data = [
-                'username' => $_SESSION['db_username'] ?? 'Admin',
-                'dbname' => Database::getDatabaseName(),
-                'report_title' => $report_title,
-                'total_expenses' => $total_expenses,
-                'total_invoices' => $total_invoices,
-                'total_invoices_count' => $total_invoices_count,
-                'total_jobs' => $total_jobs,
-                'total_job_capacity' => $total_job_capacity,
-                'total_employee_costs' => $total_employee_costs,
-                'profit' => $profit,
-                'expenses_by_category' => $expenses_by_category,
-                'employee_costs_by_type' => $employee_costs_by_type,
-                'filters' => ['year' => $request->post('year') ?? '', 'month' => $request->post('month') ?? '']
+                'username'              => $_SESSION['db_username'] ?? 'Admin',
+                'dbname'                => Database::getDatabaseName(),
+                'report_title'          => $report_title,
+                'total_operational'     => $total_operational,
+                'total_material_cost'   => $total_material_cost,
+                'total_expenses'        => $total_operational,   // kept for view compat
+                'total_invoices'        => $total_invoices,
+                'total_invoices_count'  => $total_invoices_count,
+                'total_jobs'            => $total_jobs,
+                'total_job_capacity'    => $total_job_capacity,
+                'total_employee_costs'  => $total_employee_costs,
+                'total_epf_employer'    => $total_epf_employer,
+                'total_etf'             => $total_etf,
+                'total_statutory'       => $total_statutory,
+                'profit'                => $profit,
+                'total_costs'           => $total_costs,
+                'expenses_by_category'  => $expenses_by_category,
+                'full_breakdown'        => $full_breakdown,
+                'employee_costs_by_type'=> $employee_costs_by_type,
+                'statutory_rows'        => $statutory_rows,
+                'detailed_rows'         => $detailed_rows,
+                'filters'               => [
+                    'year'  => $request->post('year')  ?? '',
+                    'month' => $request->post('month') ?? '',
+                ],
             ];
 
             if ($request->get('download_csv')) {
@@ -245,26 +302,42 @@ class ReportController extends Controller {
                 $output = fopen('php://output', 'w');
                 fputcsv($output, [$report_title]);
                 fputcsv($output, ['']);
-                fputcsv($output, ['Financial Overview', 'Value']);
-                fputcsv($output, ['Total Invoices', number_format($total_invoices, 2)]);
-                fputcsv($output, ['Total Operational Expenses', number_format($total_expenses, 2)]);
-                fputcsv($output, ['Total Employee Costs', number_format($total_employee_costs, 2)]);
-                fputcsv($output, ['Net Profit', number_format($profit, 2)]);
+                fputcsv($output, ['Financial Overview', 'Value (LKR)']);
+                fputcsv($output, ['Total Revenue (Invoices)', number_format($total_invoices, 2)]);
+                fputcsv($output, ['Total Operational Expenses', number_format($total_operational, 2)]);
+                fputcsv($output, ['Total Employee & Labor Costs', number_format($total_employee_costs, 2)]);
+                fputcsv($output, ['  Attendance-Based Wages', number_format($attendance_cost, 2)]);
+                fputcsv($output, ['  Hiring of Labor', number_format($hiring_labor_cost, 2)]);
+                fputcsv($output, ['  EPF Employer (12%)', number_format($total_epf_employer, 2)]);
+                fputcsv($output, ['  ETF (3%)', number_format($total_etf, 2)]);
+                fputcsv($output, ['Net Profit / (Loss)', number_format($profit, 2)]);
                 fputcsv($output, ['']);
-                fputcsv($output, ['Operational Expenses by Category', 'Amount']);
+                fputcsv($output, ['Operational Expenses by Category', 'Amount (LKR)']);
                 foreach ($expenses_by_category as $category => $amount) {
                     fputcsv($output, [$category, number_format($amount, 2)]);
                 }
                 fputcsv($output, ['']);
-                fputcsv($output, ['Employee Costs by Type', 'Amount']);
-                foreach ($employee_costs_by_type as $type => $amount) {
-                    fputcsv($output, [$type, number_format($amount, 2)]);
+                fputcsv($output, ['Statutory Obligations per Employee', 'Basic Salary', 'EPF Employee (8%)', 'EPF Employer (12%)', 'ETF (3%)', 'Total Statutory']);
+                foreach ($statutory_rows as $sr) {
+                    fputcsv($output, [
+                        $sr['emp_name'],
+                        number_format($sr['basic_salary'], 2),
+                        number_format($sr['epf_employee'], 2),
+                        number_format($sr['epf_employer'], 2),
+                        number_format($sr['etf'], 2),
+                        number_format($sr['total_statutory'], 2),
+                    ]);
                 }
                 fputcsv($output, ['']);
-                fputcsv($output, ['Additional Metrics', 'Value']);
-                fputcsv($output, ['Invoice Count', $total_invoices_count]);
-                fputcsv($output, ['Total Jobs', $total_jobs]);
-                fputcsv($output, ['Total Job Capacity', number_format($total_job_capacity, 2)]);
+                fputcsv($output, ['Expense Transactions (Auditor Detail)', 'Date', 'Category', 'Description', 'Amount', 'Voucher #', 'Paid', 'Employee', 'Job Location', 'Company']);
+                foreach ($detailed_rows as $dr) {
+                    fputcsv($output, [
+                        $dr['expense_id'], $dr['expensed_date'], $dr['expenses_category'],
+                        $dr['description'], number_format($dr['expense_amount'], 2),
+                        $dr['voucher_number'], $dr['paid'] ? 'Yes' : 'No',
+                        $dr['emp_name'], $dr['job_location'], $dr['company_reference'],
+                    ]);
+                }
                 fclose($output);
                 exit();
             }
@@ -274,11 +347,12 @@ class ReportController extends Controller {
             error_log("Error in expenseReport: " . $e->getMessage());
             $this->render('reports/expenses_report', [
                 'username' => $_SESSION['db_username'] ?? 'Admin',
-                'dbname' => Database::getDatabaseName(),
-                'error' => "Error generating report: " . $e->getMessage()
+                'dbname'   => Database::getDatabaseName(),
+                'error'    => "Error generating report: " . $e->getMessage()
             ]);
         }
     }
+
 
     public function costCalculation($request = null, $response = null) {
         if (!$request) $request = new App\Helpers\Request();
@@ -374,6 +448,8 @@ class ReportController extends Controller {
             $totalCapacity = 0;
             $totalNetProfit = 0;
             $companyStats = [];
+            $totalMaterialCostsOverall = 0.0;
+            $materialCostsMap = $this->reportManager->getJobMaterialCosts();
 
             foreach ($jobData as &$row) {
                 $row['invoice_no'] = implode(', ', array_column($row['invoices'], 'no'));
@@ -395,6 +471,23 @@ class ReportController extends Controller {
                 }
                 $row['operational_expenses'] = array_sum($operationalExpenses);
                 $row['expense_details'] = $operationalExpenses;
+
+                $materialCost = $materialCostsMap[$row['job_id']] ?? 0.0;
+                $row['material_cost'] = $materialCost;
+                $totalMaterialCostsOverall += $materialCost;
+
+                // Format material details HTML
+                $materialDetails = "<ul class='list-disc pl-5 space-y-1 text-slate-500'>";
+                $materialItems = $this->reportManager->getMaterialsForJob($row['job_id']);
+                if (!empty($materialItems)) {
+                    foreach ($materialItems as $item) {
+                        $materialDetails .= "<li><strong>" . htmlspecialchars($item['material_name'], ENT_QUOTES, 'UTF-8') . "</strong> (" . floatval($item['quantity']) . " @ " . number_format($item['unit_price'], 2) . ") + " . floatval($item['profit_margin']) . "% Margin = LKR " . number_format($item['final_price'], 2) . "</li>";
+                    }
+                } else {
+                    $materialDetails .= "<li>No materials recorded</li>";
+                }
+                $materialDetails .= "</ul>";
+                $row['material_details_html'] = $materialDetails;
 
                 $employeeCosts = $this->reportManager->getEmployeeAttendanceCosts($row['job_id']);
                 $totalEmployeeCosts = $hiringLaborCost;
@@ -455,7 +548,7 @@ class ReportController extends Controller {
                 $totalExpenses += $row['operational_expenses'];
                 $totalEmployeeCostsSum += $totalEmployeeCosts;
                 $totalCapacity += floatval($row['job_capacity'] ?? 0);
-                $netProfit = $invoiceValue - ($totalEmployeeCosts + $row['operational_expenses']);
+                $netProfit = $invoiceValue - ($totalEmployeeCosts + $row['operational_expenses'] + $materialCost);
                 $row['net_profit'] = $netProfit;
                 $totalNetProfit += $netProfit;
 
@@ -506,6 +599,7 @@ class ReportController extends Controller {
                 'unpaid_invoice_count' => $unpaidInvoiceCount,
                 'due_balance' => $dueBalance,
                 'total_expenses' => $totalExpenses,
+                'total_material_cost' => $totalMaterialCostsOverall,
                 'total_employee_costs_sum' => $totalEmployeeCostsSum,
                 'total_capacity' => $totalCapacity,
                 'total_net_profit' => $totalNetProfit,
@@ -555,11 +649,216 @@ class ReportController extends Controller {
 
     public function materialFind($request = null, $response = null) {
         if (!$request) $request = new App\Helpers\Request();
-        $data = [
-            'username' => $_SESSION['db_username'] ?? 'Admin',
-            'dbname' => Database::getDatabaseName(),
-        ];
-        $this->render('reports/material_find', $data);
+        if (!$response) $response = new App\Helpers\Response();
+
+        $action = trim($request->get('action') ?: ($request->post('action') ?: ''));
+        $jobId  = intval($request->get('job_id') ?: ($request->post('job_id') ?: 0));
+        $error   = null;
+        $success = null;
+        $importResult = null;
+
+        // ── Template download (GET) ─────────────────────────────────────────
+        if ($action === 'download_template') {
+            require_once __DIR__ . '/../../vendor/autoload.php';
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Materials');
+            $labels  = ['Material Name', 'Quantity', 'Unit Price (LKR)', 'Profit Margin (%)'];
+            foreach ($labels as $col => $label) {
+                $cell = chr(65 + $col) . '1';
+                $sheet->setCellValue($cell, $label);
+                $sheet->getStyle($cell)->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => 'solid', 'color' => ['rgb' => '1E3A5F']],
+                    'alignment' => ['horizontal' => 'center'],
+                ]);
+                $sheet->getColumnDimensionByColumn($col + 1)->setAutoSize(true);
+            }
+            $samples = [
+                ['Solis 5kW Hybrid Inverter', 1, 380000, 15],
+                ['Jinko 550W Solar Panel',    9,  65000, 15],
+                ['Mounting Structure & Bolts',1,  85000, 15],
+                ['AC/DC Distribution Board',  1,  75000, 12],
+                ['Premium AC & DC Cables',    1,  95000, 15],
+            ];
+            foreach ($samples as $r => $row) {
+                foreach ($row as $c => $val) {
+                    $sheet->setCellValue(chr(65 + $c) . ($r + 2), $val);
+                }
+            }
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="A2Z_Material_Import_Template.xlsx"');
+            header('Cache-Control: max-age=0');
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+            exit;
+        }
+
+        // ── POST actions ────────────────────────────────────────────────────
+        if ($request->isPost()) {
+
+            if ($action === 'import') {
+                if ($jobId <= 0) {
+                    $error = "Please select a job before importing.";
+                } elseif (empty($_FILES['excel_file']['tmp_name'])) {
+                    $error = "No file uploaded. Please choose an Excel (.xlsx, .xls) or CSV file.";
+                } else {
+                    $file    = $_FILES['excel_file'];
+                    $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $allowed = ['xlsx', 'xls', 'csv'];
+
+                    if (!in_array($ext, $allowed)) {
+                        $error = "Unsupported file type '.{$ext}'. Please upload .xlsx, .xls or .csv.";
+                    } elseif ($file['size'] > 5 * 1024 * 1024) {
+                        $error = "File too large (max 5 MB).";
+                    } else {
+                        require_once __DIR__ . '/../../vendor/autoload.php';
+                        try {
+                            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file['tmp_name']);
+                            $reader->setReadDataOnly(true);
+                            $spreadsheet = $reader->load($file['tmp_name']);
+                            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+
+                            if (count($rows) < 2) {
+                                $error = "The file has no data rows (only a header row, or is empty).";
+                            } else {
+                                $rawHeaders = array_map(
+                                    fn($h) => strtolower(trim(preg_replace('/[^a-z0-9_]/i', '_', $h ?? ''))),
+                                    $rows[0]
+                                );
+                                $aliasMap = [
+                                    'material_name' => ['material_name','material','name','item','item_name','description'],
+                                    'quantity'      => ['quantity','qty','amount'],
+                                    'unit_price'    => ['unit_price','price','unit_cost','cost','lkr','unit_price_lkr_'],
+                                    'profit_margin' => ['profit_margin','margin','profit','margin_','profit__'],
+                                ];
+                                $colMap = [];
+                                foreach ($aliasMap as $canonical => $aliases) {
+                                    foreach ($rawHeaders as $idx => $h) {
+                                        if (in_array($h, $aliases, true)) {
+                                            $colMap[$canonical] = $idx;
+                                            break;
+                                        }
+                                    }
+                                }
+                                $missing = array_diff(array_keys($aliasMap), array_keys($colMap));
+                                if (!empty($missing)) {
+                                    $error = "Missing required columns: " . implode(', ', $missing) .
+                                             ". Expected headers: Material Name, Quantity, Unit Price (LKR), Profit Margin (%).";
+                                } else {
+                                    $dataRows = [];
+                                    for ($i = 1; $i < count($rows); $i++) {
+                                        $r = $rows[$i];
+                                        if (empty(array_filter($r, fn($v) => $v !== null && $v !== ''))) continue;
+                                        $dataRows[] = [
+                                            'material_name' => $r[$colMap['material_name']] ?? '',
+                                            'quantity'      => $r[$colMap['quantity']] ?? 0,
+                                            'unit_price'    => $r[$colMap['unit_price']] ?? 0,
+                                            'profit_margin' => $r[$colMap['profit_margin']] ?? 0,
+                                        ];
+                                    }
+                                    if (empty($dataRows)) {
+                                        $error = "No valid data rows found in the file.";
+                                    } else {
+                                        $importResult = $this->reportManager->importJobMaterials($jobId, $dataRows);
+                                        if ($importResult['inserted'] > 0) {
+                                            $success = "Import complete — {$importResult['inserted']} item(s) added" .
+                                                       ($importResult['skipped'] > 0 ? ", {$importResult['skipped']} skipped." : ".");
+                                        } else {
+                                            $error = "No items were imported. " . implode(' ', $importResult['errors'] ?? []);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $ex) {
+                            $error = "Could not read file: " . $ex->getMessage();
+                            error_log("Excel import error: " . $ex->getMessage());
+                        }
+                    }
+                }
+
+            } elseif ($action === 'add') {
+                $name      = trim($request->post('material_name') ?? '');
+                $qty       = floatval($request->post('quantity') ?? 0);
+                $unitPrice = floatval($request->post('unit_price') ?? 0);
+                $margin    = floatval($request->post('profit_margin') ?? 0);
+
+                if (!empty($name) && $qty > 0 && $unitPrice > 0 && $jobId > 0) {
+                    if ($this->reportManager->addJobMaterialItem($jobId, $name, $qty, $unitPrice, $margin)) {
+                        $success = "Material item added successfully!";
+                    } else {
+                        $error = "Failed to add material item.";
+                    }
+                } else {
+                    $error = "Please fill in all required fields with valid numbers.";
+                }
+
+            } elseif ($action === 'delete') {
+                $itemId = intval($request->post('item_id') ?? 0);
+                if ($itemId > 0) {
+                    if ($this->reportManager->deleteJobMaterialItem($itemId)) {
+                        $success = "Material item deleted successfully!";
+                    } else {
+                        $error = "Failed to delete material item.";
+                    }
+                }
+
+            } elseif ($action === 'clear') {
+                if ($jobId > 0) {
+                    if ($this->reportManager->clearJobMaterialItems($jobId)) {
+                        $success = "All material items cleared for this job!";
+                    } else {
+                        $error = "Failed to clear material items.";
+                    }
+                }
+
+            } elseif ($action === 'prepopulate') {
+                if ($jobId > 0) {
+                    $this->reportManager->clearJobMaterialItems($jobId);
+                    $items = [
+                        ['Solis 5kW Single Phase Hybrid Inverter (with WiFi/LAN)', 1, 380000.0, 15.0],
+                        ['Jinko 550W Mono Facial Solar Panels', 9, 65000.0, 15.0],
+                        ['Complete Aluminum Mounting Structure & Hanger Bolts', 1, 85000.0, 15.0],
+                        ['AC/DC Distribution Board with SPDs, MCBs & Enclosure', 1, 75000.0, 15.0],
+                        ['Premium AC & DC Cables (6mm2, 4mm2) & Conduits', 1, 95000.0, 15.0],
+                        ['Copper Earth Rod, Earth Pit & Grounding Accessories', 1, 35000.0, 15.0],
+                        ['Site Engineering Labor, Testing & Grid Connection Application Fee', 1, 120000.0, 10.0],
+                        ['Transport, Site Logistics, Meals & Accommodation', 1, 45000.0, 0.0],
+                    ];
+                    $ok = true;
+                    foreach ($items as $item) {
+                        if (!$this->reportManager->addJobMaterialItem($jobId, $item[0], $item[1], $item[2], $item[3])) {
+                            $ok = false;
+                        }
+                    }
+                    $success = $ok ? "Standard 5kW Solar Hybrid Package loaded successfully!"
+                                   : "Some package items failed to load.";
+                }
+            }
+        }
+
+        // ── Render ──────────────────────────────────────────────────────────
+        $jobsList    = $this->reportManager->getActiveJobsList();
+        $materials   = [];
+        $selectedJob = null;
+
+        if ($jobId > 0) {
+            $materials = $this->reportManager->getMaterialsForJob($jobId);
+            foreach ($jobsList as $j) {
+                if (intval($j['job_id']) === $jobId) { $selectedJob = $j; break; }
+            }
+        }
+
+        $this->render('reports/material_find', [
+            'username'      => $_SESSION['db_username'] ?? 'Admin',
+            'dbname'        => Database::getDatabaseName(),
+            'jobs_list'     => $jobsList,
+            'materials'     => $materials,
+            'job_id'        => $jobId,
+            'selected_job'  => $selectedJob,
+            'error'         => $error,
+            'success'       => $success,
+            'import_result' => $importResult,
+        ]);
     }
 
     public function a2zEngineeringJobs($request = null, $response = null) {
@@ -595,7 +894,7 @@ class ReportController extends Controller {
                 $placeholders = implode(',', array_fill(0, count($jobIds), '?'));
                 $db = Database::getInstance($_SESSION['db_username'], $_SESSION['db_password']);
                 $pdo = $db->getConnection();
-                $stmt = $pdo->prepare("SELECT job_id, cycle_number, DATE_FORMAT(scheduled_date, '%Y-%m-%d') AS scheduled_date, DATE_FORMAT(actual_date, '%Y-%m-%d') AS actual_date, status, description FROM maintenance_schedule WHERE job_id IN ($placeholders) ORDER BY job_id, cycle_number");
+                $stmt = $pdo->prepare("SELECT schedule_id, job_id, cycle_number, DATE_FORMAT(scheduled_date, '%Y-%m-%d') AS scheduled_date, DATE_FORMAT(actual_date, '%Y-%m-%d') AS actual_date, status, description FROM maintenance_schedule WHERE job_id IN ($placeholders) ORDER BY job_id, cycle_number");
                 $stmt->execute($jobIds);
                 $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($schedules as $s) {
@@ -678,7 +977,7 @@ class ReportController extends Controller {
                 }
             }
             
-            $customerRefs = $this->reportManager->getCustomerRefs();
+            $customerRefs = $this->reportManager->getCustomerRefs(5);
             $companyRefs = $this->reportManager->getCompanyRefs();
             
             $data = [
