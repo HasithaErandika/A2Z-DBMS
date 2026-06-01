@@ -23,7 +23,7 @@ class TableManager extends Model
     ];
     private $tableConfigs = [
         'jobs' => [
-            'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'remarks', 'completion'],
+            'editableFields' => ['emp_id', 'project_id', 'engineer', 'date_started', 'date_completed', 'customer_reference', 'location', 'job_capacity', 'selling_price', 'remarks', 'completion'],
             'validation' => [
                 'engineer' => ['required'],
                 'date_started' => ['required']

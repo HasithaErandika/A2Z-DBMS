@@ -1,13 +1,37 @@
--- database/str.sql
+-- =====================================================================================
+-- A2Z Engineering Material Management and DBMS Schema Specification (database/str.sql)
+-- =====================================================================================
+-- 
+-- SYSTEM ARCHITECTURE OVERVIEW:
+-- This database structure manages the core operations of A2Z Engineering, focusing on:
+-- 1. User Authentication & RBAC (users table)
+-- 2. Project & Site Management (projects, jobs, maintenance_schedule)
+-- 3. Human Resource Management & Payroll (employees, payment_rates, attendance, salary_increments, employee_payments, bank_details)
+-- 4. Financial & Material Management (job_materials, invoice_data, operational_expenses)
+--
+-- SYSTEM FUNCTION LINKING:
+-- - Material Cost Calculation: Managed by the `job_materials` table linked directly to `jobs`.
+--   Provides real-time mathematical calculations for base costs, margin markups, and client quotes.
+--   Integrates with spreadsheet parsing (PHPSpreadsheet) to allow bulk import.
+-- - Job Profitability & System Selling Price: The `selling_price` column on `jobs` stores the actual final
+--   sale price to the client, allowing the system to calculate real margins and delta against estimated item quotes.
+-- - HR & Daily Wages: Attendance presenza (0.0, 0.5, 1.0) maps with the active rate in `employee_payment_rates`
+--   to compute monthly salary or daily wages, paid out via bank details.
+-- - Invoicing and Cash Flow: Invoices are linked to jobs to track receivables, receipts, and outstanding amounts.
+--
+-- =====================================================================================
 
 CREATE DATABASE IF NOT EXISTS operational_db;
 USE operational_db;
 
--- Drop tables in reverse order of dependencies to avoid constraint violations
+-- =====================================================================================
+-- DROP TABLES (REVERSE ORDER OF DEPENDENCY CHAIN)
+-- =====================================================================================
 DROP TABLE IF EXISTS maintenance_schedule;
 DROP TABLE IF EXISTS employee_bank_details;
 DROP TABLE IF EXISTS operational_expenses;
 DROP TABLE IF EXISTS invoice_data;
+DROP TABLE IF EXISTS job_materials;
 DROP TABLE IF EXISTS employee_payments;
 DROP TABLE IF EXISTS salary_increments;
 DROP TABLE IF EXISTS attendance;
@@ -17,7 +41,11 @@ DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS users;
 
--- 1. Users Table (Used for authentication/RBAC)
+-- =====================================================================================
+-- 1. users
+-- Description: Stores credentials and role definition for system login.
+-- System Flow: Authenticates access to admin dashboard, operational reports, and database tables.
+-- =====================================================================================
 CREATE TABLE users (
     id INT(11) PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -26,7 +54,11 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Projects Table
+-- =====================================================================================
+-- 2. projects
+-- Description: High-level categorization of commercial contracts.
+-- System Flow: Groups multiple individual installations or installation phases (jobs) under one project.
+-- =====================================================================================
 CREATE TABLE projects (
     project_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     project_description TEXT COLLATE utf8mb4_general_ci NOT NULL,
@@ -34,7 +66,11 @@ CREATE TABLE projects (
     remarks TEXT COLLATE utf8mb4_general_ci NULL
 );
 
--- 3. Employees Table
+-- =====================================================================================
+-- 3. employees
+-- Description: Core HR staff directory.
+-- System Flow: Identifies technical staff, engineers, and installers. Used for wages, attendance, and expense assignments.
+-- =====================================================================================
 CREATE TABLE employees (
     emp_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_name VARCHAR(100) NOT NULL,
@@ -49,7 +85,11 @@ CREATE TABLE employees (
     nic_photo VARCHAR(255)
 );
 
--- 4. Employee Payment Rates Table
+-- =====================================================================================
+-- 4. employee_payment_rates
+-- Description: Tracks rate revisions for daily and monthly workers.
+-- System Flow: Automatically referenced by the attendance module to calculate base pay.
+-- =====================================================================================
 CREATE TABLE employee_payment_rates (
     rate_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_id INT(11) NOT NULL,
@@ -60,7 +100,13 @@ CREATE TABLE employee_payment_rates (
     FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
 );
 
--- 5. Jobs Table
+-- =====================================================================================
+-- 5. jobs
+-- Description: Specific engineering projects (e.g. Solar installation at customer sites).
+-- Columns:
+--   * selling_price: Stores the final, actual project sale price to the client (LKR).
+-- System Flow: Core entity that links materials, expenses, scheduling, and billing together.
+-- =====================================================================================
 CREATE TABLE jobs (
     job_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     project_id INT(11) NULL,
@@ -72,10 +118,38 @@ CREATE TABLE jobs (
     job_capacity VARCHAR(50) COLLATE utf8mb4_general_ci NULL,
     remarks TEXT COLLATE utf8mb4_general_ci NULL,
     completion DECIMAL(10,2) NULL,
+    selling_price DECIMAL(12,2) DEFAULT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE SET NULL
 );
 
--- 6. Attendance Table
+-- =====================================================================================
+-- 6. job_materials
+-- Description: Materials allocated to specific jobs. Includes base cost and markup parameters.
+-- Columns:
+--   * profit_margin: Stored as a whole number (e.g., 5 for 5%). Margins between 0 and 1 are autoscaled to whole numbers.
+--   * total_cost: Calculated quantity * unit_price (base cost).
+--   * profit_amount: Calculated markup profit based on margin percentage.
+--   * final_price: Calculated final estimated price for the item.
+-- System Flow: Supplies data to the Material Cost Calculation module and calculates total system quotes.
+-- =====================================================================================
+CREATE TABLE job_materials (
+    id INT(11) PRIMARY KEY AUTO_INCREMENT,
+    job_id INT(11) NOT NULL,
+    material_name VARCHAR(255) NOT NULL,
+    quantity DECIMAL(12,4) NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(12,2) NOT NULL CHECK (unit_price >= 0),
+    profit_margin DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    total_cost DECIMAL(12,2) NOT NULL,
+    profit_amount DECIMAL(12,2) NOT NULL,
+    final_price DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+-- =====================================================================================
+-- 7. attendance
+-- Description: Daily labor attendance and site tracking.
+-- System Flow: Maps active site workers to jobs and forms the base data for HR salary calculations.
+-- =====================================================================================
 CREATE TABLE attendance (
     attendance_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_id INT(11) NOT NULL,
@@ -89,7 +163,11 @@ CREATE TABLE attendance (
     FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE SET NULL
 );
 
--- 7. Salary Increments Table
+-- =====================================================================================
+-- 8. salary_increments
+-- Description: Audit trail of employee wage revisions.
+-- System Flow: Documentation log for wage promotions and annual increases.
+-- =====================================================================================
 CREATE TABLE salary_increments (
     increment_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_id INT(11) NOT NULL,
@@ -100,7 +178,11 @@ CREATE TABLE salary_increments (
     FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
 );
 
--- 8. Employee Payments Table
+-- =====================================================================================
+-- 9. employee_payments
+-- Description: Log of actual salary, wage, advance, and bonus transfers to employees.
+-- System Flow: Audits payroll expenditures.
+-- =====================================================================================
 CREATE TABLE employee_payments (
     payment_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_id INT(11) NOT NULL,
@@ -113,7 +195,11 @@ CREATE TABLE employee_payments (
     FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
 );
 
--- 9. Invoice Data Table
+-- =====================================================================================
+-- 10. invoice_data
+-- Description: Customer billing and receivables log.
+-- System Flow: Feeds directly to cash flow, billing, and job-level financial dashboards.
+-- =====================================================================================
 CREATE TABLE invoice_data (
     invoice_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     job_id INT(11) NOT NULL,
@@ -128,7 +214,11 @@ CREATE TABLE invoice_data (
     FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
 );
 
--- 10. Operational Expenses Table
+-- =====================================================================================
+-- 11. operational_expenses
+-- Description: Direct site-specific expenses (e.g. food, fuel, structural items).
+-- System Flow: Aggregated on job reports to subtract from total contract price for net profit math.
+-- =====================================================================================
 CREATE TABLE operational_expenses (
     expense_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     job_id INT(11) NOT NULL,
@@ -145,7 +235,11 @@ CREATE TABLE operational_expenses (
     FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
 );
 
--- 11. Employee Bank Details Table
+-- =====================================================================================
+-- 12. employee_bank_details
+-- Description: Stores employee bank accounts for digital wage transfers.
+-- System Flow: Referenced during monthly salary processing.
+-- =====================================================================================
 CREATE TABLE employee_bank_details (
     id INT(11) PRIMARY KEY AUTO_INCREMENT,
     emp_id INT(11) NOT NULL,
@@ -156,7 +250,11 @@ CREATE TABLE employee_bank_details (
     FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
 );
 
--- 12. Maintenance Schedule Table
+-- =====================================================================================
+-- 13. maintenance_schedule
+-- Description: Automated maintenance scheduling for completed solar sites.
+-- System Flow: Reminds operators to perform periodic visits and logs outcomes.
+-- =====================================================================================
 CREATE TABLE maintenance_schedule (
     schedule_id INT(11) PRIMARY KEY AUTO_INCREMENT,
     job_id INT(11) NOT NULL,
@@ -168,6 +266,8 @@ CREATE TABLE maintenance_schedule (
     FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE
 );
 
--- Seed default admin user (Password: admin123)
+-- =====================================================================================
+-- DEFAULT ADMINISTRATIVE SEED
+-- =====================================================================================
 INSERT INTO users (username, password, user_type) VALUES 
 ('admin', '$2y$10$wT/p7n1H2C5m1wT13mR1keQ5K7TzGj7fD2z3l5mR1keQ5K7TzGj7f', 'admin');

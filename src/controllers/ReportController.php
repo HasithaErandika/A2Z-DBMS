@@ -721,15 +721,16 @@ class ReportController extends Controller {
                             if (count($rows) < 2) {
                                 $error = "The file has no data rows (only a header row, or is empty).";
                             } else {
+                                // Normalise headers: lowercase, collapse runs of non-alphanumeric into one _, trim edge _
                                 $rawHeaders = array_map(
-                                    fn($h) => strtolower(trim(preg_replace('/[^a-z0-9_]/i', '_', $h ?? ''))),
+                                    fn($h) => trim(strtolower(preg_replace('/[^a-z0-9]+/i', '_', trim($h ?? ''))), '_'),
                                     $rows[0]
                                 );
                                 $aliasMap = [
                                     'material_name' => ['material_name','material','name','item','item_name','description'],
                                     'quantity'      => ['quantity','qty','amount'],
-                                    'unit_price'    => ['unit_price','price','unit_cost','cost','lkr','unit_price_lkr_'],
-                                    'profit_margin' => ['profit_margin','margin','profit','margin_','profit__'],
+                                    'unit_price'    => ['unit_price','unit_price_lkr','price','unit_cost','cost','lkr'],
+                                    'profit_margin' => ['profit_margin','margin','profit'],
                                 ];
                                 $colMap = [];
                                 foreach ($aliasMap as $canonical => $aliases) {
@@ -792,6 +793,40 @@ class ReportController extends Controller {
                     $error = "Please fill in all required fields with valid numbers.";
                 }
 
+            } elseif ($action === 'update') {
+                $itemId    = intval($request->post('item_id') ?? 0);
+                $qty       = floatval($request->post('quantity') ?? 0);
+                $unitPrice = floatval($request->post('unit_price') ?? 0);
+                $margin    = floatval($request->post('profit_margin') ?? 0);
+                $isAjax    = intval($request->get('ajax') ?: ($request->post('ajax') ?: 0)) === 1;
+
+                if ($itemId > 0 && $qty > 0 && $unitPrice > 0) {
+                    if ($this->reportManager->updateJobMaterialItem($itemId, $qty, $unitPrice, $margin)) {
+                        if ($isAjax) {
+                            header('Content-Type: application/json');
+                            echo json_encode(['success' => true, 'message' => 'Material item updated successfully!']);
+                            exit;
+                        }
+                        $success = "Material item updated successfully!";
+                    } else {
+                        if ($isAjax) {
+                            header('Content-Type: application/json');
+                            http_response_code(500);
+                            echo json_encode(['success' => false, 'message' => 'Failed to update material item.']);
+                            exit;
+                        }
+                        $error = "Failed to update material item.";
+                    }
+                } else {
+                    if ($isAjax) {
+                        header('Content-Type: application/json');
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'message' => 'Invalid quantity or unit price.']);
+                        exit;
+                    }
+                    $error = "Invalid quantity or unit price.";
+                }
+
             } elseif ($action === 'delete') {
                 $itemId = intval($request->post('item_id') ?? 0);
                 if ($itemId > 0) {
@@ -833,6 +868,20 @@ class ReportController extends Controller {
                     $success = $ok ? "Standard 5kW Solar Hybrid Package loaded successfully!"
                                    : "Some package items failed to load.";
                 }
+
+            } elseif ($action === 'set_selling_price') {
+                $rawPrice = $request->post('selling_price');
+                if ($jobId > 0) {
+                    // Allow clearing (empty string = null)
+                    $price = ($rawPrice !== null && $rawPrice !== '') ? floatval($rawPrice) : null;
+                    if ($this->reportManager->setJobSellingPrice($jobId, $price)) {
+                        $success = $price !== null
+                            ? 'Total system selling price set to LKR ' . number_format($price, 2) . '.'
+                            : 'Selling price cleared.';
+                    } else {
+                        $error = 'Failed to save selling price.';
+                    }
+                }
             }
         }
 
@@ -841,8 +890,10 @@ class ReportController extends Controller {
         $materials   = [];
         $selectedJob = null;
 
+        $sellingPrice = null;
         if ($jobId > 0) {
-            $materials = $this->reportManager->getMaterialsForJob($jobId);
+            $materials    = $this->reportManager->getMaterialsForJob($jobId);
+            $sellingPrice = $this->reportManager->getJobSellingPrice($jobId);
             foreach ($jobsList as $j) {
                 if (intval($j['job_id']) === $jobId) { $selectedJob = $j; break; }
             }
@@ -855,6 +906,7 @@ class ReportController extends Controller {
             'materials'     => $materials,
             'job_id'        => $jobId,
             'selected_job'  => $selectedJob,
+            'selling_price' => $sellingPrice,
             'error'         => $error,
             'success'       => $success,
             'import_result' => $importResult,

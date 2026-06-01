@@ -6,26 +6,49 @@ if (!defined('FULL_BASE_URL')) {
     define('FULL_BASE_URL', 'https://records.a2zengineering.net/A2Z-DBMS');
 }
 
-$error = $error ?? null;
-$success = $success ?? null;
-$username = $username ?? 'Admin';
-$dbname = $dbname ?? '';
-$job_id = $job_id ?? 0;
-$jobs_list = $jobs_list ?? [];
-$materials = $materials ?? [];
+$error        = $error        ?? null;
+$success      = $success      ?? null;
+$username     = $username     ?? 'Admin';
+$dbname       = $dbname       ?? '';
+$job_id       = $job_id       ?? 0;
+$jobs_list    = $jobs_list    ?? [];
+$materials    = $materials    ?? [];
 $selected_job = $selected_job ?? null;
+$selling_price = $selling_price ?? null;
 
-// Calculate KPI values
-$totalBaseCost = 0.0;
-$totalProfitMarkup = 0.0;
-$totalQuotedPrice = 0.0;
+// Calculate KPI values from stored per-item fields
+$totalBaseCost    = 0.0;  // SUM(quantity * unit_price) — A2Z direct spend
+$totalProfitMarkup = 0.0; // SUM(profit_amount)         — calculated item-level markup
+$totalQuotedPrice  = 0.0; // SUM(final_price)           — calculated client quote
+$weightedMarginSum = 0.0; // for weighted-average margin
+$itemCount         = 0;
+
 foreach ($materials as $item) {
-    $totalBaseCost += floatval($item['total_cost'] ?? 0);
-    $totalProfitMarkup += floatval($item['profit_amount'] ?? 0);
-    $totalQuotedPrice += floatval($item['final_price'] ?? 0);
+    $baseCost = floatval($item['total_cost']    ?? 0);
+    $profit   = floatval($item['profit_amount'] ?? 0);
+    $final    = floatval($item['final_price']   ?? 0);
+    $margin   = floatval($item['profit_margin'] ?? 0);
+
+    $totalBaseCost     += $baseCost;
+    $totalProfitMarkup += $profit;
+    $totalQuotedPrice  += $final;
+
+    // Weighted by base cost so high-value items carry more weight
+    $weightedMarginSum += $margin * $baseCost;
+    $itemCount++;
 }
-$avgMargin = $totalBaseCost > 0 ? ($totalProfitMarkup / $totalBaseCost) * 100 : 0.0;
+
+// Weighted average margin across all items (not derived from totals)
+$avgMargin = ($totalBaseCost > 0) ? ($weightedMarginSum / $totalBaseCost) : 0.0;
+
+// Selling-price derived metrics (only when selling_price is set)
+$realProfit       = ($selling_price !== null) ? ($selling_price - $totalBaseCost) : null;
+$realMarginPct    = ($selling_price !== null && $totalBaseCost > 0)
+                        ? (($selling_price - $totalBaseCost) / $totalBaseCost * 100)
+                        : null;
+$vsQuoteDiff      = ($selling_price !== null) ? ($selling_price - $totalQuotedPrice) : null;
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -231,32 +254,118 @@ $avgMargin = $totalBaseCost > 0 ? ($totalProfitMarkup / $totalBaseCost) * 100 : 
                     <!-- Job Dashboard view -->
                     
                     <!-- KPI Summary Row -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                            <div class="absolute right-4 top-4 text-slate-100"><i class="ri-coins-line text-4xl"></i></div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Base Cost (Company Expense)</h4>
-                            <p class="text-xl font-extrabold text-slate-900">LKR <?= number_format($totalBaseCost, 2) ?></p>
-                            <small class="text-[10px] text-slate-500">Cost paid directly by A2Z</small>
+                    <?php
+                        $spDiff   = ($selling_price !== null) ? ($selling_price - $totalQuotedPrice) : null;
+                        $spMargin = ($selling_price !== null && $totalBaseCost > 0) ? (($selling_price - $totalBaseCost) / $totalBaseCost) * 100 : null;
+                    ?>
+                    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+                        <!-- Base Cost -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative overflow-hidden">
+                            <div class="absolute right-3 top-3 text-slate-100"><i class="ri-coins-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Base Material Cost</h4>
+                            <p class="text-lg font-extrabold text-slate-900">LKR <?= number_format($totalBaseCost, 2) ?></p>
+                            <small class="text-[10px] text-slate-500">A2Z direct spend</small>
                         </div>
-                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                            <div class="absolute right-4 top-4 text-slate-100"><i class="ri-percent-line text-4xl"></i></div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Average Profit Margin</h4>
-                            <p class="text-xl font-extrabold text-indigo-600"><?= number_format($avgMargin, 1) ?>%</p>
-                            <small class="text-[10px] text-slate-500">Markup applied to materials</small>
+                        <!-- Avg Margin -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative overflow-hidden">
+                            <div class="absolute right-3 top-3 text-slate-100"><i class="ri-percent-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Avg. Margin (Items)</h4>
+                            <p class="text-lg font-extrabold text-indigo-600"><?= number_format($avgMargin, 1) ?>%</p>
+                            <small class="text-[10px] text-slate-500">Per-item markup avg.</small>
                         </div>
-                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                            <div class="absolute right-4 top-4 text-slate-100"><i class="ri-pulse-line text-4xl"></i></div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Profit Markup Amount</h4>
-                            <p class="text-xl font-extrabold text-emerald-600">LKR <?= number_format($totalProfitMarkup, 2) ?></p>
-                            <small class="text-[10px] text-slate-500">Net profit generated from items</small>
+                        <!-- Profit Markup -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative overflow-hidden">
+                            <div class="absolute right-3 top-3 text-slate-100"><i class="ri-pulse-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Calculated Markup</h4>
+                            <p class="text-lg font-extrabold text-emerald-600">LKR <?= number_format($totalProfitMarkup, 2) ?></p>
+                            <small class="text-[10px] text-slate-500">Sum of item profits</small>
                         </div>
-                        <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative overflow-hidden">
-                            <div class="absolute right-4 top-4 text-slate-100"><i class="ri-bill-line text-4xl"></i></div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Final Price (Client Quote)</h4>
-                            <p class="text-xl font-extrabold text-slate-950">LKR <?= number_format($totalQuotedPrice, 2) ?></p>
-                            <small class="text-[10px] text-slate-500">Final price listed in quotation</small>
+                        <!-- Calculated Quote -->
+                        <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm relative overflow-hidden">
+                            <div class="absolute right-3 top-3 text-slate-100"><i class="ri-bill-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Calculated Quote</h4>
+                            <p class="text-lg font-extrabold text-slate-800">LKR <?= number_format($totalQuotedPrice, 2) ?></p>
+                            <small class="text-[10px] text-slate-500">Auto-sum with margins</small>
+                        </div>
+                        <!-- TOTAL SYSTEM SELLING PRICE -->
+                        <div class="<?= $selling_price !== null ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 border-indigo-700 text-white' : 'bg-white border-dashed border-indigo-300' ?> border p-5 rounded-2xl shadow-sm relative overflow-hidden">
+                            <div class="absolute right-3 top-3 <?= $selling_price !== null ? 'text-indigo-400' : 'text-slate-100' ?>"><i class="ri-price-tag-3-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold <?= $selling_price !== null ? 'text-indigo-200' : 'text-indigo-500' ?> uppercase tracking-wider mb-1">Total System Price</h4>
+                            <?php if ($selling_price !== null): ?>
+                                <p class="text-lg font-extrabold text-white">LKR <?= number_format($selling_price, 2) ?></p>
+                                <?php if ($spDiff >= 0): ?>
+                                    <small class="text-[10px] text-emerald-300 font-semibold">↑ LKR <?= number_format($spDiff, 2) ?> above quote</small>
+                                <?php else: ?>
+                                    <small class="text-[10px] text-red-300 font-semibold">↓ LKR <?= number_format(abs($spDiff), 2) ?> below quote</small>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <p class="text-sm font-bold text-indigo-500 mt-1">Not set yet</p>
+                                <small class="text-[10px] text-slate-400">Set the actual selling price</small>
+                            <?php endif; ?>
                         </div>
                     </div>
+
+                    <!-- Selling Price Edit Bar -->
+                    <div class="bg-white border border-indigo-100 rounded-2xl shadow-sm p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-slate-700 mb-0.5"><i class="ri-price-tag-3-line text-indigo-500 mr-1"></i>Total System Selling Price to Client</p>
+                            <p class="text-[10px] text-slate-400">This is the actual price A2Z charges for the full system — different from the per-item calculated quote above. Setting this lets you track the real profit margin on each job.</p>
+                        </div>
+                        <form method="POST" action="<?= BASE_PATH ?>/reports/material_find?job_id=<?= $job_id ?>&action=set_selling_price" class="flex items-center gap-2 shrink-0">
+                            <input type="hidden" name="action" value="set_selling_price">
+                            <input type="hidden" name="job_id" value="<?= $job_id ?>">
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-[10px] font-bold text-slate-400">LKR</span>
+                                <input type="number" step="0.01" min="0" name="selling_price"
+                                       value="<?= $selling_price !== null ? htmlspecialchars($selling_price, ENT_QUOTES) : '' ?>"
+                                       placeholder="e.g. 950000.00"
+                                       class="pl-10 pr-3 py-2.5 border border-indigo-200 rounded-xl text-xs font-bold text-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none w-44 shadow-sm">
+                            </div>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                                <i class="ri-save-line"></i> Save Price
+                            </button>
+                            <?php if ($selling_price !== null): ?>
+                            <button type="submit" name="selling_price" value="" class="text-slate-400 hover:text-red-500 px-2 py-2.5 rounded-xl text-xs transition-colors" title="Clear selling price">
+                                <i class="ri-close-circle-line"></i>
+                            </button>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+
+                    <?php if ($selling_price !== null): ?>
+                    <!-- Real Profit Summary (only when selling price is set) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                        <!-- Real Profit Amount -->
+                        <div class="<?= $realProfit >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200' ?> border rounded-2xl p-5 relative overflow-hidden">
+                            <div class="absolute right-3 top-3 <?= $realProfit >= 0 ? 'text-emerald-100' : 'text-red-100' ?>"><i class="ri-money-dollar-circle-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold <?= $realProfit >= 0 ? 'text-emerald-700' : 'text-red-700' ?> uppercase tracking-wider mb-1">Real Profit (After System Sale)</h4>
+                            <p class="text-lg font-extrabold <?= $realProfit >= 0 ? 'text-emerald-800' : 'text-red-800' ?>">
+                                <?= $realProfit >= 0 ? '' : '−' ?>LKR <?= number_format(abs($realProfit), 2) ?>
+                            </p>
+                            <small class="text-[10px] <?= $realProfit >= 0 ? 'text-emerald-600' : 'text-red-600' ?>">Selling Price − Base Material Cost</small>
+                        </div>
+                        <!-- Real Margin % -->
+                        <div class="<?= ($realMarginPct !== null && $realMarginPct >= 0) ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200' ?> border rounded-2xl p-5 relative overflow-hidden">
+                            <div class="absolute right-3 top-3 <?= ($realMarginPct !== null && $realMarginPct >= 0) ? 'text-emerald-100' : 'text-red-100' ?>"><i class="ri-percent-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold <?= ($realMarginPct !== null && $realMarginPct >= 0) ? 'text-emerald-700' : 'text-red-700' ?> uppercase tracking-wider mb-1">Real Profit Margin</h4>
+                            <p class="text-lg font-extrabold <?= ($realMarginPct !== null && $realMarginPct >= 0) ? 'text-emerald-800' : 'text-red-800' ?>">
+                                <?= number_format($realMarginPct, 2) ?>%
+                            </p>
+                            <small class="text-[10px] <?= ($realMarginPct !== null && $realMarginPct >= 0) ? 'text-emerald-600' : 'text-red-600' ?>">On total base material cost</small>
+                        </div>
+                        <!-- vs Calculated Quote -->
+                        <div class="<?= ($vsQuoteDiff !== null && $vsQuoteDiff >= 0) ? 'bg-sky-50 border-sky-200' : 'bg-amber-50 border-amber-200' ?> border rounded-2xl p-5 relative overflow-hidden">
+                            <div class="absolute right-3 top-3 <?= ($vsQuoteDiff !== null && $vsQuoteDiff >= 0) ? 'text-sky-100' : 'text-amber-100' ?>"><i class="ri-exchange-funds-line text-4xl"></i></div>
+                            <h4 class="text-[9px] font-bold <?= ($vsQuoteDiff !== null && $vsQuoteDiff >= 0) ? 'text-sky-700' : 'text-amber-700' ?> uppercase tracking-wider mb-1">vs. Calculated Quote</h4>
+                            <p class="text-lg font-extrabold <?= ($vsQuoteDiff !== null && $vsQuoteDiff >= 0) ? 'text-sky-800' : 'text-amber-800' ?>">
+                                <?= $vsQuoteDiff >= 0 ? '+' : '−' ?>LKR <?= number_format(abs($vsQuoteDiff), 2) ?>
+                            </p>
+                            <small class="text-[10px] <?= ($vsQuoteDiff !== null && $vsQuoteDiff >= 0) ? 'text-sky-600' : 'text-amber-600' ?>">
+                                <?= $vsQuoteDiff >= 0 ? 'Sold above item-level quote' : 'Sold below item-level quote' ?>
+                            </small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <!-- Double Column Layout -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -394,34 +503,60 @@ $avgMargin = $totalBaseCost > 0 ? ($totalProfitMarkup / $totalBaseCost) * 100 : 
                                             </tr>
                                         <?php else: ?>
                                             <?php foreach ($materials as $item): ?>
-                                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                                <tr class="hover:bg-slate-50/50 transition-colors" data-row-id="<?php echo intval($item['id']); ?>">
                                                     <td class="p-4 font-semibold text-slate-800">
                                                         <?php echo htmlspecialchars($item['material_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                                                     </td>
-                                                    <td class="p-4 text-center font-medium text-slate-600">
-                                                        <?php echo floatval($item['quantity']); ?>
+                                                    <td class="p-4 text-center">
+                                                        <input type="number" step="any" min="0.01" 
+                                                               class="inline-qty-input w-16 px-1.5 py-1 text-center border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all text-xs font-semibold text-slate-700 bg-slate-50/50 hover:bg-white" 
+                                                               value="<?php echo floatval($item['quantity']); ?>" 
+                                                               data-item-id="<?php echo intval($item['id']); ?>">
                                                     </td>
-                                                    <td class="p-4 text-right text-slate-600 font-medium">
-                                                        LKR <?php echo number_format(floatval($item['unit_price']), 2); ?>
+                                                    <td class="p-4 text-right">
+                                                        <div class="relative inline-block w-28">
+                                                            <span class="absolute left-2.5 top-1 text-[9px] text-slate-400 font-bold">LKR</span>
+                                                            <input type="number" step="any" min="0" 
+                                                                   class="inline-price-input pl-8 pr-1.5 py-1 w-full text-right border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all text-xs font-semibold text-slate-700 bg-slate-50/50 hover:bg-white" 
+                                                                   value="<?php echo floatval($item['unit_price']); ?>" 
+                                                                   data-item-id="<?php echo intval($item['id']); ?>">
+                                                        </div>
                                                     </td>
-                                                    <td class="p-4 text-right text-slate-800 font-semibold">
-                                                        LKR <?php echo number_format(floatval($item['total_cost']), 2); ?>
-                                                    </td>
-                                                    <td class="p-4 text-center font-bold text-indigo-600">
-                                                        <?php echo floatval($item['profit_margin']); ?>%
-                                                    </td>
-                                                    <td class="p-4 text-right text-slate-900 font-bold bg-slate-50/30">
-                                                        LKR <?php echo number_format(floatval($item['final_price']), 2); ?>
+                                                    <td class="p-4 text-right font-semibold text-slate-800">
+                                                        <span class="base-cost-display" data-item-id="<?php echo intval($item['id']); ?>">
+                                                            LKR <?php echo number_format(floatval($item['total_cost']), 2); ?>
+                                                        </span>
                                                     </td>
                                                     <td class="p-4 text-center">
-                                                         <form method="POST" action="<?php echo BASE_PATH; ?>/reports/material_find?job_id=<?php echo $job_id; ?>&action=delete" onsubmit="return confirm('Are you sure you want to delete this material item?');" class="inline-block">
-                                                             <input type="hidden" name="action" value="delete">
-                                                             <input type="hidden" name="job_id" value="<?php echo $job_id; ?>">
-                                                             <input type="hidden" name="item_id" value="<?php echo intval($item['id']); ?>">
-                                                             <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200" title="Delete Material">
-                                                                 <i class="ri-delete-bin-line text-sm"></i>
+                                                        <div class="relative inline-block w-20">
+                                                            <input type="number" step="any" min="0" max="100" 
+                                                                   class="inline-margin-input pl-1.5 pr-5 py-1 w-full text-center border border-slate-200 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all text-xs font-bold text-indigo-650 bg-indigo-50/20 hover:bg-white" 
+                                                                   value="<?php echo floatval($item['profit_margin']); ?>" 
+                                                                   data-item-id="<?php echo intval($item['id']); ?>">
+                                                            <span class="absolute right-1.5 top-1 text-[9px] text-indigo-400 font-bold">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="p-4 text-right text-slate-900 font-bold bg-slate-50/30">
+                                                        <span class="quoted-price-display" data-item-id="<?php echo intval($item['id']); ?>">
+                                                            LKR <?php echo number_format(floatval($item['final_price']), 2); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-4 text-center">
+                                                        <div class="flex items-center justify-center space-x-1">
+                                                             <button class="inline-save-btn p-1.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all duration-200 hidden" 
+                                                                     data-item-id="<?php echo intval($item['id']); ?>" 
+                                                                     title="Save changes">
+                                                                 <i class="ri-save-line text-sm"></i>
                                                              </button>
-                                                         </form>
+                                                             <form method="POST" action="<?php echo BASE_PATH; ?>/reports/material_find?job_id=<?php echo $job_id; ?>&action=delete" onsubmit="return confirm('Are you sure you want to delete this material item?');" class="inline-block m-0">
+                                                                 <input type="hidden" name="action" value="delete">
+                                                                 <input type="hidden" name="job_id" value="<?php echo $job_id; ?>">
+                                                                 <input type="hidden" name="item_id" value="<?php echo intval($item['id']); ?>">
+                                                                 <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200" title="Delete Material">
+                                                                     <i class="ri-delete-bin-line text-sm"></i>
+                                                                 </button>
+                                                             </form>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -564,6 +699,141 @@ $avgMargin = $totalBaseCost > 0 ? ($totalProfitMarkup / $totalBaseCost) * 100 : 
                 });
             });
         });
+
+        // Inline editing for Materials List
+        document.querySelectorAll('.inline-qty-input, .inline-price-input, .inline-margin-input').forEach(input => {
+            const itemId = input.getAttribute('data-item-id');
+            const row = input.closest('tr');
+            
+            const qtyInput = row.querySelector('.inline-qty-input');
+            const priceInput = row.querySelector('.inline-price-input');
+            const marginInput = row.querySelector('.inline-margin-input');
+            const saveBtn = row.querySelector('.inline-save-btn');
+            
+            // Local state to prevent duplicate/redundant saves
+            let lastValue = input.value;
+            
+            input.addEventListener('input', () => {
+                // Calculate new values locally
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const margin = parseFloat(marginInput.value) || 0;
+                
+                const baseCost = qty * price;
+                const quoted = baseCost * (1 + margin / 100);
+                
+                const baseCostSpan = row.querySelector('.base-cost-display');
+                const quotedPriceSpan = row.querySelector('.quoted-price-display');
+                
+                if (baseCostSpan) baseCostSpan.textContent = formatLKR(baseCost);
+                if (quotedPriceSpan) quotedPriceSpan.textContent = formatLKR(quoted);
+                
+                // Show save button
+                if (saveBtn) {
+                    saveBtn.classList.remove('hidden');
+                    saveBtn.classList.add('inline-block');
+                }
+            });
+
+            // Save on Enter
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (input.value !== lastValue) {
+                        saveRow(itemId, row);
+                        lastValue = input.value;
+                    }
+                }
+            });
+
+            // Save on Blur (focusout)
+            input.addEventListener('blur', () => {
+                if (input.value !== lastValue) {
+                    // Delay slightly to check if we are shifting focus within the same row's inputs
+                    setTimeout(() => {
+                        if (document.activeElement !== qtyInput && document.activeElement !== priceInput && document.activeElement !== marginInput) {
+                            saveRow(itemId, row);
+                            lastValue = input.value;
+                        }
+                    }, 150);
+                }
+            });
+        });
+
+        // Click save button manually
+        document.querySelectorAll('.inline-save-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const itemId = btn.getAttribute('data-item-id');
+                const row = btn.closest('tr');
+                saveRow(itemId, row);
+            });
+        });
+
+        function saveRow(itemId, row) {
+            const qtyInput = row.querySelector('.inline-qty-input');
+            const priceInput = row.querySelector('.inline-price-input');
+            const marginInput = row.querySelector('.inline-margin-input');
+            const saveBtn = row.querySelector('.inline-save-btn');
+
+            const qty = parseFloat(qtyInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const margin = parseFloat(marginInput.value) || 0;
+
+            if (qty <= 0 || price <= 0) return;
+
+            // Show spinner/loading state in save button
+            if (saveBtn) {
+                saveBtn.classList.remove('hidden');
+                saveBtn.classList.add('inline-block');
+                saveBtn.innerHTML = '<i class="ri-loader-4-line animate-spin text-sm text-indigo-600"></i>';
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'update');
+            formData.append('ajax', '1');
+            formData.append('item_id', itemId);
+            formData.append('quantity', qty);
+            formData.append('unit_price', price);
+            formData.append('profit_margin', margin);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Success highlight flash
+                    row.classList.add('bg-emerald-50/50');
+                    setTimeout(() => row.classList.remove('bg-emerald-50/50'), 1000);
+
+                    if (saveBtn) {
+                        saveBtn.innerHTML = '<i class="ri-checkbox-circle-fill text-emerald-500 text-sm"></i>';
+                        setTimeout(() => {
+                            saveBtn.classList.add('hidden');
+                            saveBtn.innerHTML = '<i class="ri-save-line text-sm"></i>';
+                        }, 1500);
+                    }
+                    
+                    // Reload page to refresh the page's top KPI cards
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert(data.message || 'Error updating item.');
+                    if (saveBtn) {
+                        saveBtn.innerHTML = '<i class="ri-error-warning-fill text-red-500 text-sm"></i>';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="ri-error-warning-fill text-red-500 text-sm"></i>';
+                }
+            });
+        }
     </script>
 </body>
 </html>

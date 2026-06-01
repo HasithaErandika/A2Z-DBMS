@@ -995,7 +995,7 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
     public function getActiveJobsList(): array {
         try {
             $stmt = $this->db->query("
-                SELECT j.job_id, j.customer_reference, j.location, p.company_reference
+                SELECT j.job_id, j.customer_reference, j.location, j.selling_price, p.company_reference
                 FROM jobs j
                 LEFT JOIN projects p ON j.project_id = p.project_id
                 WHERE j.project_id = 5
@@ -1013,8 +1013,14 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
      */
     public function addJobMaterialItem($jobId, $name, $qty, $unitPrice, $margin): bool {
         try {
+            $margin = floatval($margin);
+            if ($margin > 0 && $margin < 1) {
+                $margin = round($margin * 100, 4);
+            }
+            if ($margin > 100) { $margin = 100; }
+
             $totalCost = floatval($qty) * floatval($unitPrice);
-            $profitAmount = $totalCost * (floatval($margin) / 100);
+            $profitAmount = $totalCost * ($margin / 100);
             $finalPrice = $totalCost + $profitAmount;
 
             $stmt = $this->db->prepare("
@@ -1033,6 +1039,32 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
             ]);
         } catch (PDOException $e) {
             error_log("Error in addJobMaterialItem: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Update an existing material item and automatically calculate values
+     */
+    public function updateJobMaterialItem(int $id, float $qty, float $unitPrice, float $margin): bool {
+        try {
+            if ($margin > 0 && $margin < 1) {
+                $margin = round($margin * 100, 4);
+            }
+            if ($margin > 100) { $margin = 100; }
+
+            $totalCost    = $qty * $unitPrice;
+            $profitAmount = $totalCost * ($margin / 100);
+            $finalPrice   = $totalCost + $profitAmount;
+
+            $stmt = $this->db->prepare("
+                UPDATE job_materials 
+                SET quantity = ?, unit_price = ?, profit_margin = ?, total_cost = ?, profit_amount = ?, final_price = ?
+                WHERE id = ?
+            ");
+            return $stmt->execute([$qty, $unitPrice, $margin, $totalCost, $profitAmount, $finalPrice, $id]);
+        } catch (PDOException $e) {
+            error_log("Error in updateJobMaterialItem: " . $e->getMessage());
             return false;
         }
     }
@@ -1086,9 +1118,16 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
                 $rowNum = $i + 2; // Excel row number (1=header)
 
                 $name   = trim($row['material_name'] ?? '');
-                $qty    = floatval($row['quantity'] ?? 0);
-                $price  = floatval($row['unit_price'] ?? 0);
+                $qty    = floatval($row['quantity']    ?? 0);
+                $price  = floatval($row['unit_price']  ?? 0);
                 $margin = floatval($row['profit_margin'] ?? 0);
+
+                // PhpSpreadsheet reads Excel percentage-formatted cells (e.g. "10%") as 0.10.
+                // Auto-scale to percentage when value is between 0 and 1 exclusive.
+                if ($margin > 0 && $margin < 1) {
+                    $margin = round($margin * 100, 4);
+                }
+                if ($margin > 100) { $margin = 100; }
 
                 if ($name === '') {
                     $errors[] = "Row {$rowNum}: Material name is empty — skipped.";
@@ -1122,6 +1161,35 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
         }
 
         return compact('inserted', 'skipped', 'errors');
+    }
+
+    /**
+     * Get the total system selling price for a job (set by user, overrides calculated quote)
+     */
+    public function getJobSellingPrice(int $jobId): ?float {
+        try {
+            $stmt = $this->db->prepare("SELECT selling_price FROM jobs WHERE job_id = ?");
+            $stmt->execute([$jobId]);
+            $val = $stmt->fetchColumn();
+            return ($val !== false && $val !== null) ? floatval($val) : null;
+        } catch (PDOException $e) {
+            error_log("Error in getJobSellingPrice: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Set (or clear) the total system selling price for a job
+     */
+    public function setJobSellingPrice(int $jobId, ?float $price): bool {
+        try {
+            $stmt = $this->db->prepare("UPDATE jobs SET selling_price = ? WHERE job_id = ?");
+            $stmt->execute([$price, $jobId]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Error in setJobSellingPrice: " . $e->getMessage());
+            return false;
+        }
     }
 
 }
