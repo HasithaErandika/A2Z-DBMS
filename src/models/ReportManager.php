@@ -1019,24 +1019,12 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
             }
             if ($margin > 100) { $margin = 100; }
 
-            $totalCost = floatval($qty) * floatval($unitPrice);
-            $profitAmount = $totalCost * ($margin / 100);
-            $finalPrice = $totalCost + $profitAmount;
-
+            // total_cost, profit_amount, final_price are GENERATED columns — MySQL computes them.
             $stmt = $this->db->prepare("
-                INSERT INTO job_materials (job_id, material_name, quantity, unit_price, profit_margin, total_cost, profit_amount, final_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO job_materials (job_id, material_name, quantity, unit_price, profit_margin)
+                VALUES (?, ?, ?, ?, ?)
             ");
-            return $stmt->execute([
-                $jobId,
-                $name,
-                $qty,
-                $unitPrice,
-                $margin,
-                $totalCost,
-                $profitAmount,
-                $finalPrice
-            ]);
+            return $stmt->execute([$jobId, $name, $qty, $unitPrice, $margin]);
         } catch (PDOException $e) {
             error_log("Error in addJobMaterialItem: " . $e->getMessage());
             return false;
@@ -1053,16 +1041,13 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
             }
             if ($margin > 100) { $margin = 100; }
 
-            $totalCost    = $qty * $unitPrice;
-            $profitAmount = $totalCost * ($margin / 100);
-            $finalPrice   = $totalCost + $profitAmount;
-
+            // total_cost, profit_amount, final_price are GENERATED columns — MySQL computes them.
             $stmt = $this->db->prepare("
                 UPDATE job_materials 
-                SET quantity = ?, unit_price = ?, profit_margin = ?, total_cost = ?, profit_amount = ?, final_price = ?
+                SET quantity = ?, unit_price = ?, profit_margin = ?
                 WHERE id = ?
             ");
-            return $stmt->execute([$qty, $unitPrice, $margin, $totalCost, $profitAmount, $finalPrice, $id]);
+            return $stmt->execute([$qty, $unitPrice, $margin, $id]);
         } catch (PDOException $e) {
             error_log("Error in updateJobMaterialItem: " . $e->getMessage());
             return false;
@@ -1108,10 +1093,11 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
         try {
             $this->db->beginTransaction();
 
+            // total_cost, profit_amount, final_price are GENERATED columns — MySQL computes them.
             $stmt = $this->db->prepare("
                 INSERT INTO job_materials
-                    (job_id, material_name, quantity, unit_price, profit_margin, total_cost, profit_amount, final_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (job_id, material_name, quantity, unit_price, profit_margin)
+                VALUES (?, ?, ?, ?, ?)
             ");
 
             foreach ($rows as $i => $row) {
@@ -1145,11 +1131,7 @@ public function getDetailedExpenseRows($start_date = null, $end_date = null): ar
                     continue;
                 }
 
-                $totalCost    = $qty * $price;
-                $profitAmount = $totalCost * ($margin / 100);
-                $finalPrice   = $totalCost + $profitAmount;
-
-                $stmt->execute([$jobId, $name, $qty, $price, $margin, $totalCost, $profitAmount, $finalPrice]);
+                $stmt->execute([$jobId, $name, $qty, $price, $margin]);
                 $inserted++;
             }
 
