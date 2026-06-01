@@ -257,7 +257,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                     <thead class="bg-blue-600 text-white">
                         <tr>
                             <?php foreach ($data['columns'] as $column): ?>
-                                <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
+                                <?php 
+                                if ($data['table'] === 'jobs' && $column === 'status') continue; 
+                                if (in_array($column, ['created_at', 'updated_at', 'deleted_at', 'is_deleted', 'role_id', 'payment_type_id', 'rate_type_id', 'increment_type_id', 'payment_category_id', 'status_id'])) continue;
+                                ?>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
                                     <?php echo str_replace('_', ' ', $column); ?>
                                 </th>
@@ -318,10 +321,12 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                     ];
                     $primaryKey = $primaryKeys[$data['table']] ?? $data['columns'][0];
                     $dateColumns = ['date_started', 'date_completed', 'date', 'attendance_date', 'date_of_joined', 'date_of_resigned', 'date_of_birth', 'effective_date', 'end_date', 'expensed_date', 'invoice_date', 'payment_date', 'increment_date', 'txn_date', 'payment_received_date', 'scheduled_date', 'actual_date'];
+                    $editableFields = $data['config']['editableFields'] ?? [];
                     
                     foreach ($data['columns'] as $column):
                         if ($column === 'completion') continue;
                         if ($data['table'] === 'jobs' && $column === 'status') continue;
+                        if ($column !== $primaryKey && !empty($editableFields) && !in_array($column, $editableFields)) continue;
                         
                         $label = ucfirst(str_replace('_', ' ', $column));
                         $isFullWidth = in_array($column, ['remarks', 'description', 'project_description', 'reason']);
@@ -537,7 +542,10 @@ if (!defined('BASE_PATH')) define('BASE_PATH', '/');
                 },
                 columns: [
                     <?php foreach ($data['columns'] as $column): ?>
-                        <?php if ($data['table'] === 'jobs' && $column === 'status') continue; ?>
+                        <?php 
+                        if ($data['table'] === 'jobs' && $column === 'status') continue; 
+                        if (in_array($column, ['created_at', 'updated_at', 'deleted_at', 'is_deleted', 'role_id', 'payment_type_id', 'rate_type_id', 'increment_type_id', 'payment_category_id', 'status_id'])) continue;
+                        ?>
                         { 
                             data: "<?php echo $column; ?>",
                             render: function(data, type, row) {

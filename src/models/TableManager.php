@@ -693,16 +693,14 @@ class TableManager extends Model
             $this->db->beginTransaction();
             $config = $this->getConfig($table);
             if ($table === 'job_materials') {
-                $qty = floatval($data['quantity'] ?? 0);
-                $price = floatval($data['unit_price'] ?? 0);
-                $margin = floatval($data['profit_margin'] ?? 0);
-                $data['total_cost'] = $qty * $price;
-                $data['profit_amount'] = $data['total_cost'] * ($margin / 100);
-                $data['final_price'] = $data['total_cost'] + $data['profit_amount'];
-                if (isset($config['editableFields'])) {
-                    $config['editableFields'][] = 'total_cost';
-                    $config['editableFields'][] = 'profit_amount';
-                    $config['editableFields'][] = 'final_price';
+                if (isset($data['profit_margin'])) {
+                    $margin = floatval($data['profit_margin']);
+                    if ($margin > 0 && $margin < 1) {
+                        $data['profit_margin'] = round($margin * 100, 4);
+                    }
+                    if ($data['profit_margin'] > 100) {
+                        $data['profit_margin'] = 100;
+                    }
                 }
             }
             $this->validate($table, $data, $config['validation'] ?? []);
@@ -754,16 +752,14 @@ class TableManager extends Model
             }
             $config = $this->getConfig($table);
             if ($table === 'job_materials') {
-                $qty = floatval($data['quantity'] ?? 0);
-                $price = floatval($data['unit_price'] ?? 0);
-                $margin = floatval($data['profit_margin'] ?? 0);
-                $data['total_cost'] = $qty * $price;
-                $data['profit_amount'] = $data['total_cost'] * ($margin / 100);
-                $data['final_price'] = $data['total_cost'] + $data['profit_amount'];
-                if (isset($config['editableFields'])) {
-                    $config['editableFields'][] = 'total_cost';
-                    $config['editableFields'][] = 'profit_amount';
-                    $config['editableFields'][] = 'final_price';
+                if (isset($data['profit_margin'])) {
+                    $margin = floatval($data['profit_margin']);
+                    if ($margin > 0 && $margin < 1) {
+                        $data['profit_margin'] = round($margin * 100, 4);
+                    }
+                    if ($data['profit_margin'] > 100) {
+                        $data['profit_margin'] = 100;
+                    }
                 }
             }
             $this->validate($table, $data, $config['validation'] ?? []);
